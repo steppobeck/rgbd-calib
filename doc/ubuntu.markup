@@ -1,0 +1,16 @@
+Required packages
+=================
+CMake: sudo apt-get install cmake
+ccmake: sudo apt-get install cmake-curses-gui
+sudo apt-get install build-essential freeglut3-dev xorg-dev libglu1-mesa-dev
+sudo apt-get install libxi-dev libxrandr-dev
+
+First compilation
+=================
+cd fensterchen
+mkdir build
+cd build
+cmake ..
+
+# compile
+make -j4
