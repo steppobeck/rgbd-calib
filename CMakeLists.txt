@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 2.8)
-project(fensterchen)
+project(rgbd-calib)
+
+
+if (UNIX)
+  find_package(PkgConfig)
+endif(UNIX)
+
+# Location where cmake first looks for modules.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
+
+
 
 if(MSVC)
   set(BINARY_DIRECTORY build)
@@ -10,6 +20,10 @@ if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" 
   set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
   set(CMAKE_CXX_FLAGS "-std=c++0x")
 endif()
+
+################################
+# zmq
+include(FindZMQ)
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 option(FENSTERCHEN_IN_SOURCE_BUILD "FENSTERCHEN_IN_SOURCE_BUILD" OFF)
@@ -34,13 +48,17 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY}/inclu
 set(GLM_DIRECTORY glm-0.9.5.3)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
 
+include_directories(${ZMQ_INCLUDE_DIRS})
+
 ################################
 # Add libraries to executables
 
-set(LIBRARIES glfw ${GLFW_LIBRARIES})
+set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES})
 
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
+link_directories(${ZMQ_LIBRARY_DIRS})
+
 
 ################################
 # Add output directory
