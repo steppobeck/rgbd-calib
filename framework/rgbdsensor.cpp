@@ -53,6 +53,9 @@ RGBDSensor::calc_pos_rgb(const glm::vec3& pos_d){
   float xcf = (pos_rgb_H[0]/pos_rgb_H[2]) * config.focal_rgb.x + config.principal_rgb.x;
   float ycf = (pos_rgb_H[1]/pos_rgb_H[2]) * config.focal_rgb.y + config.principal_rgb.y;
 
+  xcf = std::max(0.0f, std::min(xcf, config.size_rgb.x - 1.0f));
+  ycf = std::max(0.0f, std::min(ycf, config.size_rgb.y - 1.0f));
+
   return glm::vec2(xcf,ycf);
 
 }
@@ -81,40 +84,40 @@ RGBDSensor::recv(bool recvir){
 glm::vec3
 RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
 
-
-  // convert from float coordinates to nearest interger coordinates
-  const unsigned xc = std::max( 0u, 
-				std::min( config.size_rgb.x - 1u, (unsigned) std::floor(pos_rgb.x)));
-  const unsigned yc = std::max( 0u,
-				std::min( config.size_rgb.y - 1u, (unsigned) std::floor(pos_rgb.y)));
-  
-  unsigned char r = frame_rgb[(yc * config.size_rgb.x * 3) + 3 * xc];
-  unsigned char g = frame_rgb[(yc * config.size_rgb.x * 3) + 3 * xc + 1];
-  unsigned char b = frame_rgb[(yc * config.size_rgb.x * 3) + 3 * xc + 2];
-
   glm::vec3 rgb;
 
-  rgb.x = r/255.0;
-  rgb.y = g/255.0;
-  rgb.z = b/255.0;
-  return rgb;
 
-  // BROKEN FROM HERE DON'T KNOW WHY
+
+  //rgb.z = 0.0f;
+  //rgb.x = pos_rgb.x / config.size_rgb.x;
+  //rgb.y = pos_rgb.y / config.size_rgb.y;
+  //return rgb;
+
+
 
   // calculate weights and boundaries along x direction
   const unsigned xa = std::floor(pos_rgb.x);
   const unsigned xb = std::ceil(pos_rgb.x);
-  const double w_xb = (pos_rgb.x - xa)/255.0;
-  const double w_xa = (1.0 - w_xb)/255.0;
+  const float w_xb = (pos_rgb.x - xa);
+  const float w_xa = (1.0 - w_xb);
 
   // calculate weights and boundaries along y direction
   const unsigned ya = std::floor(pos_rgb.y);
   const unsigned yb = std::ceil(pos_rgb.y);
-  const double w_yb = (pos_rgb.y - ya)/255.0;
-  const double w_ya = (1.0 - w_yb)/255.0;
+  const float w_yb = (pos_rgb.y - ya);
+  const float w_ya = (1.0 - w_yb);
+
+  //std::cout << pos_rgb.x << " " << xa << " " << xb << std::endl;
+  //std::cout << pos_rgb.y << " " << ya << " " << yb << std::endl;
+
+  //rgb.x = xa * 1.0f / config.size_rgb.x;
+  //rgb.y = ya * 1.0f / config.size_rgb.y;
+
+  //rgb.x = frame_rgb[ya * 3 * config.size_rgb.x + 3 * xa];
+  //rgb.x /= 255.0;
+  //return rgb;
 
 
-    
   // calculate indices to access data
   const unsigned idmax = 3u * config.size_rgb.x * config.size_rgb.y - 2u;
   const unsigned id00 = std::min( ya * 3u * config.size_rgb.x + 3u * xa  , idmax);
@@ -149,6 +152,10 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
     // 2. interpolate between y direction;
     rgb.z = w_ya * tmp_ya + w_yb * tmp_yb;
   }
+
+  rgb.x /= 255.0;
+  rgb.y /= 255.0;
+  rgb.z /= 255.0;
 
   return rgb;
 
