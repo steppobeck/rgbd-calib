@@ -1,7 +1,107 @@
 #include <fensterchen.hpp>
+#include <calibvolume.hpp>
 #include <rgbdsensor.hpp>
+#include <CMDParser.hpp>
+
+#include <iostream>
 
 
+int main(int argc, char* argv[]){
+
+  CMDParser p("basefilename serverport");
+  p.init(argc,argv);
+
+  std::string basefilename = p.getArgs()[0];
+  std::string filename_xyz(basefilename + "_xyz");
+  std::string filename_uv(basefilename + "_uv");
+
+  CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
+
+  RGBDConfig cfg;
+  
+  cfg.serverport = p.getArgs()[1];
+
+  cfg.size_rgb = glm::uvec2(1280, 1080);
+  cfg.size_d   = glm::uvec2(512, 424);
+
+  RGBDSensor sensor(cfg);
+
+
+  Window win(glm::ivec2(800,800), true /*3D mode*/);
+
+  while (!win.shouldClose()) {
+
+    auto t = win.getTime();
+    if (win.isKeyPressed(GLFW_KEY_ESCAPE)) {
+      win.stop();
+    }
+
+    // receive frames
+    sensor.recv(false /*recv ir?*/);
+
+    // rotate the 3D reconstruction
+    glTranslatef(0.0,0.0,2.0);
+    glRotatef(180.0*std::sin(0.1*t)/M_PI,0.0,1.0,0.0);
+    glRotatef(180,0.0,1.0,0.0);
+    glRotatef(-90,0.0,0.0,1.0);
+
+    glPointSize(1.1);
+    glBegin(GL_POINTS);
+    // do 3D recosntruction for each depth pixel
+    for(unsigned y = 0; y < sensor.config.size_d.y; ++y){
+      for(unsigned x = 0; x < sensor.config.size_d.x; ++x){
+
+	float d = sensor.frame_d[y* sensor.config.size_d.x + x];
+	if(d < cv.min_d || d > cv.max_d)
+	  continue;
+
+	glm::vec3 pos3D = cv.lookupPos3D( x * 1.0/sensor.config.size_d.x,
+					  y * 1.0/sensor.config.size_d.y, d);
+	glm::vec2 pos2D_rgb_norm = cv.lookupPos2D_normalized( x * 1.0/sensor.config.size_d.x, 
+							      y * 1.0/sensor.config.size_d.y, d);
+
+	glm::vec2 pos2D_rgb(pos2D_rgb_norm.x * sensor.config.size_rgb.x,
+			    pos2D_rgb_norm.y * sensor.config.size_rgb.y);
+
+	glm::vec3 rgb = sensor.get_rgb_bilinear_normalized(pos2D_rgb);
+	glColor3f(rgb.x, rgb.y, rgb.z);
+	glVertex3f(pos3D.x, pos3D.y, pos3D.z);
+
+      }
+    }
+    glEnd();
+
+    //auto m = win.mousePosition();
+
+    win.update();
+  }
+
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
+#include <fensterchen.hpp>
+#include <rgbdsensor.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -76,6 +176,7 @@ int main(int argc, char* argv[]){
 	glm::vec3 pos3D = sensor.calc_pos_d(x, y, d);
 	glm::vec2 pos2D_rgb = sensor.calc_pos_rgb(pos3D);
 
+#if 0
 	// convert from float coordinates to nearest interger coordinates
 	const unsigned xc = std::max( 0u, 
 				      std::min( cfg.size_rgb.x - 1u, (unsigned) floor(pos2D_rgb.x)));
@@ -87,6 +188,10 @@ int main(int argc, char* argv[]){
 	unsigned char b = rgb[(yc * cfg.size_rgb.x * 3) + 3 * xc + 2];
 
 	glColor3f(r*1.0/255, g*1.0/255, b*1.0/255);
+#endif
+
+	glm::vec3 col = sensor.get_rgb_bilinear_normalized(pos2D_rgb);
+	glColor3f(col.x, col.y, col.z);
 	glVertex3f(pos3D.x, pos3D.y, pos3D.z);
 
       }
@@ -104,3 +209,4 @@ int main(int argc, char* argv[]){
 
   return 0;
 }
+#endif

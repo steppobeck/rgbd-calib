@@ -1,7 +1,8 @@
-#include <fensterchen.hpp>
+
+#include <calibvolume.hpp>
 #include <rgbdsensor.hpp>
-
-
+#include <DataTypes.hpp>
+#include <CMDParser.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -9,10 +10,38 @@
 
 int main(int argc, char* argv[]){
 
-  RGBDConfig cfg;
+
+  unsigned cv_width  = 128;
+  unsigned cv_height = 128;
+  unsigned cv_depth  = 256;
+  float    cv_min_d  = 0.5;
+  float    cv_max_d  = 4.5;
+
+  CMDParser p("basefilename");
+  p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
+  p.addOpt("d",2,"depthrange", "use this depth range: 0.5 4.0");
   
+  p.init(argc,argv);
+
+  if(p.isOptSet("s")){
+    cv_width = p.getOptsInt("s")[0];
+    cv_height = p.getOptsInt("s")[1];
+    cv_depth = p.getOptsInt("s")[2];
+  }
+
+  if(p.isOptSet("d")){
+    cv_min_d = p.getOptsInt("d")[0];
+    cv_max_d = p.getOptsInt("d")[1];
+  }
+
+  std::string basefilename = p.getArgs()[0];
+
+  CalibVolume cv(cv_width, cv_height, cv_depth, cv_min_d, cv_max_d);
+
+  RGBDConfig cfg;
   cfg.size_rgb = glm::uvec2(1280, 1080);
   cfg.size_d   = glm::uvec2(512, 424);
+
 
   cfg.principal_rgb = glm::vec2(701.972, 532.143);
   cfg.principal_d   = glm::vec2(257.01, 209.078);
@@ -40,67 +69,40 @@ int main(int argc, char* argv[]){
   cfg.eye_d_to_eye_rgb[3][2] = 0.000195;
   cfg.eye_d_to_eye_rgb[3][3] = 1.0;
 
-  cfg.serverport = "141.54.147.27:7000";
-
   RGBDSensor sensor(cfg);
-  unsigned char* rgb = sensor.frame_rgb;
-  float* depth = sensor.frame_d;
 
+  for(unsigned z = 0; z < cv.depth; ++z){
+    for(unsigned y = 0; y < cv.height; ++y){
+      for(unsigned x = 0; x < cv.width; ++x){
 
+	const unsigned cv_index = (z * cv.width * cv.height) + (y * cv.width) + x;
 
-  Window win(glm::ivec2(800,800), true /*3D mode*/);
+	const float depth = (z  + 0.5) * (cv.max_d - cv.min_d)/cv.depth + cv.min_d;
+	const float xd = (x + 0.5) * sensor.config.size_d.x * 1.0/cv.width;
+	const float yd = (y + 0.5) * sensor.config.size_d.y * 1.0/cv.height;
 
-  while (!win.shouldClose()) {
+	glm::vec3 pos3D_local = sensor.calc_pos_d(xd, yd, depth);
+	glm::vec2 pos2D_rgb   = sensor.calc_pos_rgb(pos3D_local);
+	pos2D_rgb.x /= sensor.config.size_rgb.x;
+	pos2D_rgb.y /= sensor.config.size_rgb.y;
 
-    auto t = win.getTime();
-    if (win.isKeyPressed(GLFW_KEY_ESCAPE)) {
-      win.stop();
-    }
+	xyz pos3D;
+	pos3D.x = pos3D_local.x;
+	pos3D.y = pos3D_local.y;
+	pos3D.z = pos3D_local.z;
+	cv.cv_xyz[cv_index] = pos3D;
 
-    // receive frames
-    sensor.recv(false /*recv ir?*/);
-
-    // rotate the 3D reconstruction
-    glTranslatef(0.0,0.0,2.0);
-    glRotatef(180.0*std::sin(0.1*t)/M_PI,0.0,1.0,0.0);
-    glRotatef(180,0.0,1.0,0.0);
-    glRotatef(-90,0.0,0.0,1.0);
-
-    glPointSize(1.1);
-    glBegin(GL_POINTS);
-    // do 3D recosntruction for each depth pixel
-    for(unsigned y = 0; y < cfg.size_d.y; ++y){
-      for(unsigned x = 0; x < cfg.size_d.x; ++x){
-
-	float d = depth[y* cfg.size_d.x + x];
-	glm::vec3 pos3D = sensor.calc_pos_d(x, y, d);
-	glm::vec2 pos2D_rgb = sensor.calc_pos_rgb(pos3D);
-
-	// convert from float coordinates to nearest interger coordinates
-	const unsigned xc = std::max( 0u, 
-				      std::min( cfg.size_rgb.x - 1u, (unsigned) floor(pos2D_rgb.x)));
-	const unsigned yc = std::max( 0u,
-				      std::min( cfg.size_rgb.y - 1u, (unsigned) floor(pos2D_rgb.y)));
-	  
-	unsigned char r = rgb[(yc * cfg.size_rgb.x * 3) + 3 * xc];
-	unsigned char g = rgb[(yc * cfg.size_rgb.x * 3) + 3 * xc + 1];
-	unsigned char b = rgb[(yc * cfg.size_rgb.x * 3) + 3 * xc + 2];
-
-	glColor3f(r*1.0/255, g*1.0/255, b*1.0/255);
-	glVertex3f(pos3D.x, pos3D.y, pos3D.z);
-
+	uv posUV;
+	posUV.u = pos2D_rgb.x;
+	posUV.v = pos2D_rgb.y;
+	cv.cv_uv[cv_index] = posUV;
       }
     }
-    glEnd();
-
-    
-
-    //auto m = win.mousePosition();
-
-    
-
-    win.update();
   }
+
+  std::string filename_xyz(basefilename + "_xyz");
+  std::string filename_uv(basefilename + "_uv");
+  cv.save(filename_xyz.c_str(), filename_uv.c_str());
 
   return 0;
 }

@@ -1,5 +1,6 @@
 #ifndef RGBD_CALIB_RGBDSENSOR_HPP
 #define RGBD_CALIB_RGBDSENSOR_HPP
+
 #define GLM_FORCE_RADIANS
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -22,7 +23,6 @@ public:
 
   glm::mat4 eye_d_to_eye_rgb;
   std::string serverport;
-
 };
 
 
@@ -39,15 +39,17 @@ public:
   float* frame_d;
   
   glm::vec3 calc_pos_d(float x /* in pixels*/, float y /*in pixels*/, float d /* in meters*/);
-  // retrieve 2D pixel coordinates for a given 3D position in front of the sensor
+  // retrieve 2D pixel coordinates for a given 3D position in front of the sensor in pixels
   glm::vec2 calc_pos_rgb(const glm::vec3& pos_d);
 
   void recv(bool recvir = false);
+
+  glm::vec3 get_rgb_bilinear_normalized(const glm::vec2& pos_rgb /*in pixels*/);
+
 private:
 
   zmq::context_t m_ctx;
   zmq::socket_t  m_socket;
-
 
 };
 
