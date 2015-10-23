@@ -22,3 +22,6 @@
 
 build
 cmake_out
+
+# Temporary backup files
+*~
