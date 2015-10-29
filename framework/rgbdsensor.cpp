@@ -25,6 +25,17 @@ RGBDSensor::RGBDSensor(const RGBDConfig& cfg)
     m_socket.connect(endpoint.c_str());
   }
 
+  for(unsigned y = 0; y < config.size_rgb.y; ++y){
+    for(unsigned x = 0; x < config.size_rgb.x; ++x){
+      const unsigned i = y * 3 * config.size_rgb.x + 3 * x;
+      const int v = (((y & 0x8) == 0) ^ ((x & 0x8) == 0)) * 255;
+      frame_rgb[i] = (unsigned char) v;
+      frame_rgb[i + 1] = (unsigned char) v;
+      frame_rgb[i + 2] = (unsigned char) v;
+
+    }
+  }
+
   
 }
 
@@ -86,15 +97,19 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
 
   glm::vec3 rgb;
 
+#if 0
+  rgb.z = 0.0f;
+  rgb.x = pos_rgb.x / config.size_rgb.x;
+  rgb.y = pos_rgb.y / config.size_rgb.y;
+
+  if(pos_rgb.x > config.size_rgb.x || pos_rgb.y > config.size_rgb.y){
+    rgb.z = 1.0;
+    return rgb;
+  }
+#endif
 
 
-  //rgb.z = 0.0f;
-  //rgb.x = pos_rgb.x / config.size_rgb.x;
-  //rgb.y = pos_rgb.y / config.size_rgb.y;
-  //return rgb;
-
-
-
+#if 1
   // calculate weights and boundaries along x direction
   const unsigned xa = std::floor(pos_rgb.x);
   const unsigned xb = std::ceil(pos_rgb.x);
@@ -158,5 +173,5 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
   rgb.z /= 255.0;
 
   return rgb;
-
+#endif
 }

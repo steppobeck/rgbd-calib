@@ -2,12 +2,14 @@
 #define RGBD_CALIB_DATATYPES_HPP
 
 
-
+#define GLM_FORCE_RADIANS
 #include <glm/vec3.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
 
 extern std::ostream& operator << (std::ostream& o, const glm::vec3& v);
+extern std::ostream& operator << (std::ostream& o, const glm::mat4& v);
 
   class xyz{
   public:

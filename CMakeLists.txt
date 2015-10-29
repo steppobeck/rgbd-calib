@@ -24,6 +24,11 @@ endif()
 ################################
 # zmq
 include(FindZMQ)
+# OpenCV
+include(FindOpenCV)
+# boost
+include(FindBoost)
+
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 option(FENSTERCHEN_IN_SOURCE_BUILD "FENSTERCHEN_IN_SOURCE_BUILD" OFF)
@@ -48,16 +53,32 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY}/inclu
 set(GLM_DIRECTORY glm-0.9.5.3)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
 
+################################
+# zmq
 include_directories(${ZMQ_INCLUDE_DIRS})
+################################
+# OpenCV
+include_directories(${OPENCV_INCLUDE_DIRS})
+################################
+# boost
+include_directories(${BOOST_INCLUDE_DIRS})
 
 ################################
 # Add libraries to executables
 
-set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES})
+################################
+# zmq and other libraries
+set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${BOOST_LIBRARIES})
 
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
+################################
+# zmq
 link_directories(${ZMQ_LIBRARY_DIRS})
+# OpenCV
+link_directories(${OPENCV_LIBRARY_DIRS})
+# boost
+link_directories(${BOOST_LIBRARY_DIRS})
 
 
 ################################
