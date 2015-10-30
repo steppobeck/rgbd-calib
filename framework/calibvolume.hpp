@@ -29,8 +29,7 @@ public:
   glm::vec3 lookupPos3D(float x_norm, float y_norm, float d);
   glm::vec2 lookupPos2D_normalized(float x_norm, float y_norm, float d);
 
-  xyz getTrilinear(xyz* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z);
-  uv  getTrilinear(uv* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z);
+
 private:
 
 };

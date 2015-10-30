@@ -3,7 +3,7 @@
 #include <rgbdsensor.hpp>
 #include <DataTypes.hpp>
 #include <CMDParser.hpp>
-#include <ChessboardSampling.hpp>
+#include <stablesampler.hpp>
 #include <fstream>
 #include <iostream>
 
@@ -25,16 +25,23 @@ int main(int argc, char* argv[]){
   cfg.serverport = p.getArgs()[1];
   RGBDSensor sensor(cfg);
 
-  ChessboardSampling cs("/mnt/pitoti/tmp_steppo/23_sweep");
-  cs.init(true);
-  cs.dump();
+  Checkerboard cb;
+  std::cerr << "please adjust " << cb.pose_offset << std::endl;
+  // configure local 3D Points on chessboard here:
+  for(unsigned y = 0; y < CB_HEIGHT; ++y){
+    for(unsigned x = 0; x < CB_WIDTH; ++x){
+      cb.points_local.push_back(glm::vec3(y * 0.075, x * 0.075,0.0));
+    }
+  }
+  
+
+
+  StableSampler ss(&sensor, &cv, 5000, 6, &cb);
 
 #if 0
-  //StableSampler ssampler(sensor)
-
   // loop over frames and display color, depth and ir image
   while(true){
-    //ssampler.sample();
+    ss.sample();
     // ssampler.getSamples -> put them into Calibframes
   }
 #endif

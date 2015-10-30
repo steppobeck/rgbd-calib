@@ -46,36 +46,7 @@ namespace{
     return number_of_frames;
   }
 
-  float
-  getBilinear(float* data, unsigned width, unsigned height, float x, float y){
 
-
-    // calculate weights and boundaries along x direction
-    unsigned xa = std::floor(x);
-    unsigned xb = std::ceil(x);
-    float w_xb = x - xa;
-    float w_xa = 1.0 - w_xb;
-
-    // calculate weights and boundaries along y direction
-    unsigned ya = std::floor(y);
-    unsigned yb = std::ceil(y);
-    float w_yb = y - ya;
-    float w_ya = 1.0 - w_yb;
-
-    // calculate indices to access data
-    const unsigned idmax = width * height;
-    unsigned id00 = std::min( ya * width + xa  , idmax);
-    unsigned id10 = std::min( ya * width + xb  , idmax);
-    unsigned id01 = std::min( yb * width + xa  , idmax);
-    unsigned id11 = std::min( yb * width + xb  , idmax);
-
-    // 1. interpolate between x direction;
-    float tmp_ya = w_xa * data[id00] + w_xb * data[id10];
-    float tmp_yb = w_xa * data[id01] + w_xb * data[id11];
-    // 2. interpolate between y direction;
-    float result = w_ya * tmp_ya + w_yb * tmp_yb;
-    return result;
-  }
 
 
   struct DistId{

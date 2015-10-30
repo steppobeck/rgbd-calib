@@ -2,11 +2,23 @@
 #define RGBD_CALIB_DATATYPES_HPP
 
 
+#define CB_WIDTH 7
+#define CB_HEIGHT 5
+
 #define GLM_FORCE_RADIANS
 #include <glm/vec3.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
+#include <vector>
+
+class Checkerboard{
+public:
+  glm::mat4 pose_offset;
+  std::vector<glm::vec3> points_local;
+};
+
+
 
 extern std::ostream& operator << (std::ostream& o, const glm::vec3& v);
 extern std::ostream& operator << (std::ostream& o, const glm::mat4& v);
@@ -112,6 +124,11 @@ extern uv_d operator+ (const uv_d&, const uv&);
  };
 
 
+
+float getBilinear(float* data, unsigned width, unsigned height, float x, float y);
+
+xyz getTrilinear(xyz* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z);
+uv  getTrilinear(uv* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z);
 
 
 #endif // #ifndef RGBD_CALIB_DATATYPES_HPP

@@ -8,8 +8,6 @@
 #include <string>
 #include <vector>
 
-#define CB_WIDTH 7
-#define CB_HEIGHT 5
 
 
   class ChessboardViewRGB{
@@ -43,7 +41,7 @@
 
   public:
     ChessboardSampling(const char* filenamebase);
-    ~ChessboardSampling();
+    virtual ~ChessboardSampling();
 
     void interactiveShow();
 
@@ -79,6 +77,7 @@
     void computeQualityIR(float pose_offset);
 
     std::string m_filenamebase;
+  protected:
     std::vector<ChessboardPose> m_poses;
     std::vector<ChessboardViewRGB> m_cb_rgb;
     std::vector<ChessboardViewIR> m_cb_ir;

@@ -1,0 +1,34 @@
+#ifndef RGBD_CALIB_STABLESAMPLER_HPP
+#define RGBD_CALIB_STABLESAMPLER_HPP
+
+#include <DataTypes.hpp>
+
+class OpenCVChessboardCornerDetector;
+class CalibVolume;
+class ARTListener;
+class RGBDSensor;
+class StableSampler{
+
+public:
+
+  StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_port, unsigned art_target_id, Checkerboard* cb);
+
+  void sampleBoardLocation();
+
+  const std::vector<samplePoint>& getSamplePoints();
+
+private:
+  RGBDSensor* m_sensor;
+  CalibVolume* m_cv;
+  ARTListener* m_artl;
+  unsigned m_art_target_id;
+  OpenCVChessboardCornerDetector* m_cd_c;
+  OpenCVChessboardCornerDetector* m_cd_i;
+  std::vector<samplePoint> m_sps;
+  std::vector<uv>          m_errors;
+  Checkerboard* m_cb;
+};
+
+
+
+#endif // #ifndef RGBD_CALIB_STABLESAMPLER_HPP
