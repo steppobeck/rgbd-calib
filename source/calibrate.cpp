@@ -1,4 +1,4 @@
-
+#include <ChessboardSampling.hpp>
 #include <calibvolume.hpp>
 #include <rgbdsensor.hpp>
 #include <DataTypes.hpp>
@@ -6,6 +6,7 @@
 #include <stablesampler.hpp>
 #include <fstream>
 #include <iostream>
+#include <unistd.h>
 
 
 int main(int argc, char* argv[]){
@@ -35,14 +36,25 @@ int main(int argc, char* argv[]){
   }
   
 
+  ChessboardSampling cs("/mnt/pitoti/tmp_steppo/23_sweep");
+  cs.init(true);
+  cs.dump();
 
-  StableSampler ss(&sensor, &cv, 5000, 6, &cb);
+  //StableSampler ss(&sensor, &cv, 5000, 6, &cb);
+
 
 #if 0
   // loop over frames and display color, depth and ir image
   while(true){
     ss.sample();
     // ssampler.getSamples -> put them into Calibframes
+
+
+    // play sound to notice user and wait 5 seconds
+    system("/usr/bin/aplay ../../../framework/click_x.wav");
+    sleep(5);
+
+
   }
 #endif
 

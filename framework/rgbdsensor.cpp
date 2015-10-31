@@ -1,5 +1,6 @@
 #include "rgbdsensor.hpp"
 
+#include <DataTypes.hpp>
 #include <cmath>
 #include <iostream>
 
@@ -63,10 +64,10 @@ RGBDSensor::calc_pos_rgb(const glm::vec3& pos_d){
   glm::vec4 pos_rgb_H = config.eye_d_to_eye_rgb * pos_d_H;		
   float xcf = (pos_rgb_H[0]/pos_rgb_H[2]) * config.focal_rgb.x + config.principal_rgb.x;
   float ycf = (pos_rgb_H[1]/pos_rgb_H[2]) * config.focal_rgb.y + config.principal_rgb.y;
-
+#if 1
   xcf = std::max(0.0f, std::min(xcf, config.size_rgb.x - 1.0f));
   ycf = std::max(0.0f, std::min(ycf, config.size_rgb.y - 1.0f));
-
+#endif
   return glm::vec2(xcf,ycf);
 
 }
@@ -174,4 +175,72 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
 
   return rgb;
 #endif
+}
+
+
+
+glm::mat4
+RGBDSensor::guess_eye_d_to_world(const ChessboardViewIR& cb, const glm::mat4& chessboard_pose){
+
+
+  std::vector<glm::vec3> exs;
+  std::vector<glm::vec3> eys;
+
+  const float u = cb.corners[0].x;
+  const float v = cb.corners[0].y;
+  const float d = cb.corners[0].z;
+  std::cerr << "calc origin at " << u << ", " << v << ", " << d << std::endl;
+  glm::vec3 origin = calc_pos_d(u,v,d);
+
+  for(unsigned i = 1; i < (CB_WIDTH * CB_HEIGHT); ++i){
+
+    const float u = cb.corners[i].x;
+    const float v = cb.corners[i].y;
+    const float d = cb.corners[i].z;
+
+    glm::vec3 corner = calc_pos_d(u,v,d);
+    
+    if(i < CB_WIDTH){
+      eys.push_back(glm::normalize(corner - origin));
+    }
+    else if(i % CB_WIDTH == 0){
+      exs.push_back(glm::normalize(corner - origin));
+    }
+  }
+
+  glm::vec3 ex(calcMean(exs));
+  glm::vec3 ey(calcMean(eys));
+  
+  ex = glm::normalize(ex);
+  ey = glm::normalize(ey);
+  
+  glm::vec3 ez = glm::cross(ex,ey);
+  ey           = glm::cross(ez,ex);
+
+  std::cerr << "origin: " << origin << std::endl;
+  std::cerr << "ex: " << ex << std::endl;
+  std::cerr << "ey: " << ey << std::endl;
+  std::cerr << "ez: " << ez << std::endl;
+
+  glm::mat4 eye_d_to_world;
+  eye_d_to_world[0][0] = ex[0];
+  eye_d_to_world[0][1] = ex[1];
+  eye_d_to_world[0][2] = ex[2];
+
+  eye_d_to_world[1][0] = ey[0];
+  eye_d_to_world[1][1] = ey[1];
+  eye_d_to_world[1][2] = ey[2];
+
+  eye_d_to_world[2][0] = ez[0];
+  eye_d_to_world[2][1] = ez[1];
+  eye_d_to_world[2][2] = ez[2];
+
+  eye_d_to_world[3][0] = origin[0];
+  eye_d_to_world[3][1] = origin[1];
+  eye_d_to_world[3][2] = origin[2];
+
+  eye_d_to_world = glm::inverse(eye_d_to_world);
+  
+  return chessboard_pose * eye_d_to_world;
+
 }

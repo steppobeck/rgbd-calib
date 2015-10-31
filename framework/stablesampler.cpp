@@ -8,7 +8,6 @@
 #include <SampleFilter.hpp>
 
 
-#include <unistd.h>
 
 StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_port, unsigned art_target_id, Checkerboard* cb)
   : m_sensor(sensor),
@@ -154,9 +153,6 @@ StableSampler::sampleBoardLocation(){
   }
 
 
-  // play sound to notice user and wait 5 seconds
-  system("/usr/bin/aplay ../../../framework/click_x.wav");
-  sleep(5);
 
 }
 

@@ -1,4 +1,4 @@
-
+#include <ChessboardSampling.hpp>
 #include <calibvolume.hpp>
 #include <rgbdsensor.hpp>
 #include <DataTypes.hpp>
@@ -17,9 +17,9 @@ int main(int argc, char* argv[]){
   float    cv_min_d  = 0.5;
   float    cv_max_d  = 4.5;
 
-  CMDParser p("basefilename");
+  CMDParser p("calibvolumebasefilename checkerboardviewbasefilename");
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
-  p.addOpt("d",2,"depthrange", "use this depth range: 0.5 4.0");
+  p.addOpt("d",2,"depthrange", "use this depth range: 0.5 4.5");
   
   p.init(argc,argv);
 
@@ -34,7 +34,6 @@ int main(int argc, char* argv[]){
     cv_max_d = p.getOptsInt("d")[1];
   }
 
-  std::string basefilename = p.getArgs()[0];
 
   CalibVolume cv(cv_width, cv_height, cv_depth, cv_min_d, cv_max_d);
 
@@ -42,12 +41,11 @@ int main(int argc, char* argv[]){
   cfg.size_rgb = glm::uvec2(1280, 1080);
   cfg.size_d   = glm::uvec2(512, 424);
 
+  cfg.principal_rgb = glm::vec2(701.972473, 532.143066);
+  cfg.principal_d   = glm::vec2(257.009552, 209.077789);
 
-  cfg.principal_rgb = glm::vec2(701.972, 532.143);
-  cfg.principal_d   = glm::vec2(257.01, 209.078);
-
-  cfg.focal_rgb = glm::vec2(1030.83, 1030.5);
-  cfg.focal_d   = glm::vec2(355.434, 355.672);
+  cfg.focal_rgb = glm::vec2(1030.829834, 1030.497070);
+  cfg.focal_d   = glm::vec2(355.433716, 355.672363);
 
   cfg.eye_d_to_eye_rgb[0][0] = 0.999950;
   cfg.eye_d_to_eye_rgb[0][1] = -0.009198;
@@ -71,6 +69,48 @@ int main(int argc, char* argv[]){
 
   RGBDSensor sensor(cfg);
 
+  Checkerboard cb;
+  cb.pose_offset[0][0] = 0.999964;
+  cb.pose_offset[0][1] = -0.002796;
+  cb.pose_offset[0][2] = 0.008038;
+
+  cb.pose_offset[1][0] = 0.002861;
+  cb.pose_offset[1][1] = 0.999964;
+  cb.pose_offset[1][2] = -0.007918;
+
+  cb.pose_offset[2][0] = -0.008016;
+  cb.pose_offset[2][1] = 0.007941;
+  cb.pose_offset[2][2] = 0.999937;
+
+  cb.pose_offset[3][0] = -0.005395;
+  cb.pose_offset[3][1] = 0.002236;
+  cb.pose_offset[3][2] = 0.010328;
+
+
+  ChessboardSampling cbs(p.getArgs()[1].c_str());
+  cbs.init(true);
+
+  // find slowest ChessboardPose
+  const double time         = cbs.searchSlowestTime(cbs.searchStartIR());
+  bool valid_pose;
+  glm::mat4 chessboard_pose = cb.pose_offset * cbs.interpolatePose(time,valid_pose);
+  if(!valid_pose){
+    std::cerr << "ERROR: could not interpolate valid pose" << std::endl;
+    return 1;
+  }
+
+
+  // find pose of that board in kinect camera space
+  bool valid_ir;
+  ChessboardViewIR cbvir(cbs.interpolateIR(time, valid_ir));
+  if(!valid_ir){
+    std::cerr << "ERROR: could not interpolate valid ChessboardIR" << std::endl;
+    return 2;
+  }
+
+  glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world(cbvir, chessboard_pose);
+  std::cerr << "extrinsic of sensor is: " << eye_d_to_world << std::endl;
+
   for(unsigned z = 0; z < cv.depth; ++z){
     for(unsigned y = 0; y < cv.height; ++y){
       for(unsigned x = 0; x < cv.width; ++x){
@@ -86,10 +126,12 @@ int main(int argc, char* argv[]){
 	pos2D_rgb.x /= sensor.config.size_rgb.x;
 	pos2D_rgb.y /= sensor.config.size_rgb.y;
 
+	glm::vec4 pos3D_world = eye_d_to_world * glm::vec4(pos3D_local.x, pos3D_local.y, pos3D_local.z, 1.0);
+
 	xyz pos3D;
-	pos3D.x = pos3D_local.x;
-	pos3D.y = pos3D_local.y;
-	pos3D.z = pos3D_local.z;
+	pos3D.x = pos3D_world.x;
+	pos3D.y = pos3D_world.y;
+	pos3D.z = pos3D_world.z;
 	cv.cv_xyz[cv_index] = pos3D;
 
 	uv posUV;
@@ -100,8 +142,9 @@ int main(int argc, char* argv[]){
     }
   }
 
-  std::string filename_xyz(basefilename + "_xyz");
-  std::string filename_uv(basefilename + "_uv");
+
+  std::string filename_xyz(p.getArgs()[0] + "_xyz");
+  std::string filename_uv(p.getArgs()[0] + "_uv");
   cv.save(filename_xyz.c_str(), filename_uv.c_str());
 
   return 0;

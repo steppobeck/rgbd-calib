@@ -131,5 +131,9 @@ xyz getTrilinear(xyz* data, unsigned width, unsigned height, unsigned depth, flo
 uv  getTrilinear(uv* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z);
 
 
+glm::vec3 calcMean(const std::vector<glm::vec3>& vecs);
+
+
+
 #endif // #ifndef RGBD_CALIB_DATATYPES_HPP
 

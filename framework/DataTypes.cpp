@@ -327,5 +327,17 @@ uv getTrilinear(uv* data, unsigned width, unsigned height, unsigned depth, float
 }
 
 
+glm::vec3 calcMean(const std::vector<glm::vec3>& vecs){
+
+  double x = 0.0;
+  double y = 0.0;
+  double z = 0.0;
+  for(const auto& v : vecs){
+    x += v[0];
+    y += v[1];
+    z += v[2];
+  }
+  return glm::vec3(x/vecs.size(), y/vecs.size(), z/vecs.size());
+}
 
 

@@ -188,9 +188,6 @@ namespace{
 
     std::sort(dists.begin(), dists.end());
     const double time = m_poses[dists.begin()->id].time;
-    std::cerr << "slowest pose at time: " << time << std::endl
-	      << "ChessboardPose: " << m_poses[dists.begin()->id] << std::endl;
-
     return time;
   }
 
@@ -345,15 +342,13 @@ namespace{
     std::string filename_poses(m_filenamebase + ".poses");
     std::cerr << "loading poses from file " << filename_poses << std::endl;
     std::ifstream infile(filename_poses.c_str(), std::ifstream::binary);
-    const size_t num_poses = calcNumFrames(infile, sizeof(double) + sizeof(glm::mat4) + 8);
-    unsigned padding[2]; // bytes
+    const size_t num_poses = calcNumFrames(infile, sizeof(double) + sizeof(glm::mat4));
     for(size_t i = 0; i != num_poses; ++i){
       
       m_poses.push_back(ChessboardPose());
       infile.read((char*) &m_poses[i].time, sizeof(double));
       //std::cerr << m_poses[i].time << std::endl;
       infile.read((char*) glm::value_ptr(m_poses[i].mat), sizeof(glm::mat4));
-      infile.read((char*) padding, 8);
       //std::cerr << m_poses[i].time << std::endl;
       //std::cerr << m_poses[i].mat << std::endl;
     }
