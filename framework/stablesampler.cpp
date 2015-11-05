@@ -37,7 +37,7 @@ StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_p
 
 
 void
-StableSampler::sampleBoardLocation(){
+StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_not_shaking){
 
   // sample until filtering is finished
   const unsigned num_frames_filter = 30;
@@ -59,9 +59,9 @@ StableSampler::sampleBoardLocation(){
     glm::mat4 cb_transform(m_artl->getMatrices()[m_art_target_id]);
     //std::cerr << cb_transform << std::endl;
     
-    bool is_stable(pt.isStable(cb_transform, 0.0005, 30)); // LCD side
-    std::cerr << "is_stable: " << (int) is_stable << std::endl;
+    bool is_stable(pt.isStable(cb_transform, max_shaking_speed/*0.0005*/, min_num_frames_not_shaking/*30*/)); // LCD side
     if(!is_stable){
+      std::cerr << "waiting until checkboard is not shaking any more" << std::endl;
       num_frames_token = 0;
       sfilt.clear();
       continue;
@@ -118,7 +118,7 @@ StableSampler::sampleBoardLocation(){
 
 
   std::vector<samplePoint> filtered_samples =  sfilt.getFiltered();
-  std::cerr << "sampling done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111" << std::endl;
+  std::cerr << "sampling done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
     
 	
   for(unsigned i = 0; i < filtered_samples.size(); ++i){
@@ -141,6 +141,8 @@ StableSampler::sampleBoardLocation(){
     filtered_samples[i].tex_offset.u = filtered_samples[i].tex_color.u/m_sensor->config.size_rgb.x - tex.u;
     filtered_samples[i].tex_offset.v = filtered_samples[i].tex_color.v/m_sensor->config.size_rgb.y - tex.v;
 
+    filtered_samples[i].quality = 1.0f;
+
     uv err;	  
     err.u = glm::length(glm::vec3(filtered_samples[i].pos_offset.x,filtered_samples[i].pos_offset.y,filtered_samples[i].pos_offset.z));
     err.v = glm::length(glm::vec3(filtered_samples[i].tex_offset.u * m_sensor->config.size_rgb.x,
@@ -154,6 +156,16 @@ StableSampler::sampleBoardLocation(){
 
 
 
+}
+
+
+void
+StableSampler::dumpSamplePoints(){
+
+  for(const auto& s : m_sps){
+    std::cout << s << std::endl;
+  }
+  
 }
 
 

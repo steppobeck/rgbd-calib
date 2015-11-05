@@ -178,25 +178,44 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
 }
 
 
-
+//glm::mat4 guess_eye_d_to_world(const ChessboardViewIR& cb, const glm::mat4& chessboard_pose);
 glm::mat4
-RGBDSensor::guess_eye_d_to_world(const ChessboardViewIR& cb, const glm::mat4& chessboard_pose){
+RGBDSensor::guess_eye_d_to_world(const ChessboardSampling& cbs, const Checkerboard& cb){
+
+
+  // find slowest ChessboardPose
+  const double time         = cbs.searchSlowestTime(cbs.searchStartIR());
+  bool valid_pose;
+  glm::mat4 chessboard_pose = cb.pose_offset * cbs.interpolatePose(time,valid_pose);
+  if(!valid_pose){
+    std::cerr << "ERROR: could not interpolate valid pose" << std::endl;
+    exit(0);
+  }
+
+
+  // find pose of that board in kinect camera space
+  bool valid_ir;
+  ChessboardViewIR cbvir(cbs.interpolateIR(time, valid_ir));
+  if(!valid_ir){
+    std::cerr << "ERROR: could not interpolate valid ChessboardIR" << std::endl;
+    exit(0);
+  }
 
 
   std::vector<glm::vec3> exs;
   std::vector<glm::vec3> eys;
 
-  const float u = cb.corners[0].x;
-  const float v = cb.corners[0].y;
-  const float d = cb.corners[0].z;
+  const float u = cbvir.corners[0].x;
+  const float v = cbvir.corners[0].y;
+  const float d = cbvir.corners[0].z;
   std::cerr << "calc origin at " << u << ", " << v << ", " << d << std::endl;
   glm::vec3 origin = calc_pos_d(u,v,d);
 
   for(unsigned i = 1; i < (CB_WIDTH * CB_HEIGHT); ++i){
 
-    const float u = cb.corners[i].x;
-    const float v = cb.corners[i].y;
-    const float d = cb.corners[i].z;
+    const float u = cbvir.corners[i].x;
+    const float v = cbvir.corners[i].y;
+    const float d = cbvir.corners[i].z;
 
     glm::vec3 corner = calc_pos_d(u,v,d);
     

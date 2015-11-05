@@ -90,25 +90,7 @@ int main(int argc, char* argv[]){
   ChessboardSampling cbs(p.getArgs()[1].c_str());
   cbs.init(true);
 
-  // find slowest ChessboardPose
-  const double time         = cbs.searchSlowestTime(cbs.searchStartIR());
-  bool valid_pose;
-  glm::mat4 chessboard_pose = cb.pose_offset * cbs.interpolatePose(time,valid_pose);
-  if(!valid_pose){
-    std::cerr << "ERROR: could not interpolate valid pose" << std::endl;
-    return 1;
-  }
-
-
-  // find pose of that board in kinect camera space
-  bool valid_ir;
-  ChessboardViewIR cbvir(cbs.interpolateIR(time, valid_ir));
-  if(!valid_ir){
-    std::cerr << "ERROR: could not interpolate valid ChessboardIR" << std::endl;
-    return 2;
-  }
-
-  glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world(cbvir, chessboard_pose);
+  glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world(cbs, cb);
   std::cerr << "extrinsic of sensor is: " << eye_d_to_world << std::endl;
 
   for(unsigned z = 0; z < cv.depth; ++z){

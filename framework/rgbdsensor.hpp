@@ -2,6 +2,7 @@
 #define RGBD_CALIB_RGBDSENSOR_HPP
 
 #include <ChessboardSampling.hpp>
+#include <DataTypes.hpp>
 
 #define GLM_FORCE_RADIANS
 #include <glm/vec2.hpp>
@@ -48,7 +49,7 @@ public:
 
   glm::vec3 get_rgb_bilinear_normalized(const glm::vec2& pos_rgb /*in pixels*/);
 
-  glm::mat4 guess_eye_d_to_world(const ChessboardViewIR& cvir, const glm::mat4& chessboard_pose);
+  glm::mat4 guess_eye_d_to_world(const ChessboardSampling& cbs, const Checkerboard& cb);
 
 private:
 

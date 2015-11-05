@@ -49,11 +49,11 @@
 
     void dump();
 
-    double searchSlowestTime(double starttime);
-    glm::mat4 interpolatePose(double time, bool& valid);
+    double searchSlowestTime(double starttime) const;
+    glm::mat4 interpolatePose(double time, bool& valid) const;
     double getPoseSpeed(double time, bool& valid);
-    ChessboardViewRGB interpolateRGB(double time, bool& valid);
-    ChessboardViewIR interpolateIR(double time, bool& valid);
+    ChessboardViewRGB interpolateRGB(double time, bool& valid) const;
+    ChessboardViewIR interpolateIR(double time, bool& valid) const;
 
     std::vector<ChessboardViewIR>& getIRs(){
       return m_cb_ir;
@@ -63,7 +63,7 @@
 
     bool saveChessboards();
 
-    double searchStartIR();
+    double searchStartIR() const;
 
   private:
     bool loadPoses();

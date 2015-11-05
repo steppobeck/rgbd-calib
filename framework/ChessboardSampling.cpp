@@ -167,7 +167,7 @@ namespace{
 
 
   double
-  ChessboardSampling::searchSlowestTime(double starttime){
+  ChessboardSampling::searchSlowestTime(double starttime) const{
     
     std::vector<DistId> dists;
     for(unsigned i = 1; i < m_poses.size(); ++i){
@@ -193,7 +193,7 @@ namespace{
 
 
   glm::mat4
-  ChessboardSampling::interpolatePose(double time, bool& valid){
+  ChessboardSampling::interpolatePose(double time, bool& valid) const{
     unsigned a = 0;
     unsigned b = 0;
     for(unsigned i = 1; i < m_poses.size(); ++i){
@@ -249,7 +249,7 @@ namespace{
 
 
   ChessboardViewRGB
-  ChessboardSampling::interpolateRGB(double time, bool& valid){
+  ChessboardSampling::interpolateRGB(double time, bool& valid) const{
     unsigned a = 0;
     unsigned b = 0;
     for(unsigned i = 1; i < m_cb_rgb.size(); ++i){
@@ -274,7 +274,7 @@ namespace{
 
 
   ChessboardViewIR
-  ChessboardSampling::interpolateIR(double time, bool& valid){
+  ChessboardSampling::interpolateIR(double time, bool& valid) const{
     unsigned a = 0;
     unsigned b = 0;
     for(unsigned i = 1; i < m_cb_ir.size(); ++i){
@@ -565,7 +565,7 @@ namespace{
   }
 
   double 
-  ChessboardSampling::searchStartIR(){
+  ChessboardSampling::searchStartIR() const{
     return m_cb_ir[10 < m_cb_ir.size() ? 10 : 0].time;
   }
 
