@@ -37,10 +37,8 @@ StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_p
 
 
 void
-StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_not_shaking){
+StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_below_max_shaking, unsigned num_frames_to_filter){
 
-  // sample until filtering is finished
-  const unsigned num_frames_filter = 30;
 
   const unsigned pixelcountc = m_sensor->config.size_rgb.x * m_sensor->config.size_rgb.y;
   const unsigned pixelcount = m_sensor->config.size_d.x * m_sensor->config.size_d.y;
@@ -52,14 +50,14 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
   SampleFilter sfilt(CB_WIDTH * CB_HEIGHT);
   PoseTracker pt;
 
-  while(num_frames_token < num_frames_filter){
+  while(num_frames_token < num_frames_to_filter){
     m_sensor->recv(true);
     m_artl->listen();
     sleep(sensor::timevalue::const_050_ms);
     glm::mat4 cb_transform(m_artl->getMatrices()[m_art_target_id]);
     //std::cerr << cb_transform << std::endl;
     
-    bool is_stable(pt.isStable(cb_transform, max_shaking_speed/*0.0005*/, min_num_frames_not_shaking/*30*/)); // LCD side
+    bool is_stable(pt.isStable(cb_transform, max_shaking_speed/*0.0005*/, min_num_frames_below_max_shaking/*30*/)); // LCD side
     if(!is_stable){
       std::cerr << "waiting until checkboard is not shaking any more" << std::endl;
       num_frames_token = 0;
@@ -113,7 +111,7 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
 
     sfilt.addSamples(sps_tmp);
     ++num_frames_token;
-    std::cerr << "samples frames to add: " << num_frames_filter -  num_frames_token << std::endl;    
+    std::cerr << "remaining frames to filter: " << num_frames_to_filter -  num_frames_token << std::endl;    
   }
 
 

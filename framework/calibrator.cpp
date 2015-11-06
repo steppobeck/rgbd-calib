@@ -189,7 +189,7 @@ Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch*
 
 	  bool nni_valid = false;
 	  if(!nni_valid){
-	    idw_interpolate(neighbours, 20, ipolant, max_influence_dist);
+	    idw_interpolate(neighbours, idwneighbours, ipolant, max_influence_dist);
 	  }
 	  cv->cv_xyz[cv_index] = cv->cv_xyz[cv_index] + ipolant.s_pos_off;
 	  cv->cv_uv[cv_index]  = cv->cv_uv[cv_index]  + ipolant.s_tex_off;

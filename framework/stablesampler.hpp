@@ -13,7 +13,7 @@ public:
 
   StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_port, unsigned art_target_id, Checkerboard* cb);
 
-  void sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_not_shaking);
+  void sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_below_max_shaking, unsigned num_frames_to_filter);
 
   void dumpSamplePoints();
   const std::vector<samplePoint>& getSamplePoints();
