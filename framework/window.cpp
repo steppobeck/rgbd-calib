@@ -11,10 +11,12 @@ Window::Window(glm::ivec2 const& windowsize, bool mode3D)
   , m_size(windowsize)
   , m_title("rgbd-calib")
   , m_mousePosition()
+  , m_last_mousePosition()
   , m_mouseButtonFlags(0)
   , m_keypressed()
   , m_yaw(0.0)
   , m_pitch(0.0)
+  , m_zoom(5.0)
 {
   std::fill(std::begin(m_keypressed), std::end(m_keypressed), 0);
   glfwInit();
@@ -146,7 +148,45 @@ void Window::update()
     glMultMatrixf(glm::value_ptr(pers));
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glTranslatef(0.0, 0.0, -5.0f);
+
+    
+
+    // ------------------------------ begin simple camera stuff
+    static bool start_interacting_zoom = true;
+    if(m_mouseButtonFlags & Window::MOUSE_BUTTON_RIGHT){
+      if(start_interacting_zoom){
+	m_last_mousePosition = m_mousePosition;
+      }
+      start_interacting_zoom = false;
+      m_zoom -= 0.05 * (m_mousePosition.y * 1.0 - m_last_mousePosition.y);
+      m_zoom = std::max(0.1f, m_zoom);
+      m_last_mousePosition = m_mousePosition;
+    }
+    else{
+      start_interacting_zoom = true;
+    }
+
+    glTranslatef(0.0, 0.0, -m_zoom);
+
+    static bool start_interacting_rot = true;
+    if(m_mouseButtonFlags & Window::MOUSE_BUTTON_LEFT){
+      if(start_interacting_rot){
+	m_last_mousePosition = m_mousePosition;
+      }
+      start_interacting_rot = false;
+      m_yaw += 0.5 * (m_mousePosition.x * 1.0 - m_last_mousePosition.x);
+      m_pitch += 0.5 * (m_mousePosition.y * 1.0 - m_last_mousePosition.y);
+      m_last_mousePosition = m_mousePosition;
+    }
+    else{
+      start_interacting_rot = true;
+    }
+    glRotatef(m_yaw, 0.0,1.0,0.0);
+    glRotatef(-m_pitch, 1.0,0.0,0.0);
+
+    // ------------------------------ end simple camera stuff
+
+    
 
 
     drawCoords3D();

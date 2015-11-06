@@ -65,6 +65,7 @@ private:
   glm::ivec2 m_size;
   std::string const m_title;
   glm::vec2 m_mousePosition;
+  glm::vec2 m_last_mousePosition;
 
   int m_mouseButtonFlags;
   std::array<bool, 512> m_keypressed;
@@ -77,6 +78,8 @@ private:
 
   float m_yaw;
   float m_pitch;
+  float m_zoom;
+  
 
 };
 
