@@ -1,4 +1,4 @@
-#include <fensterchen.hpp>
+#include <window.hpp>
 #include <calibvolume.hpp>
 #include <rgbdsensor.hpp>
 #include <CMDParser.hpp>
@@ -42,11 +42,6 @@ int main(int argc, char* argv[]){
     // receive frames
     sensor.recv(false /*recv ir?*/);
 
-    // rotate the 3D reconstruction
-    glTranslatef(0.0,0.0,2.0);
-    //glRotatef(180.0*std::sin(0.1*t)/M_PI,0.0,1.0,0.0);
-    glRotatef(180,0.0,1.0,0.0);
-    glRotatef(-90,0.0,0.0,1.0);
 
     glPointSize(1.0);
     glBegin(GL_POINTS);

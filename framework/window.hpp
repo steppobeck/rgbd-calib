@@ -72,6 +72,12 @@ private:
   static void cursorPositionCallback(GLFWwindow* win, double x, double y);
   static void mouseButtonCallback(GLFWwindow* win, int button, int action, int mods);
   static void keyCallback(GLFWwindow* win, int key, int scancode, int action, int mods);
+
+  void drawCoords3D();
+
+  float m_yaw;
+  float m_pitch;
+
 };
 
 #endif // define BUW_WINDOW_HPP

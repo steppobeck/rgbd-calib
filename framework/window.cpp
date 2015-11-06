@@ -9,10 +9,12 @@ Window::Window(glm::ivec2 const& windowsize, bool mode3D)
   : m_mode3D(mode3D)
   , m_window(nullptr)
   , m_size(windowsize)
-  , m_title("Fensterchen")
+  , m_title("rgbd-calib")
   , m_mousePosition()
   , m_mouseButtonFlags(0)
   , m_keypressed()
+  , m_yaw(0.0)
+  , m_pitch(0.0)
 {
   std::fill(std::begin(m_keypressed), std::end(m_keypressed), 0);
   glfwInit();
@@ -145,6 +147,11 @@ void Window::update()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glTranslatef(0.0, 0.0, -5.0f);
+
+
+    drawCoords3D();
+
+
   }
   else{
     glClear(GL_COLOR_BUFFER_BIT);
@@ -211,4 +218,35 @@ void Window::drawPoint(float x, float y, float z, float r, float g, float b) con
 float Window::getTime() const
 {
   return float(glfwGetTime());
+}
+
+
+void
+Window::drawCoords3D(){
+
+  glBegin(GL_LINES);
+  glColor3f(1.0,0.0,0.0);
+  glVertex3f(0.0,0.0,0.0);
+  glVertex3f(1.0,0.0,0.0);
+  for(unsigned i = 1; i < 10; ++i){
+    glVertex3f(i * 0.1, i % 10 == 0 ? -0.05 : -0.02,0.0);
+    glVertex3f(i * 0.1, i % 10 == 0 ? 0.05 : 0.02,0.0);
+  }
+
+  glColor3f(0.0,1.0,0.0);
+  glVertex3f(0.0,0.0,0.0);
+  glVertex3f(0.0,1.0,0.0);
+  for(unsigned i = 1; i < 10; ++i){
+    glVertex3f(i % 10 == 0 ? -0.05 : -0.02, i * 0.1, 0.0);
+    glVertex3f(i % 10 == 0 ?  0.05 :  0.02, i * 0.1, 0.0);
+  }
+
+  glColor3f(0.0,0.0,1.0);
+  glVertex3f(0.0,0.0,0.0);
+  glVertex3f(0.0,0.0,1.0);
+  for(unsigned i = 1; i < 10; ++i){
+    glVertex3f(0.0,i % 10 == 0 ? -0.05 : -0.02, i * 0.1);
+    glVertex3f(0.0,i % 10 == 0 ? 0.05 : 0.02, i * 0.1);
+  }
+  glEnd();
 }
