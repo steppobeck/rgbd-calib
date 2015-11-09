@@ -50,6 +50,7 @@ public:
   glm::vec3 get_rgb_bilinear_normalized(const glm::vec2& pos_rgb /*in pixels*/);
 
   glm::mat4 guess_eye_d_to_world(const ChessboardSampling& cbs, const Checkerboard& cb);
+  glm::mat4 guess_eye_d_to_world_static(const ChessboardSampling& cbs, const Checkerboard& cb);
 
 private:
 

@@ -55,8 +55,13 @@
     ChessboardViewRGB interpolateRGB(double time, bool& valid) const;
     ChessboardViewIR interpolateIR(double time, bool& valid) const;
 
-    std::vector<ChessboardViewIR>& getIRs(){
+    const std::vector<ChessboardViewIR>& getIRs() const{
       return m_cb_ir;
+    }
+
+
+    const std::vector<ChessboardPose>& getPoses() const{
+      return m_poses;
     }
 
     void filterIR(float pose_offset);
