@@ -10,5 +10,12 @@ add_executable(calibrate calibrate.cpp)
 target_link_libraries(calibrate framework ${LIBRARIES})
 add_dependencies(calibrate glfw framework ${COPY_BINARY})
 
+add_executable(record record.cpp)
+target_link_libraries(record framework ${LIBRARIES})
+add_dependencies(record glfw framework ${COPY_BINARY})
+
+add_executable(play play.cpp)
+target_link_libraries(play framework ${LIBRARIES})
+add_dependencies(play glfw framework ${COPY_BINARY})
 
 
