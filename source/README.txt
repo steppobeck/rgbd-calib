@@ -26,8 +26,12 @@ EXAMPLES:
 
 
 # history of some usefull commands:
+./Protonect 179625534347 -a 5000 -s 141.54.147.32:7000 -y 50 /mnt/pitoti/tmp_steppo/23_sweep 6
+
+./initialize ../../../data/30.cv ../../../data/30_init
+
 sudo env DISPLAY=:0.0 ./Protonect 505545442542 -a 5000 -s 141.54.147.27:7000 -r -n
-./record kinect_30.stream 141.54.147.27:7000
-./play kinect_30.stream 141.54.147.27:7000
-./viewer /home/steppo/Desktop/my-svn/multiViewTools/libKinect/examples/rgbd_calibV2/kinect_23_calibration.cv 141.54.147.27:7000
+./record ../../../data/30.stream 141.54.147.27:7000
+./play ../../../data/30.stream 141.54.147.27:7000
+./viewer ../../../data/30.cv 141.54.147.27:7000
 
