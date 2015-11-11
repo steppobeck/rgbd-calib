@@ -72,7 +72,7 @@ init:
 ./initialize ../../../data/50.cv ../../../data/50_init
 calibrate:
 ./protonect.sh 011312650647 -s 141.54.147.32:7000 -n -i
-./calibrate ../../../data/50.cv 141.54.147.32:7000
+./calibrate ../../../data/50.cv 141.54.147.32:7000 -s 5
 play:
 ./protonect.sh 011312650647 -s 141.54.147.32:7000 -n
 ./viewer ../../../data/50.cv 141.54.147.32:7000
@@ -84,7 +84,7 @@ init:
 ./initialize ../../../data/51.cv ../../../data/51_init
 calibrate:
 ./protonect.sh 011482550647 -s 141.54.147.32:7000 -n -i
-./calibrate ../../../data/51.cv 141.54.147.32:7000
+./calibrate ../../../data/51.cv 141.54.147.32:7000 -s 5
 play:
 ./protonect.sh 011482550647 -s 141.54.147.32:7000 -n
 ./viewer ../../../data/51.cv 141.54.147.32:7000
@@ -96,6 +96,7 @@ play:
 # in Avango
 ./protonect.sh 011312650647 011482550647 -s 141.54.147.32:7000
 cd /opt/avango/new_renderer/examples/video3d
+zsh
 ./start.sh ~/Desktop/my-git/rgbd-calib/data/surface_50_51.ks
 
 
