@@ -4,11 +4,14 @@
 #include <cmath>
 #include <iostream>
 
-RGBDSensor::RGBDSensor(const RGBDConfig& cfg)
+RGBDSensor::RGBDSensor(const RGBDConfig& cfg, unsigned num_of_slaves)
   : config(cfg),
     frame_rgb(0),
     frame_ir(0),
     frame_d(0),
+    slave_frames_rgb(),
+    slave_frames_d(),
+    num_slaves(num_of_slaves),
     m_ctx(1),
     m_socket(m_ctx, ZMQ_SUB)
 {
@@ -17,6 +20,13 @@ RGBDSensor::RGBDSensor(const RGBDConfig& cfg)
   frame_ir  = new unsigned char [config.size_d.x * config.size_d.y];
   frame_d   = new float         [config.size_d.x * config.size_d.y];
   
+  
+  for(unsigned i = 0; i < num_slaves; ++i){
+    slave_frames_rgb.push_back(new unsigned char [3 * config.size_rgb.x * config.size_rgb.y]);
+    slave_frames_d.push_back(new float         [config.size_d.x * config.size_d.y]);
+  }
+
+
   if(config.serverport != ""){
     m_socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
     uint64_t hwm = 1;
@@ -24,17 +34,6 @@ RGBDSensor::RGBDSensor(const RGBDConfig& cfg)
     std::string endpoint("tcp://" + cfg.serverport);
     //std::cout << "opening socket connection to: " << endpoint << std::endl;
     m_socket.connect(endpoint.c_str());
-  }
-
-  for(unsigned y = 0; y < config.size_rgb.y; ++y){
-    for(unsigned x = 0; x < config.size_rgb.x; ++x){
-      const unsigned i = y * 3 * config.size_rgb.x + 3 * x;
-      const int v = (((y & 0x8) == 0) ^ ((x & 0x8) == 0)) * 255;
-      frame_rgb[i] = (unsigned char) v;
-      frame_rgb[i + 1] = (unsigned char) v;
-      frame_rgb[i + 2] = (unsigned char) v;
-
-    }
   }
 
   
@@ -80,7 +79,7 @@ RGBDSensor::recv(bool recvir){
   const unsigned bytes_d(config.size_d.x * config.size_d.y * sizeof(float));
   const unsigned bytes_recv(recvir ? bytes_rgb + bytes_ir + bytes_d :
 			    bytes_rgb + bytes_d);
-  zmq::message_t zmqm(bytes_recv);
+  zmq::message_t zmqm(bytes_recv + num_slaves * (bytes_rgb + bytes_d));
   m_socket.recv(&zmqm); // blocking
   unsigned offset = 0;
   memcpy((unsigned char*) frame_rgb, (unsigned char*) zmqm.data() + offset, bytes_rgb);
@@ -90,27 +89,21 @@ RGBDSensor::recv(bool recvir){
   if(recvir){
     memcpy((unsigned char*) frame_ir, (unsigned char*) zmqm.data() + offset, bytes_ir);
   }
-
+  for(unsigned i = 0; i < num_slaves; ++i){
+    memcpy((unsigned char*) slave_frames_rgb[i], (unsigned char*) zmqm.data() + offset, bytes_rgb);
+    offset += bytes_rgb;
+    memcpy((unsigned char*) slave_frames_d[i], (unsigned char*) zmqm.data() + offset, bytes_d);
+    offset += bytes_d;
+  }
 }
 
+
 glm::vec3
-RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
+RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb, unsigned stream_num){
 
   glm::vec3 rgb;
 
-#if 0
-  rgb.z = 0.0f;
-  rgb.x = pos_rgb.x / config.size_rgb.x;
-  rgb.y = pos_rgb.y / config.size_rgb.y;
 
-  if(pos_rgb.x > config.size_rgb.x || pos_rgb.y > config.size_rgb.y){
-    rgb.z = 1.0;
-    return rgb;
-  }
-#endif
-
-
-#if 1
   // calculate weights and boundaries along x direction
   const unsigned xa = std::floor(pos_rgb.x);
   const unsigned xb = std::ceil(pos_rgb.x);
@@ -123,16 +116,8 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
   const float w_yb = (pos_rgb.y - ya);
   const float w_ya = (1.0 - w_yb);
 
-  //std::cout << pos_rgb.x << " " << xa << " " << xb << std::endl;
-  //std::cout << pos_rgb.y << " " << ya << " " << yb << std::endl;
 
-  //rgb.x = xa * 1.0f / config.size_rgb.x;
-  //rgb.y = ya * 1.0f / config.size_rgb.y;
-
-  //rgb.x = frame_rgb[ya * 3 * config.size_rgb.x + 3 * xa];
-  //rgb.x /= 255.0;
-  //return rgb;
-
+  unsigned char* frame_rgb_real = stream_num == 0 ? frame_rgb : slave_frames_rgb[stream_num - 1];
 
   // calculate indices to access data
   const unsigned idmax = 3u * config.size_rgb.x * config.size_rgb.y - 2u;
@@ -145,8 +130,8 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
   // RED CHANNEL
   {
     // 1. interpolate between x direction;
-    const float tmp_ya = w_xa * frame_rgb[id00] + w_xb * frame_rgb[id10];
-    const float tmp_yb = w_xa * frame_rgb[id01] + w_xb * frame_rgb[id11];
+    const float tmp_ya = w_xa * frame_rgb_real[id00] + w_xb * frame_rgb_real[id10];
+    const float tmp_yb = w_xa * frame_rgb_real[id01] + w_xb * frame_rgb_real[id11];
     // 2. interpolate between y direction;
     rgb.x = w_ya * tmp_ya + w_yb * tmp_yb;
   }
@@ -154,8 +139,8 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
   // GREEN CHANNEL
   {
     // 1. interpolate between x direction;
-    const float tmp_ya = w_xa * frame_rgb[id00 + 1] + w_xb * frame_rgb[id10 + 1];
-    const float tmp_yb = w_xa * frame_rgb[id01 + 1] + w_xb * frame_rgb[id11 + 1];
+    const float tmp_ya = w_xa * frame_rgb_real[id00 + 1] + w_xb * frame_rgb_real[id10 + 1];
+    const float tmp_yb = w_xa * frame_rgb_real[id01 + 1] + w_xb * frame_rgb_real[id11 + 1];
     // 2. interpolate between y direction;
     rgb.y = w_ya * tmp_ya + w_yb * tmp_yb;
   }
@@ -163,8 +148,8 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
   // BLUE CHANNEL
   {
     // 1. interpolate between x direction;
-    const float tmp_ya = w_xa * frame_rgb[id00 + 2] + w_xb * frame_rgb[id10 + 2];
-    const float tmp_yb = w_xa * frame_rgb[id01 + 2] + w_xb * frame_rgb[id11 + 2];
+    const float tmp_ya = w_xa * frame_rgb_real[id00 + 2] + w_xb * frame_rgb_real[id10 + 2];
+    const float tmp_yb = w_xa * frame_rgb_real[id01 + 2] + w_xb * frame_rgb_real[id11 + 2];
     // 2. interpolate between y direction;
     rgb.z = w_ya * tmp_ya + w_yb * tmp_yb;
   }
@@ -174,7 +159,7 @@ RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb){
   rgb.z /= 255.0;
 
   return rgb;
-#endif
+
 }
 
 

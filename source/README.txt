@@ -33,7 +33,7 @@ EXAMPLES:
 # history of some usefull commands:
 
 + initialize 
-env DISPLAY=:0.0 ./Protonect 179625534347 -a 5000 -s 141.54.147.32:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/23_init
+env DISPLAY=:0.0 ./Protonect 179625534347 -a 5000 -s 141.54.147.32:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/23_init 6
 ./initialize ../../../data/23.cv ../../../data/23_init
 + calibrate
 env DISPLAY=:0.0 ./Protonect 179625534347 -s 141.54.147.32:7000 -a 5000 -n
@@ -50,7 +50,7 @@ env DISPLAY=:0.0 ./Protonect 179625534347 -s 141.54.147.32:7000 -a 5000 -n
 27 - 049678134347
 
 50 - 011312650647
-51 -
+51 - 011482550647
 52 -
 53 -
 54 -
@@ -62,6 +62,41 @@ env DISPLAY=:0.0 ./Protonect 179625534347 -s 141.54.147.32:7000 -a 5000 -n
 41 - 501411241942
 42 - 505573342542
 
+
+
+# Boreas (IP is 141.54.147.32) with Kinect 50 and 51
+
+-----------------> 50
+init:
+./protonect.sh 011312650647 -a 5000 -s 141.54.147.32:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/50_init 6
+./initialize ../../../data/50.cv ../../../data/50_init
+calibrate:
+./protonect.sh 011312650647 -s 141.54.147.32:7000 -n -i
+./calibrate ../../../data/50.cv 141.54.147.32:7000
+play:
+./protonect.sh 011312650647 -s 141.54.147.32:7000 -n
+./viewer ../../../data/50.cv 141.54.147.32:7000
+
+
+-----------------> 51
+init:
+./protonect.sh 011482550647 -a 5000 -s 141.54.147.32:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/51_init 6
+./initialize ../../../data/51.cv ../../../data/51_init
+calibrate:
+./protonect.sh 011482550647 -s 141.54.147.32:7000 -n -i
+./calibrate ../../../data/51.cv 141.54.147.32:7000
+play:
+./protonect.sh 011482550647 -s 141.54.147.32:7000 -n
+./viewer ../../../data/51.cv 141.54.147.32:7000
+
+-----------------> 50 and 51
+./protonect.sh 011312650647 011482550647 -s 141.54.147.32:7000 -n
+./viewer ../../../data/50.cv ../../../data/51.cv 141.54.147.32:7000
+
+# in Avango
+./protonect.sh 011312650647 011482550647 -s 141.54.147.32:7000
+cd /opt/avango/new_renderer/examples/video3d
+./start.sh ~/Desktop/my-git/rgbd-calib/data/surface_50_51.ks
 
 
 

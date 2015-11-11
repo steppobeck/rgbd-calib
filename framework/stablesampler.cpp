@@ -106,6 +106,8 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
 
     if(sps_tmp.size() != (CB_WIDTH * CB_HEIGHT)){
       std::cerr << "not enough samples found in frame...only: " << sps_tmp.size() << " not adding to filter" << std::endl;
+      num_frames_token = 0;
+      sfilt.clear();
       continue;
     }
 
