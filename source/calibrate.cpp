@@ -69,21 +69,21 @@ int main(int argc, char* argv[]){
   RGBDSensor sensor(cfg);
 
   Checkerboard cb;
-  cb.pose_offset[0][0] = 0.999964;
-  cb.pose_offset[0][1] = -0.002796;
-  cb.pose_offset[0][2] = 0.008038;
+  cb.pose_offset[0][0] = 0.999970;
+  cb.pose_offset[0][1] = -0.001647;
+  cb.pose_offset[0][2] = 0.007582;
 
-  cb.pose_offset[1][0] = 0.002861;
-  cb.pose_offset[1][1] = 0.999964;
-  cb.pose_offset[1][2] = -0.007918;
+  cb.pose_offset[1][0] = 0.001702;
+  cb.pose_offset[1][1] = 0.999973;
+  cb.pose_offset[1][2] = -0.007256;
 
-  cb.pose_offset[2][0] = -0.008016;
-  cb.pose_offset[2][1] = 0.007941;
-  cb.pose_offset[2][2] = 0.999937;
+  cb.pose_offset[2][0] = -0.007571;
+  cb.pose_offset[2][1] = 0.007269;
+  cb.pose_offset[2][2] = 0.999944;
 
-  cb.pose_offset[3][0] = -0.005395;
-  cb.pose_offset[3][1] = 0.002236;
-  cb.pose_offset[3][2] = 0.010328;
+  cb.pose_offset[3][0] = -0.003584;
+  cb.pose_offset[3][1] = 0.002038;
+  cb.pose_offset[3][2] = 0.007816;
 
   // configure local 3D Points on chessboard here:
   for(unsigned y = 0; y < CB_HEIGHT; ++y){
