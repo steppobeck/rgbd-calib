@@ -123,3 +123,82 @@ play:
 ./viewer ../../../data/53.cv 141.54.147.27:7000
 
 
+# Achill 23 24 25 36
+-----------------> 23
+init:
+./protonect.sh 179625534347 -a 5000 -s 141.54.147.33:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/23_init 6
+./initialize ../../../data/23.cv ../../../data/23_init
+calibrate:
+./protonect.sh 179625534347 -s 141.54.147.33:7000 -n -i
+./calibrate ../../../data/23.cv 141.54.147.33:7000 -s 5
+play:
+./protonect.sh 179625534347 -s 141.54.147.33:7000 -n
+./viewer ../../../data/23.cv 141.54.147.33:7000
+
+-----------------> 24
+init:
+./protonect.sh 110356534447 -a 5000 -s 141.54.147.33:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/24_init 6
+./initialize ../../../data/24.cv ../../../data/24_init
+calibrate:
+./protonect.sh 110356534447 -s 141.54.147.33:7000 -n -i
+./calibrate ../../../data/24.cv 141.54.147.33:7000 -s 5
+play:
+./protonect.sh 110356534447 -s 141.54.147.33:7000 -n
+./viewer ../../../data/24.cv 141.54.147.33:7000
+
+-----------------> 25
+init:
+./protonect.sh 007688634347 -a 5000 -s 141.54.147.33:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/25_init 6
+./initialize ../../../data/25.cv ../../../data/25_init
+calibrate:
+./protonect.sh 007688634347 -s 141.54.147.33:7000 -n -i
+./calibrate ../../../data/25.cv 141.54.147.33:7000 -s 5
+play:
+./protonect.sh 007688634347 -s 141.54.147.33:7000 -n
+./viewer ../../../data/25.cv 141.54.147.33:7000
+
+-----------------> 26
+init:
+./protonect.sh 084864534447 -a 5000 -s 141.54.147.33:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/26_init 6
+./initialize ../../../data/26.cv ../../../data/26_init
+calibrate:
+./protonect.sh 084864534447 -s 141.54.147.33:7000 -n -i
+./calibrate ../../../data/26.cv 141.54.147.33:7000 -s 5
+play:
+./protonect.sh 084864534447 -s 141.54.147.33:7000 -n
+./viewer ../../../data/26.cv 141.54.147.33:7000
+
+
+
+
+# For Marcel
+
+
+A. record from server charon with 4 Kinects attached
+
+cd /opt/kinect-resources
+- WITH compressed color
+./protonect.sh 179625534347 110356534447 007688634347 084864534447 -s 141.54.147.33:7000
+./record /media/usbplatte/kinect_shots/23242526_compressed.stream 141.54.147.33:7000 -c -n 250 -k 4 -w 10
+
+A2 Live view
+./kinect_client kinect_surface_K_23_24_25_26.ksV3
+
+- stream from server and record WITHOUT compression
+./protonect.sh 179625534347 110356534447 007688634347 084864534447 -s 141.54.147.33:7000 -n
+./record /media/usbplatte/kinect_shots/23242526_without_compression.stream 141.54.147.33:7000 -n 250 -k 4 -w 10
+A3 Live view
+./viewer ../../../data/23.cv ../../../data/24.cv ../../../data/25.cv ../../../data/26.cv 141.54.147.33:7000
+
+
+
+B. play a recording for live view
+- with compression
+./play /media/usbplatte/kinect_shots/23242526_compressed.stream 141.54.147.33:7000 -f 20 -k 4 -c
+./kinect_client kinect_surface_K_23_24_25_26.ksV3
+
+- without compression
+./play /media/usbplatte/kinect_shots/23242526_without_compression.stream 141.54.147.33:7000 -f 20 -k 4
+./viewer ../../../data/23.cv ../../../data/24.cv ../../../data/25.cv ../../../data/26.cv 141.54.147.33:7000
+
+
