@@ -11,7 +11,7 @@ int main(int argc, char* argv[]){
   unsigned num_kinect_cameras = 1;
   bool rgb_is_compressed = false;
   float max_fps = 20.0;
-  CMDParser p("record_to_this_filename serverport");
+  CMDParser p("play_this_filename serverport");
   p.addOpt("k",1,"num_kinect_cameras", "specify how many kinect cameras are in stream, default: 1");
   p.addOpt("f",1,"max_fps", "specify how fast in fps the stream should be played, default: 20.0");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed recording for rgb stream, default: false");

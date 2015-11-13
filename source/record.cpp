@@ -6,6 +6,8 @@
 #include <iostream>
 
 int main(int argc, char* argv[]){
+
+  unsigned wait_seconds_to_before_start = 0;
   unsigned num_kinect_cameras = 1;
   unsigned num_frames_to_record = 100;
   bool rgb_is_compressed = false;
@@ -13,8 +15,12 @@ int main(int argc, char* argv[]){
   p.addOpt("k",1,"num_kinect_cameras", "specify how many kinect cameras are in stream, default: 1");
   p.addOpt("n",1,"num_frames_to_record", "specify how many frames should be recorded, default: 100");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed recording for rgb stream, default: false");
+  p.addOpt("w",1,"wait_seconds_to_before_start", "specify how many seconds to wait before start, default: 0");
   p.init(argc,argv);
 
+  if(p.isOptSet("w")){
+    wait_seconds_to_before_start = p.getOptsInt("w")[0];
+  }
   if(p.isOptSet("k")){
     num_kinect_cameras = p.getOptsInt("k")[0];
   }
@@ -42,6 +48,12 @@ int main(int argc, char* argv[]){
   socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
   std::string endpoint("tcp://" + p.getArgs()[1]);
   socket.connect(endpoint.c_str());
+
+  while(wait_seconds_to_before_start > 0){
+    std::cout << "countdown: " << wait_seconds_to_before_start << std::endl;
+    sleep(1);
+    --wait_seconds_to_before_start;
+  }
 
   while(num_frames_to_record > 0){
     std::cout << "remaining frames " << num_frames_to_record << std::endl;
