@@ -177,18 +177,17 @@ int main(int argc, char* argv[]){
     NearestNeighbourSearch nns(nnisamples);
     for(auto s : nnisamples){
       // filter here
-      const unsigned k = 30; // 50
+      const unsigned k = 50; // 50
       std::vector<nniSample> neighbours = nns.search(s,k);
       if(neighbours.empty()){
 	continue;
       }
 
-
       const float avd = calcAvgDist(neighbours, s);
       if(avd > 0.025){
 	continue;
       }
-      const unsigned local_k = 20; // 50
+      const unsigned local_k = 50; // 50
       std::vector<float> dists;
       for(const auto& n : neighbours){
 	std::vector<nniSample> local_neighbours = nns.search(n,local_k);
