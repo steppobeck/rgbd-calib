@@ -205,4 +205,21 @@ B. play a recording for live view
 ./play /media/usbplatte/kinect_shots/23242526_without_compression.stream 141.54.147.33:7000 -f 20 -k 4
 ./viewer ../../../data/23.cv ../../../data/24.cv ../../../data/25.cv ../../../data/26.cv 141.54.147.33:7000
 
+# Quickguide
+Server:
+cd /opt/kinect-resources
+./protonect.sh 179625534347 110356534447 007688634347 084864534447 -s 141.54.147.33:7000
+
+Live:
+cd /home/steppo/Desktop/my-svn/multiViewTools/libKinect/examples
+./kinect_client kinect_surface_K_23_24_25_26.ksV3
+
+Record:
+./record 23242526_compressed.stream 141.54.147.33:7000 -n 250 -k 4 -w 100 -c
+
+Check:
+./play 23242526_compressed.stream 141.54.147.33:7000 -f 20 -k 4 -c
+
+/home/steppo/Desktop/my-svn/multiViewTools/libKinect/examples
+./kinect_client kinect_surface_K_23_24_25_26.ksV3
 
