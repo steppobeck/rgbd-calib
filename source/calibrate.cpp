@@ -106,6 +106,11 @@ int main(int argc, char* argv[]){
 
     // play sound to notice user and wait 5 seconds
     system("/usr/bin/aplay ../../../framework/click_x.wav");
+
+    std::cout << "--------------------------------------------------------" << std::endl;
+    std::cout << "----------------------> Locations left: " << num_locations_to_sample << std::endl;
+    std::cout << "--------------------------------------------------------" << std::endl;
+
     sleep(5);
   }
 
