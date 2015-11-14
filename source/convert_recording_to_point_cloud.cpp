@@ -5,9 +5,11 @@
 #include <DataTypes.hpp>
 #include <NearestNeighbourSearch.hpp>
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
 
 namespace{
 
@@ -20,10 +22,48 @@ namespace{
     return stream.str();
   }
 
+  void calcMeanSD(std::vector<float>& values, double& mean, double& stdev){
+
+    const double sum = std::accumulate(values.begin(), values.end(), 0.0);
+    mean = sum / values.size();
+      
+    const double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
+    stdev = std::sqrt(sq_sum / values.size() - mean * mean);
+
+  }
+
+  float calcAvgDist(const std::vector<nniSample>& neighbours, const nniSample& s){
+    float avd = 0.0;
+    for(const auto& n : neighbours){
+      const float dist = glm::length(glm::vec3(s.s_pos.x - n.s_pos.x,s.s_pos.y - n.s_pos.y,s.s_pos.z - n.s_pos.z));
+      avd += dist;
+    }
+    avd /= neighbours.size();
+    return avd;
+  }
+
+
+  glm::vec3 bbx_min = glm::vec3(-1.2, 0.05, -1.2);
+  glm::vec3 bbx_max = glm::vec3( 1.2, 2.4,  1.2);
+
+  bool clip(const glm::vec3& p){
+    if(p.x < bbx_min.x ||
+       p.y < bbx_min.y ||
+       p.z < bbx_min.z ||
+       p.x > bbx_max.x ||
+       p.y > bbx_max.y ||
+       p.z > bbx_max.z){
+    return true;
+  }
+  return false;
+}
+
+
 }
 
 int main(int argc, char* argv[]){
-	
+
+
   bool rgb_is_compressed = false;
   std::string stream_filename;
   CMDParser p("basefilename_cv .... basefilename_for_output");
@@ -86,16 +126,20 @@ int main(int argc, char* argv[]){
 	for(unsigned x = 0; x < sensor.config.size_d.x; ++x){
 	  const unsigned d_idx = y* sensor.config.size_d.x + x;
 	  float d = s_num == 0 ? sensor.frame_d[d_idx] : sensor.slave_frames_d[s_num - 1][d_idx];
-	  if(d < cvs[s_num]->min_d || d > cvs[s_num]->max_d)
+	  if(d < cvs[s_num]->min_d || d > cvs[s_num]->max_d){
 	    continue;
-	  
+	  }
+
 	  glm::vec3 pos3D;
 	  glm::vec2 pos2D_rgb;
 	  
 	  pos3D = cvs[s_num]->lookupPos3D( x * 1.0/sensor.config.size_d.x,
 					   y * 1.0/sensor.config.size_d.y, d);
-		
-	  // CLIP here against bounding box from DataTypes.hpp	
+
+	  if(clip(pos3D)){
+	    continue;
+	  }
+
 	  nniSample nnis;
 	  nnis.s_pos.x = pos3D.x;
 	  nnis.s_pos.y = pos3D.y;
@@ -133,21 +177,32 @@ int main(int argc, char* argv[]){
     NearestNeighbourSearch nns(nnisamples);
     for(auto s : nnisamples){
       // filter here
-      const unsigned k = 50;
+      const unsigned k = 30; // 50
       std::vector<nniSample> neighbours = nns.search(s,k);
       if(neighbours.empty()){
 	continue;
       }
-      float avg_dist = 0.0;
-      for(const auto& n : neighbours){
-	const float dist = glm::length(glm::vec3(s.s_pos.x - n.s_pos.x,s.s_pos.y - n.s_pos.y,s.s_pos.z - n.s_pos.z));
-	avg_dist += dist;
-      }
-      avg_dist /= k;
-      if(avg_dist > 0.025){
+
+
+      const float avd = calcAvgDist(neighbours, s);
+      if(avd > 0.025){
 	continue;
       }
-      
+      const unsigned local_k = 20; // 50
+      std::vector<float> dists;
+      for(const auto& n : neighbours){
+	std::vector<nniSample> local_neighbours = nns.search(n,local_k);
+	if(!local_neighbours.empty()){
+	  dists.push_back(calcAvgDist(local_neighbours, n));
+	}
+      }
+      double mean;
+      double sd;
+      calcMeanSD(dists, mean, sd);
+      if((avd - mean) > sd){
+	continue;
+      }
+
       int red   = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
       int green = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
       int blue  = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
@@ -163,8 +218,6 @@ int main(int argc, char* argv[]){
 	      << num_frames
 	      << " processed and saved to: "
 	      << pcfile_name << std::endl;
-
-    return 0;
 
   }
   

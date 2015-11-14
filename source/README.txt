@@ -173,6 +173,10 @@ play:
 
 # For Marcel
 
+Trouble shooting:
+- If Kinect server hangs,
+killall Protonect -KILL
+
 
 A. record from server charon with 4 Kinects attached
 
