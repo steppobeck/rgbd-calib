@@ -8,14 +8,9 @@
 
 int main(int argc, char* argv[]){
 
-  std::ofstream* pcfile = 0;
   CMDParser p("basefilename_cv .... serverport");
-  p.addOpt("w",1,"write_to_point_cloud_filename", "write first frame to this filename as xyz");
   p.init(argc,argv);
 
-  if(p.isOptSet("w")){
-    pcfile = new std::ofstream(p.getOptsString("w")[0].c_str());
-  }
 
   const unsigned num_streams(p.getArgs().size() - 1);
   std::vector<CalibVolume*> cvs;
@@ -45,7 +40,6 @@ int main(int argc, char* argv[]){
       win.stop();
     }
 
-    
 
     // receive frames
     sensor.recv(false /*do not recv ir!*/);
@@ -77,26 +71,10 @@ int main(int argc, char* argv[]){
 	  glColor3f(rgb.x, rgb.y, rgb.z);
 	  glVertex3f(pos3D.x, pos3D.y, pos3D.z);
 
-
-	  if(pcfile != 0){
-	    int red   = (int) std::max(0.0f , std::min(255.0f, rgb.x * 255.0f));
-	    int green = (int) std::max(0.0f , std::min(255.0f, rgb.y * 255.0f));
-	    int blue  = (int) std::max(0.0f , std::min(255.0f, rgb.z * 255.0f));
-	    *pcfile << pos3D.x << " " << pos3D.y << " " << pos3D.z << " "
-		    << red << " "
-		    << green << " "
-		    << blue << std::endl;
-	  }
-
 	}
       }
     }
     glEnd();
-
-    if(pcfile != 0){
-      pcfile->close();
-      return 0;
-    }
 
     win.update();
   }
