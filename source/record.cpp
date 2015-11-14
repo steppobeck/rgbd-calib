@@ -1,6 +1,6 @@
 #include <CMDParser.hpp>
 #include <FileBuffer.hpp>
-
+#include <ChronoMeter.hpp>
 #include <zmq.hpp>
 
 #include <iostream>
@@ -9,11 +9,11 @@ int main(int argc, char* argv[]){
 
   unsigned wait_frames_to_before_start = 0;
   unsigned num_kinect_cameras = 1;
-  unsigned num_frames_to_record = 100;
+  unsigned num_seconds_to_record = 10;
   bool rgb_is_compressed = false;
   CMDParser p("record_to_this_filename serverport");
   p.addOpt("k",1,"num_kinect_cameras", "specify how many kinect cameras are in stream, default: 1");
-  p.addOpt("n",1,"num_frames_to_record", "specify how many frames should be recorded, default: 100");
+  p.addOpt("n",1,"num_seconds_to_record", "specify how many seconds should be recorded, default: 10");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed recording for rgb stream, default: false");
   p.addOpt("w",1,"wait_frames_to_before_start", "specify how many seconds to wait before start, default: 0");
   p.init(argc,argv);
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]){
     num_kinect_cameras = p.getOptsInt("k")[0];
   }
   if(p.isOptSet("n")){
-    num_frames_to_record = p.getOptsInt("n")[0];
+    num_seconds_to_record = p.getOptsInt("n")[0];
   }
   if(p.isOptSet("c")){
     rgb_is_compressed = true;
@@ -59,8 +59,12 @@ int main(int argc, char* argv[]){
     --wait_frames_to_before_start;
   }
 
-  while(num_frames_to_record > 0){
-    std::cout << "remaining frames " << num_frames_to_record << std::endl;
+  std::cout << "START!!!!!!!!!!!!!!!!!!!!!!!!!!!!: " << std::endl;
+
+  ChronoMeter cm;
+  const double starttime = cm.getTick();
+  bool running = true;
+  while(running){
 
     zmq::message_t zmqm((colorsize + depthsize) * num_kinect_cameras);
     socket.recv(&zmqm); // blocking
@@ -72,7 +76,13 @@ int main(int argc, char* argv[]){
       fb.write((unsigned char*) zmqm.data() + offset, depthsize);
       offset += depthsize;
     }
-    --num_frames_to_record;
+
+
+    const double currtime = cm.getTick();
+    const double elapsed = currtime - starttime;
+    std::cout << "remaining seconds" << num_seconds_to_record - elapsed << std::endl;
+    if(elapsed > num_seconds_to_record)
+      running = false;
   }
 
   return 0;
