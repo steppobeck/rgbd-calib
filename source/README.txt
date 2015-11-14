@@ -215,9 +215,11 @@ cd /home/steppo/Desktop/my-svn/multiViewTools/libKinect/examples
 ./kinect_client kinect_surface_K_23_24_25_26.ksV3
 
 Record:
+/home/karnapke/Desktop/my-git/rgbd-calib/build/build/Release
 ./record 23242526_compressed.stream 141.54.147.33:7000 -n 250 -k 4 -w 100 -c
 
 Check:
+/home/karnapke/Desktop/my-git/rgbd-calib/build/build/Release
 ./play 23242526_compressed.stream 141.54.147.33:7000 -f 20 -k 4 -c
 
 /home/steppo/Desktop/my-svn/multiViewTools/libKinect/examples
