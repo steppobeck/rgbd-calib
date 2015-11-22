@@ -53,7 +53,7 @@ env DISPLAY=:0.0 ./Protonect 179625534347 -s 141.54.147.32:7000 -a 5000 -n
 51 - 011482550647
 52 - 012086450647
 53 - 016215650647
-54 -
+54 - 012126250647
 
 
 # device serials with option -r
@@ -98,6 +98,19 @@ play:
 cd /opt/avango/new_renderer/examples/video3d
 zsh
 ./start.sh ~/Desktop/my-git/rgbd-calib/data/surface_50_51.ks
+
+-----------------> 54
+init:
+./protonect.sh 012126250647 -a 5000 -s 141.54.147.32:7000 -y 50 ~/Desktop/my-git/rgbd-calib/data/54_init 6
+./initialize ../../../data/54.cv ../../../data/54_init
+calibrate:
+./protonect.sh 012126250647 -s 141.54.147.32:7000 -n -i
+./calibrate ../../../data/54.cv 141.54.147.32:7000 -s 5
+play:
+./protonect.sh 012126250647 -s 141.54.147.32:7000 -n
+./viewer ../../../data/54.cv 141.54.147.32:7000
+
+
 
 # Arachne (IP is 141.54.147.27) with Kinect 52 and 53
 -----------------> 52
