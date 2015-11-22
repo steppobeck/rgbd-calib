@@ -5,6 +5,7 @@
 #include <DataTypes.hpp>
 #include <NearestNeighbourSearch.hpp>
 
+#include <squish.h>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
@@ -191,7 +192,15 @@ int main(int argc, char* argv[]){
   cfg.size_rgb = glm::uvec2(1280, 1080);
   cfg.size_d   = glm::uvec2(512, 424);
   RGBDSensor sensor(cfg, num_streams - 1);	
-	
+
+  unsigned char* tmp_rgb = 0;
+  unsigned char* tmp_rgba = 0;
+  const unsigned colorsize_tmp = cfg.size_rgb.x * cfg.size_rgb.y * 3;
+  const unsigned colorsize_tmpa = cfg.size_rgb.x * cfg.size_rgb.y * 4;
+  if(rgb_is_compressed){
+    tmp_rgb = new unsigned char [colorsize_tmp];
+    tmp_rgba = new unsigned char [colorsize_tmpa];
+  }	
   const unsigned colorsize = rgb_is_compressed ? 691200 : cfg.size_rgb.x * cfg.size_rgb.y * 3;
   const unsigned depthsize = cfg.size_d.x * cfg.size_d.y * sizeof(float);
 
@@ -209,8 +218,30 @@ int main(int argc, char* argv[]){
 
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       fb.read((unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]), colorsize);
+
+      if(rgb_is_compressed){
+         // uncompress to rgb_tmp from (unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]) to tmp_rgba
+         squish::DecompressImage (tmp_rgba, cfg.size_rgb.x, cfg.size_rgb.y,
+                                  (unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]), squish::kDxt1);
+         // copy back rgbsensor
+         unsigned buffida = 0;
+         unsigned buffid = 0;
+         for(unsigned y = 0; y < cfg.size_rgb.y; ++y){
+	   for(unsigned x = 0; x < cfg.size_rgb.x; ++x){
+	     tmp_rgb[buffid++] = tmp_rgba[buffida++];
+	     tmp_rgb[buffid++] = tmp_rgba[buffida++];
+	     tmp_rgb[buffid++] = tmp_rgba[buffida++];
+	     buffida++;
+           }
+         }
+         memcpy((unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]), tmp_rgb, colorsize_tmp);
+      }
+
+
       fb.read((unsigned char*) (s_num == 0 ? sensor.frame_d : sensor.slave_frames_d[s_num - 1]), depthsize);
     }
+
+
 
     std::vector<nniSample> nnisamples;
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
@@ -238,26 +269,19 @@ int main(int argc, char* argv[]){
 	  nnis.s_pos.y = pos3D.y;
 	  nnis.s_pos.z = pos3D.z;		
 		
-	  if(!rgb_is_compressed){
-	    glm::vec2 pos2D_rgb_norm = cvs[s_num]->lookupPos2D_normalized( x * 1.0/sensor.config.size_d.x, 
-									   y * 1.0/sensor.config.size_d.y, d);
-	    pos2D_rgb = glm::vec2(pos2D_rgb_norm.x * sensor.config.size_rgb.x,
-				  pos2D_rgb_norm.y * sensor.config.size_rgb.y);
+	  glm::vec2 pos2D_rgb_norm = cvs[s_num]->lookupPos2D_normalized( x * 1.0/sensor.config.size_d.x, 
+									 y * 1.0/sensor.config.size_d.y, d);
+	  pos2D_rgb = glm::vec2(pos2D_rgb_norm.x * sensor.config.size_rgb.x,
+				pos2D_rgb_norm.y * sensor.config.size_rgb.y);
 	  
-	    glm::vec3 rgb = sensor.get_rgb_bilinear_normalized(pos2D_rgb, s_num);
+	  glm::vec3 rgb = sensor.get_rgb_bilinear_normalized(pos2D_rgb, s_num);
 
           
-	    nnis.s_pos_off.x = rgb.x;
-	    nnis.s_pos_off.y = rgb.y;
-	    nnis.s_pos_off.z = rgb.z;
+	  nnis.s_pos_off.x = rgb.x;
+	  nnis.s_pos_off.y = rgb.y;
+	  nnis.s_pos_off.z = rgb.z;
 
-	  }
-	  else{
-	    nnis.s_pos_off.x = 0.0;
-	    nnis.s_pos_off.y = 0.0;
-	    nnis.s_pos_off.z = 0.0;
 
-	  }
           nnisamples.push_back(nnis);
 
 	}

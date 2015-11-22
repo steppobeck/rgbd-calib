@@ -30,6 +30,8 @@ include(FindOpenCV)
 include(FindBoost)
 # boost
 include(FindCGAL)
+# squish
+include(FindSquish)
 
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
@@ -67,13 +69,17 @@ include_directories(${BOOST_INCLUDE_DIRS})
 ################################
 # boost
 include_directories(${CGAL_INCLUDE_DIRS})
+################################
+# squish
+include_directories(${SQUISH_INCLUDE_DIRS})
+
 
 ################################
 # Add libraries to executables
 
 ################################
 # zmq and other libraries
-set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${BOOST_LIBRARIES} ${CGAL_LIBRARIES})
+set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${BOOST_LIBRARIES} ${CGAL_LIBRARIES} ${SQUISH_LIBRARIES})
 
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
@@ -84,9 +90,10 @@ link_directories(${ZMQ_LIBRARY_DIRS})
 link_directories(${OPENCV_LIBRARY_DIRS})
 # boost
 link_directories(${BOOST_LIBRARY_DIRS})
-# boost
+# cgal
 link_directories(${CGAL_LIBRARY_DIRS})
-
+# squish
+link_directories(${SQUISH_LIBRARY_DIRS})
 
 ################################
 # Add output directory
