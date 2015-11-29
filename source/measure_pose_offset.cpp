@@ -51,6 +51,7 @@ int main(int argc, char* argv[]){
     l.listen();
   }
 
+
   glm::mat4 chessboard_pose_correction(l.getMatrices()[correction_id]);
   glm::mat4 chessboard_pose(l.getMatrices()[target_id]);
   glm::mat4 offset = (chessboard_pose_correction * glm::inverse(chessboard_pose));
@@ -58,6 +59,7 @@ int main(int argc, char* argv[]){
   cb.pose_offset = offset;
   cb.save_pose_offset(pose_offset_filename.c_str());
 
+  std::cerr << "PLEASE note, the calculation can be improved by averaging" << std::endl;
 
   return 0;
 }

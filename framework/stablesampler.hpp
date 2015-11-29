@@ -18,6 +18,7 @@ public:
   void dumpSamplePoints();
   const std::vector<samplePoint>& getSamplePoints();
 
+  void appendSamplesToFile(const char* filename);
 
 
 private:
@@ -28,7 +29,6 @@ private:
   OpenCVChessboardCornerDetector* m_cd_c;
   OpenCVChessboardCornerDetector* m_cd_i;
   std::vector<samplePoint> m_sps;
-  std::vector<uv>          m_errors;
   Checkerboard* m_cb;
 };
 

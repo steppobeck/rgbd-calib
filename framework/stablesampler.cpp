@@ -8,6 +8,9 @@
 #include <SampleFilter.hpp>
 
 
+#include <glm/gtc/type_ptr.hpp>
+#include <fstream>
+
 
 StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_port, unsigned art_target_id, Checkerboard* cb)
   : m_sensor(sensor),
@@ -17,7 +20,6 @@ StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_p
     m_cd_c(),
     m_cd_i(),
     m_sps(),
-    m_errors(),
     m_cb(cb)
 {
   m_artl->open(art_port);
@@ -143,14 +145,16 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
 
     filtered_samples[i].quality = 1.0f;
 
+#if 0
     uv err;	  
     err.u = glm::length(glm::vec3(filtered_samples[i].pos_offset.x,filtered_samples[i].pos_offset.y,filtered_samples[i].pos_offset.z));
     err.v = glm::length(glm::vec3(filtered_samples[i].tex_offset.u * m_sensor->config.size_rgb.x,
 				  filtered_samples[i].tex_offset.v * m_sensor->config.size_rgb.y,0.0));
+#endif
     
     
     m_sps.push_back(filtered_samples[i]);
-    m_errors.push_back(err);
+
       
   }
 
@@ -172,4 +176,23 @@ StableSampler::dumpSamplePoints(){
 const std::vector<samplePoint>&
 StableSampler::getSamplePoints(){
   return m_sps;
+}
+
+
+
+void
+StableSampler::appendSamplesToFile(const char* filename){
+
+  std::ofstream off(filename, std::ofstream::binary | std::ofstream::app | std::ofstream::out);
+  for(const auto& s : m_sps){
+    off.write((const char*) &s.depth, sizeof(float));
+    off.write((const char*) &s.tex_color, sizeof(uv));
+    off.write((const char*) &s.tex_depth, sizeof(uv));
+    off.write((const char*) &s.pos_offset, sizeof(xyz));
+    off.write((const char*) &s.tex_offset, sizeof(uv));
+    off.write((const char*) glm::value_ptr(s.pos_real), sizeof(glm::vec3));
+    off.write((const char*) &s.quality, sizeof(float));
+  }
+  off.close();
+  std::cout << "StableSampler:: appended to file: " << filename << " num samples: " << m_sps.size() << std::endl;
 }

@@ -1,7 +1,11 @@
 #include "calibrator.hpp"
 
+
+#include <glm/gtc/type_ptr.hpp>
+
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
+
 
 #include <chrono>
 #include <cmath>
@@ -10,7 +14,20 @@
 #include <algorithm>
 #include <unistd.h>
 
+#include <fstream>
+
+
 namespace{
+
+
+  size_t calcNumFrames(std::ifstream& f, size_t fs){
+    f.seekg(0,std::ios::end);
+    const unsigned number_of_frames = (f.tellg()/fs);
+    f.seekg(0, std::ios::beg);
+    return number_of_frames;
+  }
+
+
 
   float
   gauss(float x, float sigma, float mean){
@@ -76,7 +93,35 @@ Calibrator::~Calibrator()
 
 
 void
-Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours){
+Calibrator::applySamples(CalibVolume* cv, const char* filename, const RGBDConfig& cfg, unsigned idwneighbours){
+
+
+  // load samples from filename
+  std::vector<samplePoint> sps;
+
+  std::ifstream iff(filename, std::ifstream::binary);
+  const unsigned num_samples_in_file = calcNumFrames(iff,
+						     sizeof(float) +
+						     sizeof(uv) +
+						     sizeof(uv) +
+						     sizeof(xyz) +
+						     sizeof(uv) +
+						     sizeof(glm::vec3) +
+						     sizeof(float));
+  for(unsigned i = 0; i < num_samples_in_file; ++i){
+    samplePoint s;
+    iff.read((char*) &s.depth, sizeof(float));
+    iff.read((char*) &s.tex_color, sizeof(uv));
+    iff.read((char*) &s.tex_depth, sizeof(uv));
+    iff.read((char*) &s.pos_offset, sizeof(xyz));
+    iff.read((char*) &s.tex_offset, sizeof(uv));
+    iff.read((char*) glm::value_ptr(s.pos_real), sizeof(glm::vec3));
+    iff.read((char*) &s.quality, sizeof(float));
+    sps.push_back(s);
+  }
+  iff.close();  
+
+
 
   auto start_time = std::chrono::system_clock::now();
   //CGAL : build Tree, search 100 neighbors, try NNI of neighbourhood, fallback to IDW small neighborhood

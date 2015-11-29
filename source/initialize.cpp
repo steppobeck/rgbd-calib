@@ -86,6 +86,7 @@ int main(int argc, char* argv[]){
 
   glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world_static(cbs, cb);
   std::cerr << "extrinsic of sensor is: " << eye_d_to_world << std::endl;
+  std::cerr << "PLEASE note, the extrinsic guess can be improved by averaging" << std::endl;
 
   for(unsigned z = 0; z < cv.depth; ++z){
     for(unsigned y = 0; y < cv.height; ++y){
