@@ -1,3 +1,7 @@
+add_executable(measure_pose_offset measure_pose_offset.cpp)
+target_link_libraries(measure_pose_offset framework ${LIBRARIES})
+add_dependencies(measure_pose_offset glfw framework ${COPY_BINARY})
+
 add_executable(viewer viewer.cpp)
 target_link_libraries(viewer framework ${LIBRARIES})
 add_dependencies(viewer glfw framework ${COPY_BINARY})

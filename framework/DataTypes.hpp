@@ -16,6 +16,10 @@ class Checkerboard{
 public:
   glm::mat4 pose_offset;
   std::vector<glm::vec3> points_local;
+
+  bool save_pose_offset(const char* filename);
+  bool load_pose_offset(const char* filename);
+
 };
 
 

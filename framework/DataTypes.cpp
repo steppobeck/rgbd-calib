@@ -1,5 +1,43 @@
 #include "DataTypes.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
+#include <fstream>
+
+#if 0
+  cb.pose_offset[0][0] = 0.999970;
+  cb.pose_offset[0][1] = -0.001647;
+  cb.pose_offset[0][2] = 0.007582;
+
+  cb.pose_offset[1][0] = 0.001702;
+  cb.pose_offset[1][1] = 0.999973;
+  cb.pose_offset[1][2] = -0.007256;
+
+  cb.pose_offset[2][0] = -0.007571;
+  cb.pose_offset[2][1] = 0.007269;
+  cb.pose_offset[2][2] = 0.999944;
+
+  cb.pose_offset[3][0] = -0.003584;
+  cb.pose_offset[3][1] = 0.002038;
+  cb.pose_offset[3][2] = 0.007816;
+#endif
+
+bool
+Checkerboard::save_pose_offset(const char* filename){
+  std::ofstream off(filename, std::ofstream::binary);
+  off.write((const char*) glm::value_ptr(pose_offset), sizeof(glm::mat4));
+  off.close();
+  std::cout << "Checkerboard:: saving pose offset " << pose_offset << std::endl;
+  return true;
+}
+
+bool
+Checkerboard::load_pose_offset(const char* filename){
+  std::ifstream iff(filename, std::ifstream::binary);
+  iff.read((char*) glm::value_ptr(pose_offset), sizeof(glm::mat4));
+  iff.close();
+  std::cout << "Checkerboard:: loaded pose offset " << pose_offset << std::endl;
+  return true;
+}
 
 
 std::ostream& operator << (std::ostream& o, const glm::vec3& v){
