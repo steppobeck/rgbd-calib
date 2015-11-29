@@ -1,12 +1,14 @@
 initialize
 + 
 
+stable_sampler
++ 
+
 calibrate
 + 
 
 viewer
 +
-
 
 record
 + freely configurable recorder based on zmq
@@ -17,8 +19,6 @@ play
 + freely configurable player based on zmq
 + reads frames of multiple Kinect 2.0 from disk
 + streams frames to serverport
-
-EXAMPLES:
 
 
 # device serials of Kinect V2 sensors in our lab:
