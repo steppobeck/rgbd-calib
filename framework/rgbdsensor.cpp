@@ -1,8 +1,41 @@
 #include "rgbdsensor.hpp"
 
 #include <DataTypes.hpp>
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc_c.h>
+
+
 #include <cmath>
 #include <iostream>
+
+
+namespace{
+
+  unsigned char* convertTo8Bit(float* in, unsigned w, unsigned h){
+    static unsigned char* b = new unsigned char [w*h];
+
+    float max_v = 0.0;
+    for(unsigned idx = 0; idx != w*h; ++idx){
+      max_v = std::max(in[idx],max_v);
+    }
+    if(max_v != 0.0){
+      for(unsigned idx = 0; idx != w*h; ++idx){
+	const float n = in[idx]/max_v;
+	unsigned char v = (unsigned char) (255.0 * n);
+	b[idx] = v;
+      }
+    }
+
+    return b;
+  }
+
+}
+
+
 
 RGBDSensor::RGBDSensor(const RGBDConfig& cfg, unsigned num_of_slaves)
   : config(cfg),
@@ -36,7 +69,12 @@ RGBDSensor::RGBDSensor(const RGBDConfig& cfg, unsigned num_of_slaves)
     m_socket.connect(endpoint.c_str());
   }
 
-  
+
+  cvNamedWindow("rgb", CV_WINDOW_AUTOSIZE);
+  cvNamedWindow("depth", CV_WINDOW_AUTOSIZE);
+  m_cv_rgb_image = cvCreateImage(cvSize(config.size_rgb.x, config.size_rgb.y), 8, 3);
+  m_cv_depth_image = cvCreateImage(cvSize(config.size_d.x, config.size_d.y), 8, 1);
+
 }
 
 
@@ -95,6 +133,19 @@ RGBDSensor::recv(bool recvir){
     memcpy((unsigned char*) slave_frames_d[i], (unsigned char*) zmqm.data() + offset, bytes_d);
     offset += bytes_d;
   }
+
+
+  IplImage* tmp_image = cvCreateImage(cvSize(config.size_rgb.x, config.size_rgb.y), 8, 3);
+  memcpy(m_cv_rgb_image->imageData, frame_rgb, bytes_rgb);
+  cvCvtColor( m_cv_rgb_image, tmp_image, CV_BGR2RGB );
+  cvShowImage( "rgb", tmp_image);
+  cvReleaseImage(&tmp_image);
+  memcpy(m_cv_depth_image->imageData, convertTo8Bit(frame_d, config.size_d.x, config.size_d.y), bytes_ir);
+  cvShowImage( "depth", m_cv_depth_image);
+  int key = cvWaitKey(10);
+
+
+
 }
 
 

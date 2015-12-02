@@ -12,6 +12,9 @@
 #include <zmq.hpp>
 
 
+
+#include <opencv/cv.h>
+
 #include <string>
 #include <vector>
 
@@ -62,6 +65,10 @@ private:
 
   zmq::context_t m_ctx;
   zmq::socket_t  m_socket;
+
+  IplImage* m_cv_rgb_image;
+  IplImage* m_cv_depth_image;
+
 
 };
 
