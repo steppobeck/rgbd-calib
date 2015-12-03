@@ -43,7 +43,7 @@ int main(int argc, char* argv[]){
 
     // receive frames
     sensor.recv(false /*do not recv ir!*/);
-
+    sensor.display_rgb_d();
 
     glPointSize(1.0);
     glBegin(GL_POINTS);

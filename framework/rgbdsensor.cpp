@@ -83,6 +83,10 @@ RGBDSensor::~RGBDSensor(){
   delete [] frame_rgb;
   delete [] frame_ir;
   delete [] frame_d;
+
+  cvReleaseImage(&m_cv_rgb_image);
+  cvReleaseImage(&m_cv_depth_image);
+
 }
 
 
@@ -135,6 +139,17 @@ RGBDSensor::recv(bool recvir){
   }
 
 
+
+
+
+
+}
+
+void
+RGBDSensor::display_rgb_d(){
+  const unsigned bytes_rgb(3 * config.size_rgb.x * config.size_rgb.y);
+  const unsigned bytes_ir(config.size_d.x * config.size_d.y);
+
   IplImage* tmp_image = cvCreateImage(cvSize(config.size_rgb.x, config.size_rgb.y), 8, 3);
   memcpy(m_cv_rgb_image->imageData, frame_rgb, bytes_rgb);
   cvCvtColor( m_cv_rgb_image, tmp_image, CV_BGR2RGB );
@@ -144,10 +159,7 @@ RGBDSensor::recv(bool recvir){
   cvShowImage( "depth", m_cv_depth_image);
   int key = cvWaitKey(10);
 
-
-
 }
-
 
 glm::vec3
 RGBDSensor::get_rgb_bilinear_normalized(const glm::vec2& pos_rgb, unsigned stream_num){

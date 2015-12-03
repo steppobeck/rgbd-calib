@@ -57,6 +57,7 @@ public:
   glm::mat4 guess_eye_d_to_world(const ChessboardSampling& cbs, const Checkerboard& cb);
   glm::mat4 guess_eye_d_to_world_static(const ChessboardSampling& cbs, const Checkerboard& cb);
 
+  void display_rgb_d();
 
   std::vector<unsigned char*> slave_frames_rgb;
   std::vector<float*>         slave_frames_d;
