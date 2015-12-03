@@ -137,7 +137,7 @@ uv  getTrilinear(uv* data, unsigned width, unsigned height, unsigned depth, floa
 
 glm::vec3 calcMean(const std::vector<glm::vec3>& vecs);
 
-
+void calcMeanSD(std::vector<float>& values, double& mean, double& stdev);
 
 #endif // #ifndef RGBD_CALIB_DATATYPES_HPP
 

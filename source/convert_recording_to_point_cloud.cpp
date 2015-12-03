@@ -9,7 +9,6 @@
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
-#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -26,15 +25,6 @@ namespace{
     return stream.str();
   }
 
-  void calcMeanSD(std::vector<float>& values, double& mean, double& stdev){
-
-    const double sum = std::accumulate(values.begin(), values.end(), 0.0);
-    mean = sum / values.size();
-      
-    const double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
-    stdev = std::sqrt(sq_sum / values.size() - mean * mean);
-
-  }
 
   float calcAvgDist(const std::vector<nniSample>& neighbours, const nniSample& s){
     float avd = 0.0;
@@ -121,7 +111,7 @@ int main(int argc, char* argv[]){
   CMDParser p("basefilename_cv .... basefilename_for_output");
   p.addOpt("s",1,"stream_filename", "specify the stream filename which should be converted");
   p.addOpt("n",1,"num_threads", "specify how many threads should be used, default 16");
-  p.addOpt("c",-1,"rgb_is_compressed", "enable compressed support for rgb stream (if set, color will be ignored), default: false (not compressed)");
+  p.addOpt("c",-1,"rgb_is_compressed", "enable compressed support for rgb stream, default: false (not compressed)");
 
   p.addOpt("p1d",1,"filter_pass_1_max_avg_dist_in_meter", "filter pass 1 skips points which have an average distance of more than this to it k neighbors, default 0.025");
   p.addOpt("p1k",1,"filter_pass_1_k", "filter pass 1 number of neighbors, default 50");
@@ -210,7 +200,7 @@ int main(int argc, char* argv[]){
     return 1;
   }
   const unsigned num_frames = fb.calcNumFrames(num_streams * (colorsize + depthsize));
-
+  double curr_frame_time = 0.0;
 
   unsigned frame_num = 0;
   while(frame_num < num_frames){
@@ -218,6 +208,11 @@ int main(int argc, char* argv[]){
 
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       fb.read((unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]), colorsize);
+
+      if(s_num == 0){
+	memcpy((char*) &curr_frame_time, (const char*) sensor.frame_rgb, sizeof(double));
+	std::cout << "curr_frame_time: " << curr_frame_time << std::endl;
+      }
 
       if(rgb_is_compressed){
          // uncompress to rgb_tmp from (unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]) to tmp_rgba
@@ -360,6 +355,12 @@ int main(int argc, char* argv[]){
     }
 
     pcfile.close();
+
+    const std::string tsfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + ".timestamp");
+    std::ofstream tsfile(tsfile_name.c_str());
+    tsfile << curr_frame_time << std::endl;
+    tsfile.close();
+
     std::cout << frame_num
 	      << " from "
 	      << num_frames

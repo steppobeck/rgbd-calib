@@ -2,6 +2,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
+#include <algorithm>
 
 #if 0
   cb.pose_offset[0][0] = 0.999970;
@@ -378,4 +379,15 @@ glm::vec3 calcMean(const std::vector<glm::vec3>& vecs){
   return glm::vec3(x/vecs.size(), y/vecs.size(), z/vecs.size());
 }
 
+
+
+void calcMeanSD(std::vector<float>& values, double& mean, double& stdev){
+
+  const double sum = std::accumulate(values.begin(), values.end(), 0.0);
+  mean = sum / values.size();
+  
+  const double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
+  stdev = std::sqrt(sq_sum / values.size() - mean * mean);
+  
+}
 

@@ -4,6 +4,7 @@
 #include <zmq.hpp>
 
 #include <iostream>
+#include <string.h>
 
 int main(int argc, char* argv[]){
 
@@ -55,7 +56,7 @@ int main(int argc, char* argv[]){
     socket.recv(&zmqm); // blocking
 
     std::cout << "countdown: " << wait_frames_to_before_start << std::endl;
-    //sleep(1);
+
     --wait_frames_to_before_start;
   }
 
@@ -69,6 +70,13 @@ int main(int argc, char* argv[]){
     zmq::message_t zmqm((colorsize + depthsize) * num_kinect_cameras);
     socket.recv(&zmqm); // blocking
 
+    const double currtime = cm.getTick();
+    const double elapsed = currtime - starttime;
+    std::cout << "remaining seconds: " << num_seconds_to_record - elapsed << std::endl;
+    if(elapsed > num_seconds_to_record)
+      running = false;
+    memcpy((char*) zmqm.data(), (const char*) &currtime, sizeof(double));
+
     unsigned offset = 0;
     for(unsigned i = 0; i < num_kinect_cameras; ++i){
       fb.write((unsigned char*) zmqm.data() + offset, colorsize);
@@ -78,12 +86,10 @@ int main(int argc, char* argv[]){
     }
 
 
-    const double currtime = cm.getTick();
-    const double elapsed = currtime - starttime;
-    std::cout << "remaining seconds" << num_seconds_to_record - elapsed << std::endl;
-    if(elapsed > num_seconds_to_record)
-      running = false;
+
   }
+
+  fb.close();
 
   return 0;
 }
