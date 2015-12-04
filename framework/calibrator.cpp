@@ -1,7 +1,6 @@
 #include "calibrator.hpp"
 
 
-#include <glm/gtc/type_ptr.hpp>
 
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
@@ -84,35 +83,7 @@ Calibrator::~Calibrator()
 
 
 void
-Calibrator::applySamples(CalibVolume* cv, const char* filename, const RGBDConfig& cfg, unsigned idwneighbours){
-
-
-  // load samples from filename
-  std::vector<samplePoint> sps;
-
-  std::ifstream iff(filename, std::ifstream::binary);
-  const unsigned num_samples_in_file = calcNumFrames(iff,
-						     sizeof(float) +
-						     sizeof(uv) +
-						     sizeof(uv) +
-						     sizeof(xyz) +
-						     sizeof(uv) +
-						     sizeof(glm::vec3) +
-						     sizeof(float));
-  for(unsigned i = 0; i < num_samples_in_file; ++i){
-    samplePoint s;
-    iff.read((char*) &s.depth, sizeof(float));
-    iff.read((char*) &s.tex_color, sizeof(uv));
-    iff.read((char*) &s.tex_depth, sizeof(uv));
-    iff.read((char*) &s.pos_offset, sizeof(xyz));
-    iff.read((char*) &s.tex_offset, sizeof(uv));
-    iff.read((char*) glm::value_ptr(s.pos_real), sizeof(glm::vec3));
-    iff.read((char*) &s.quality, sizeof(float));
-    sps.push_back(s);
-  }
-  iff.close();  
-
-
+Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours){
 
   auto start_time = std::chrono::system_clock::now();
   //CGAL : build Tree, search 100 neighbors, try NNI of neighbourhood, fallback to IDW small neighborhood
@@ -178,6 +149,47 @@ Calibrator::applySamples(CalibVolume* cv, const char* filename, const RGBDConfig
 
 }
 
+void
+Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg){
+
+  std::vector<float> errors_3D;
+  std::vector<float> errors_2D;
+
+  for(unsigned i = 0; i < sps.size(); ++i){
+    const unsigned cv_width = cv->width;
+    const unsigned cv_height = cv->height;
+    const unsigned cv_depth = cv->depth;
+
+    const float x = cv_width  *  ( sps[i].tex_depth.u) / cfg.size_d.x;
+    const float y = cv_height *  ( sps[i].tex_depth.v)/ cfg.size_d.y;
+    const float z = cv_depth  *  ( sps[i].depth - cv->min_d)/(cv->max_d - cv->min_d);
+
+    xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
+    uv  tex = getTrilinear(cv->cv_uv,  cv_width, cv_height, cv_depth, x , y , z );
+
+    sps[i].pos_offset.x = sps[i].pos_real[0] - pos.x;
+    sps[i].pos_offset.y = sps[i].pos_real[1] - pos.y;
+    sps[i].pos_offset.z = sps[i].pos_real[2] - pos.z;
+      
+    sps[i].tex_offset.u = sps[i].tex_color.u/cfg.size_rgb.x - tex.u;
+    sps[i].tex_offset.v = sps[i].tex_color.v/cfg.size_rgb.y - tex.v;
+
+    sps[i].quality = 1.0f;
+
+    errors_3D.push_back(glm::length(glm::vec3(sps[i].pos_offset.x,sps[i].pos_offset.y,sps[i].pos_offset.z)));
+    errors_2D.push_back(glm::length(glm::vec3(sps[i].tex_offset.u * cfg.size_rgb.x,
+					      sps[i].tex_offset.v * cfg.size_rgb.y,0.0)));
+   
+      
+  }
+
+  double mean3D, mean2D, sd3D, sd2D;
+  calcMeanSD(errors_3D, mean3D, sd3D);
+  calcMeanSD(errors_2D, mean2D, sd2D);
+  std::cout << "mean_error_3D: " << mean3D << " [" << sd3D << "] (in meter)" << std::endl;
+  std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (in pixels)" << std::endl;
+
+}
 
 
 void

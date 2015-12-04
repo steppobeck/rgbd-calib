@@ -14,7 +14,8 @@ public:
   Calibrator();
   ~Calibrator();
 
-  void applySamples(CalibVolume* cv, const char* filename, const RGBDConfig& cfg, unsigned idwneighbours);
+  void applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours);
+  void evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg);
 
 private:
   void applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours);
