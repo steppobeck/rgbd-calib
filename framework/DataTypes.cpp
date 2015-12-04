@@ -391,3 +391,11 @@ void calcMeanSD(std::vector<float>& values, double& mean, double& stdev){
   
 }
 
+
+size_t calcNumFrames(std::ifstream& f, size_t fs){
+  f.seekg(0,std::ios::end);
+  const unsigned number_of_frames = (f.tellg()/fs);
+  f.seekg(0, std::ios::beg);
+  return number_of_frames;
+}
+

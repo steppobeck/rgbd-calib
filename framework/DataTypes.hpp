@@ -10,6 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 class Checkerboard{
@@ -138,6 +139,10 @@ uv  getTrilinear(uv* data, unsigned width, unsigned height, unsigned depth, floa
 glm::vec3 calcMean(const std::vector<glm::vec3>& vecs);
 
 void calcMeanSD(std::vector<float>& values, double& mean, double& stdev);
+
+size_t calcNumFrames(std::ifstream& f, size_t fs);
+
+
 
 #endif // #ifndef RGBD_CALIB_DATATYPES_HPP
 

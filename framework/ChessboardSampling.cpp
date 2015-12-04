@@ -21,30 +21,8 @@
 #include <unistd.h>
 #include <cmath>
 #include <fstream>
-#include <algorithm>
 #include <limits>
 namespace{
-
-
-
-  void calcMeanSD(std::vector<float>& values, double& mean, double& stdev){
-
-    const double sum = std::accumulate(values.begin(), values.end(), 0.0);
-    mean = sum / values.size();
-      
-    const double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
-    stdev = std::sqrt(sq_sum / values.size() - mean * mean);
-
-  }
-
-
-
-  size_t calcNumFrames(std::ifstream& f, size_t fs){
-    f.seekg(0,std::ios::end);
-    const unsigned number_of_frames = (f.tellg()/fs);
-    f.seekg(0, std::ios::beg);
-    return number_of_frames;
-  }
 
 
 
