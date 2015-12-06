@@ -64,7 +64,7 @@
       return m_poses;
     }
 
-    void filterIR(float pose_offset);
+    void filterIR(const float pose_offset);
 
     bool saveChessboards();
 
@@ -79,7 +79,7 @@
     bool loadChessboards();
 
 
-    void computeQualityIR(float pose_offset);
+    void computeQualityIR(const float pose_offset);
 
     std::string m_filenamebase;
   protected:

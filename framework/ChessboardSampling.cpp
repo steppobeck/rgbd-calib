@@ -538,7 +538,7 @@ namespace{
 
 
   void
-  ChessboardSampling::filterIR(float pose_offset){
+  ChessboardSampling::filterIR(const float pose_offset){
     computeQualityIR(pose_offset);
   }
 
@@ -548,7 +548,7 @@ namespace{
   }
 
   void
-  ChessboardSampling::computeQualityIR(float pose_offset){
+  ChessboardSampling::computeQualityIR(const float pose_offset){
 
     const float max_speed = 0.01;
     const float min_speed = 0.0;
