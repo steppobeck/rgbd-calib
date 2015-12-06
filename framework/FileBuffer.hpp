@@ -17,8 +17,8 @@
 
     bool isOpen();
 	
-    bool open(const char* mode = "a+", unsigned buffersize = 0);
-    unsigned calcNumFrames(unsigned framesize);
+    bool open(const char* mode = "a+", unsigned long long buffersize = 0);
+    unsigned calcNumFrames(unsigned long long framesize);
     void close();
 
     void rewindFile();
@@ -26,18 +26,18 @@
     void setLooping(bool onoff);
     bool getLooping();
 		  
-    unsigned read (void* buffer, unsigned numbytes);
-    unsigned write(void* buffer, unsigned numbytes);
+    unsigned long long read (void* buffer, unsigned long long numbytes);
+    unsigned long long write(void* buffer, unsigned long long numbytes);
 
-    unsigned numBytesR() const;
-    unsigned numBytesW() const;
+    unsigned long long numBytesR() const;
+    unsigned long long numBytesW() const;
 	  
   private:
     std::string m_path;
     FILE*     m_file;
     char* m_buffer;
-    unsigned  m_bytes_r;
-    unsigned  m_bytes_w;
+    unsigned long long m_bytes_r;
+    unsigned long long m_bytes_w;
     struct stat m_fstat;
     bool m_looping;
   };
