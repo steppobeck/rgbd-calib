@@ -2,6 +2,8 @@
 #include <OpenCVChessboardCornerDetector.hpp>
 #include <MatrixInterpolation.hpp>
 
+#include <OneEuroFilterContainer.hpp>
+
 #include <sensor.hpp>
 #include <timevalue.hpp>
 #include <devicemanager.hpp>
@@ -538,9 +540,66 @@ namespace{
 
 
   void
-  ChessboardSampling::filterIR(const float pose_offset){
+  ChessboardSampling::filterSamples(const float pose_offset){
     computeQualityIR(pose_offset);
+
+
+
+    
+
+    OneEuroFilterContainer rgb_filter(2, CB_WIDTH * CB_HEIGHT);
+    OneEuroFilterContainer ir_filter(3, CB_WIDTH * CB_HEIGHT);
+
+    // configure one euro filters
+    // 1. color corner
+    const double rgb_freq(computeAVGRGBFrequency());
+    const double rgb_mincutoff = 1.0; //
+    const double rgb_beta = 0.007;    // cutoff slope
+    const double rgb_dcutoff = 1.0;   // this one should be ok 
+    for(unsigned i = 0; i != CB_WIDTH * CB_HEIGHT; ++i){
+      rgb_filter.init(0, i, rgb_freq, rgb_mincutoff, rgb_beta, rgb_dcutoff);
+      rgb_filter.init(1, i, rgb_freq, rgb_mincutoff, rgb_beta, rgb_dcutoff);
+    }
+
+    // 2. ir corner + ir depth
+    const float ir_freq(computeAVGIRFrequency());
+    const double ir_mincutoff = 1.0; //
+    const double ir_beta = 0.007;    // cutoff slope
+    const double ir_dcutoff = 1.0;   // this one should be ok 
+
+    const double ird_mincutoff = 1.0; //
+    const double ird_beta = 0.007;    // cutoff slope
+    const double ird_dcutoff = 1.0;   // this one should be ok 
+
+    for(unsigned i = 0; i != CB_WIDTH * CB_HEIGHT; ++i){
+      ir_filter.init(0, i, ir_freq, ir_mincutoff, ir_beta, ir_dcutoff);
+      ir_filter.init(1, i, ir_freq, ir_mincutoff, ir_beta, ir_dcutoff);
+      ir_filter.init(2, i, ir_freq, ird_mincutoff, ird_beta, ird_dcutoff);
+    }
+
+    // TEST OEF for u value of 1st corner in RGB chessboard
+    for(auto& cb : m_cb_rgb){
+      for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
+	if(cid == 0){
+	  float u = cb.corners[cid].u;
+	  std::cout << "u: " << u << " -> " << rgb_filter.filter(0 /*u*/,cid, u) << std::endl;
+	}
+      }
+    }
+
+    // TEST OEF for z value of 1st corner in IR chessboard
+    for(auto& cb : m_cb_ir){
+      for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
+	if(cid == 0){
+	  float z = cb.corners[cid].z;
+	  std::cout << "z: " << z << " -> " << ir_filter.filter(2 /*z*/,cid, z) << std::endl;
+	}
+      }
+    }
+
   }
+
+
 
   double 
   ChessboardSampling::searchStartIR() const{
@@ -566,20 +625,29 @@ namespace{
       for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
 	m_cb_ir[i].quality[c] = speed_quality;
       }
-
-#if 0
-      // 1. Horizontal quality
-      for(unsigned row = 0; row < CB_HEIGHT; ++row){
-	const unsigned base_cid = CB_WIDTH * row;
-	const unsigned one_past_end_cid = base_cid + CB_WIDTH;
-	//gloost::Vector3 maindirection = calcMainDirection(m_cb_ir[i].corners, base_cid, one_past_end_cid,0);
-	for(unsigned cid = base_cid; cid < one_past_end_cid; ++cid){
-	  
-	}
-      }
-#endif      
       
-
     }
   }
 
+
+float
+ChessboardSampling::computeAVGRGBFrequency(){
+  size_t num_frames = 0;
+  double freq = 0.0;
+  for(unsigned i = 1; i < m_cb_rgb.size(); ++i){
+    ++num_frames;
+    freq += (1000.0 / (1000.0 * (m_cb_rgb[i].time - m_cb_rgb[i-1].time)));
+  }
+  return freq / num_frames;
+}
+
+float
+ChessboardSampling::computeAVGIRFrequency(){
+  size_t num_frames = 0;
+  double freq = 0.0;
+  for(unsigned i = 1; i < m_cb_ir.size(); ++i){
+    ++num_frames;
+    freq += (1000.0 / (1000.0 * (m_cb_ir[i].time - m_cb_ir[i-1].time)));
+  }
+  return freq / num_frames;
+}

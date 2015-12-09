@@ -64,7 +64,7 @@
       return m_poses;
     }
 
-    void filterIR(const float pose_offset);
+    void filterSamples(const float pose_offset);
 
     bool saveChessboards();
 
@@ -80,6 +80,10 @@
 
 
     void computeQualityIR(const float pose_offset);
+
+    float computeAVGRGBFrequency();
+    float computeAVGIRFrequency();
+
 
     std::string m_filenamebase;
   protected:

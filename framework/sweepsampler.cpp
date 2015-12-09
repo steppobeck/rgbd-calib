@@ -57,9 +57,9 @@ SweepSampler::appendSamplesToFile(const char* filename){
 size_t
 SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, const float color_offset){
 
-  cbs->filterIR(pose_offset);
-  //cs.filterRGB(pose_offset);
+  cbs->filterSamples(pose_offset);
 
+  exit(0);
 
   const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
   for(unsigned i = 0; i != cb_irs.size(); ++i){
