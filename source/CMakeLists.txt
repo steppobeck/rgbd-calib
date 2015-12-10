@@ -6,6 +6,10 @@ add_executable(viewer viewer.cpp)
 target_link_libraries(viewer framework ${LIBRARIES})
 add_dependencies(viewer glfw framework ${COPY_BINARY})
 
+add_executable(tracker tracker.cpp)
+target_link_libraries(tracker framework ${LIBRARIES})
+add_dependencies(tracker glfw framework ${COPY_BINARY})
+
 add_executable(initialize initialize.cpp)
 target_link_libraries(initialize framework ${LIBRARIES})
 add_dependencies(initialize glfw framework ${COPY_BINARY})
