@@ -59,6 +59,10 @@ SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, c
 
   cbs->filterSamples(pose_offset);
 
+  cbs->removeOutliers();
+
+  std::cout << "SweepSampler::extractSamples -> start extracing samples from " << cbs->getIRs().size() << " chessboard locations" << std::endl;
+
   exit(0);
 
   const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();

@@ -8,6 +8,7 @@
 #include <timevalue.hpp>
 #include <devicemanager.hpp>
 
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <glm/glm.hpp>
@@ -541,11 +542,15 @@ namespace{
 
   void
   ChessboardSampling::filterSamples(const float pose_offset){
+    std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
+
+    std::cerr << "ChessboardSampling::filterSamples -> computeQualityIR" << std::endl;
     computeQualityIR(pose_offset);
 
 
 
     
+    std::cerr << "ChessboardSampling::filterSamples -> apply One Euro Filter" << std::endl;
 
     OneEuroFilterContainer rgb_filter(2, CB_WIDTH * CB_HEIGHT);
     OneEuroFilterContainer ir_filter(3, CB_WIDTH * CB_HEIGHT);
@@ -580,22 +585,70 @@ namespace{
     // TEST OEF for u value of 1st corner in RGB chessboard
     for(auto& cb : m_cb_rgb){
       for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
-	if(cid == 0){
-	  float u = cb.corners[cid].u;
-	  std::cout << "u: " << u << " -> " << rgb_filter.filter(0 /*u*/,cid, u) << std::endl;
-	}
+	cb.corners[cid].u = rgb_filter.filter(0 /*u*/,cid, cb.corners[cid].u);
+	cb.corners[cid].v = rgb_filter.filter(1 /*v*/,cid, cb.corners[cid].v);
       }
     }
 
     // TEST OEF for z value of 1st corner in IR chessboard
     for(auto& cb : m_cb_ir){
       for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
-	if(cid == 0){
-	  float z = cb.corners[cid].z;
-	  std::cout << "z: " << z << " -> " << ir_filter.filter(2 /*z*/,cid, z) << std::endl;
-	}
+	cb.corners[cid].x = ir_filter.filter(0 /*x*/,cid, cb.corners[cid].x);
+	cb.corners[cid].y = ir_filter.filter(1 /*y*/,cid, cb.corners[cid].y);
+	cb.corners[cid].z = ir_filter.filter(2 /*z*/,cid, cb.corners[cid].z);
       }
     }
+
+    std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
+
+    
+
+  }
+
+
+  void
+  ChessboardSampling::removeOutliers(){
+
+    std::cerr << "ChessboardSampling::removeOutliers -> begin" << std::endl;
+
+    // 1. for each chessboard, both, RGB and IR compute CCW, CW;
+    std::vector<bool> rgb_orientations;
+    std::vector<bool> ir_orientations;
+    for(auto& cb : m_cb_rgb){
+      glm::vec2 a(cb.corners[CB_WIDTH - 1].u - cb.corners[0].u, cb.corners[CB_WIDTH - 1].v - cb.corners[0].v);
+      glm::vec2 b(cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - cb.corners[0].u, cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - cb.corners[0].v);
+      rgb_orientations.push_back(a.x > 0.0 && b.y > 0.0);
+    }
+
+    for(auto& cb : m_cb_ir){
+      glm::vec2 a(cb.corners[CB_WIDTH - 1].x - cb.corners[0].x, cb.corners[CB_WIDTH - 1].y - cb.corners[0].y);
+      glm::vec2 b(cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].x - cb.corners[0].y, cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].y - cb.corners[0].y);
+      ir_orientations.push_back(a.x > 0.0 && b.y > 0.0);
+    }
+
+
+    std::vector<ChessboardViewRGB> cb_rgb;
+    std::vector<ChessboardViewIR> cb_ir;
+    unsigned removed = 0;
+    for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
+      if( rgb_orientations[i] && ir_orientations[i] ){
+	cb_rgb.push_back(m_cb_rgb[i]);
+	cb_ir.push_back(m_cb_ir[i]);
+      }
+      else{
+	++removed;
+      }
+    }
+    m_cb_rgb = cb_rgb;
+    m_cb_ir  = cb_ir;
+    std::cout << "ChessboardSampling::removeOutliers -> removed " << removed << " due to wrong orientation" << std::endl;
+
+
+    // 2. track changes in (CB_WIDTH - 1) * (CB_HEIGHT - 1) local Areas from board location to board location
+
+
+    std::cerr << "ChessboardSampling::removeOutliers -> end" << std::endl;
+
 
   }
 

@@ -66,6 +66,8 @@
 
     void filterSamples(const float pose_offset);
 
+    void removeOutliers();
+
     bool saveChessboards();
 
     double searchStartIR() const;
