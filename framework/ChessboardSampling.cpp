@@ -21,10 +21,15 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 
+
+#include <map>
+
 #include <unistd.h>
 #include <cmath>
 #include <fstream>
 #include <limits>
+
+
 namespace{
 
 
@@ -98,6 +103,7 @@ namespace{
     res.time = (1.0f - t) * a.time + t * b.time;
     for(unsigned i = 0; i < CB_WIDTH*CB_HEIGHT; ++i){
       res.corners[i] = interpolate(a.corners[i], b.corners[i], t);
+      res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
     }
     return res;
   }
@@ -108,6 +114,7 @@ namespace{
     res.time = (1.0f - t) * a.time + t * b.time;
     for(unsigned i = 0; i < CB_WIDTH*CB_HEIGHT; ++i){
       res.corners[i] = interpolate(a.corners[i], b.corners[i], t);
+      res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
     }
     return res;
   }
@@ -544,11 +551,11 @@ namespace{
   ChessboardSampling::filterSamples(const float pose_offset){
     std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
 
+    std::cerr << "ChessboardSampling::filterSamples -> reinterpolateOutliers" << std::endl;
+    reinterpolateOutliers();
+
     std::cerr << "ChessboardSampling::filterSamples -> computeQualityIR" << std::endl;
     computeQualityIR(pose_offset);
-
-
-
     
     std::cerr << "ChessboardSampling::filterSamples -> apply One Euro Filter" << std::endl;
 
@@ -607,9 +614,9 @@ namespace{
 
 
   void
-  ChessboardSampling::removeOutliers(){
+  ChessboardSampling::reinterpolateOutliers(){
 
-    std::cerr << "ChessboardSampling::removeOutliers -> begin" << std::endl;
+    std::cerr << "ChessboardSampling::reinterpolateOutliers -> begin" << std::endl;
 
     // 1. for each chessboard, both, RGB and IR compute CCW, CW;
     std::vector<bool> rgb_orientations;
@@ -627,27 +634,71 @@ namespace{
     }
 
 
-    std::vector<ChessboardViewRGB> cb_rgb;
-    std::vector<ChessboardViewIR> cb_ir;
-    unsigned removed = 0;
+    std::map<unsigned, bool> needs_to_be_interpolated;
     for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
-      if( rgb_orientations[i] && ir_orientations[i] ){
-	cb_rgb.push_back(m_cb_rgb[i]);
-	cb_ir.push_back(m_cb_ir[i]);
+      if( !(rgb_orientations[i] && ir_orientations[i]) ){
+	needs_to_be_interpolated[i] = true;
+      }
+    }
+
+    std::cout << "ChessboardSampling::reinterpolateOutliers -> need to reinterpolate "
+	      << needs_to_be_interpolated.size() << " Chessboard due to wrong orientation" << std::endl;
+
+    std::map<unsigned, bool> to_erase;
+    for(const auto& c_id : needs_to_be_interpolated){
+      const unsigned cb_id = c_id.first;
+      const unsigned cb_id_a = [&] { unsigned result = cb_id;
+				     for( unsigned i = 0; i < cb_id; ++i){
+				       if( ! needs_to_be_interpolated[i] ){
+					 result = i;
+				       }
+				     }
+				     return result;
+      }();
+
+      const unsigned cb_id_b = [&] { unsigned result = cb_id;
+				     for( unsigned i = cb_id + 1;  i < m_cb_ir.size(); ++i){
+				       if( ! needs_to_be_interpolated[i] ){
+					 return i;
+				       }
+				     }
+				     return result;
+      }();
+
+      if( (cb_id_a < cb_id) &&
+	  (cb_id > cb_id_b) ){
+	// compute alpha
+	const float t = (m_cb_ir[cb_id].time - m_cb_ir[cb_id_a].time) / (m_cb_ir[cb_id_b].time - m_cb_ir[cb_id_a].time);
+	std::cout << "interpolating between " << cb_id_a << " and " << cb_id_b << " t: " << t  << std::endl;
+	m_cb_ir[cb_id] = interpolate(m_cb_ir[cb_id_a], m_cb_ir[cb_id_b], t);
+	m_cb_rgb[cb_id] = interpolate(m_cb_rgb[cb_id_a], m_cb_rgb[cb_id_b], t);
       }
       else{
-	++removed;
+	to_erase[cb_id] = true;
+      }
+
+    }
+
+
+    std::cerr << "ChessboardSampling::reinterpolateOutliers have to erase " << to_erase.size() << " because interpolation not possible!" << std::endl;
+
+    std::vector<ChessboardViewRGB> cb_rgb;
+    std::vector<ChessboardViewIR> cb_ir;
+    for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
+      if( ! to_erase[i] ){
+	cb_rgb.push_back(m_cb_rgb[i]);
+	cb_ir.push_back(m_cb_ir[i]);
       }
     }
     m_cb_rgb = cb_rgb;
     m_cb_ir  = cb_ir;
-    std::cout << "ChessboardSampling::removeOutliers -> removed " << removed << " due to wrong orientation" << std::endl;
+
 
 
     // 2. track changes in (CB_WIDTH - 1) * (CB_HEIGHT - 1) local Areas from board location to board location
 
 
-    std::cerr << "ChessboardSampling::removeOutliers -> end" << std::endl;
+    std::cerr << "ChessboardSampling::reinterpolateOutliers -> end" << std::endl;
 
 
   }

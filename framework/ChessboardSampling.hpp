@@ -66,7 +66,7 @@
 
     void filterSamples(const float pose_offset);
 
-    void removeOutliers();
+
 
     bool saveChessboards();
 
@@ -86,6 +86,7 @@
     float computeAVGRGBFrequency();
     float computeAVGIRFrequency();
 
+    void reinterpolateOutliers();
 
     std::string m_filenamebase;
   protected:

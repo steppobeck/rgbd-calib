@@ -12,7 +12,7 @@
 #include <map>
 #include <algorithm>
 #include <unistd.h>
-
+#include <limits>
 #include <fstream>
 
 
@@ -154,6 +154,8 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 
   std::vector<float> errors_3D;
   std::vector<float> errors_2D;
+  float max_3D = std::numeric_limits<float>::lowest();
+  float max_2D = std::numeric_limits<float>::lowest();
 
   for(unsigned i = 0; i < sps.size(); ++i){
     const unsigned cv_width = cv->width;
@@ -176,18 +178,24 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 
     sps[i].quality = 1.0f;
 
-    errors_3D.push_back(glm::length(glm::vec3(sps[i].pos_offset.x,sps[i].pos_offset.y,sps[i].pos_offset.z)));
-    errors_2D.push_back(glm::length(glm::vec3(sps[i].tex_offset.u * cfg.size_rgb.x,
+    const float err_3D(glm::length(glm::vec3(sps[i].pos_offset.x,sps[i].pos_offset.y,sps[i].pos_offset.z)));
+    const float err_2D(glm::length(glm::vec3(sps[i].tex_offset.u * cfg.size_rgb.x,
 					      sps[i].tex_offset.v * cfg.size_rgb.y,0.0)));
+
+    errors_3D.push_back(err_3D);
+    errors_2D.push_back(err_2D);
    
+    max_3D = std::max(max_3D, err_3D);
+    max_2D = std::max(max_2D, err_2D);
+
       
   }
 
   double mean3D, mean2D, sd3D, sd2D;
   calcMeanSD(errors_3D, mean3D, sd3D);
   calcMeanSD(errors_2D, mean2D, sd2D);
-  std::cout << "mean_error_3D: " << mean3D << " [" << sd3D << "] (in meter)" << std::endl;
-  std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (in pixels)" << std::endl;
+  std::cout << "mean_error_3D: " << mean3D << " [" << sd3D << "] (" << max_3D << ") (in meter)" << std::endl;
+  std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (" << max_2D << ") (in pixels)" << std::endl;
 
 }
 
