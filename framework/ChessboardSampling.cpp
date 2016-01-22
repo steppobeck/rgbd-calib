@@ -22,7 +22,7 @@
 #include <opencv2/imgproc/imgproc_c.h>
 
 
-#include <map>
+#include <set>
 
 #include <unistd.h>
 #include <cmath>
@@ -147,10 +147,10 @@ namespace{
   }
 
   void
-  ChessboardSampling::interactiveShow(){
+  ChessboardSampling::interactiveShow(unsigned start, unsigned end){
     bool res = false;
     res = loadPoses();
-    res = showRecordingAndPoses();
+    res = showRecordingAndPoses(start, end);
   }
 
 
@@ -291,22 +291,24 @@ namespace{
 
     std::cout << "RGB -----------------------------------------------------" << std::endl;
     for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
+      std::cout << "cb_id: " << i << std::endl;
       std::cout << m_cb_rgb[i] << std::endl;
     }
     std::cout << "RGB frequencies in Hz -----------------------------------------------------" << std::endl;
     for(unsigned i = 1; i < m_cb_rgb.size(); ++i){
-      std::cout << 1000.0 / (1000.0 * (m_cb_rgb[i].time - m_cb_rgb[i-1].time)) << std::endl;
+      std::cout << "cb_id: " << i << " " << 1000.0 / (1000.0 * (m_cb_rgb[i].time - m_cb_rgb[i-1].time)) << std::endl;
     }
 
 
 
     std::cout << "IR -----------------------------------------------------" << std::endl;
     for(unsigned i = 0; i < m_cb_ir.size(); ++i){
+      std::cout << "cb_id: " << i << std::endl;
       std::cout << m_cb_ir[i] << std::endl;
     }
     std::cout << "IR frequencies in Hz -----------------------------------------------------" << std::endl;
     for(unsigned i = 1; i < m_cb_ir.size(); ++i){
-      std::cout << 1000.0 / (1000.0 * (m_cb_ir[i].time - m_cb_ir[i-1].time)) << std::endl;
+      std::cout << "cb_id: " << i << " " << 1000.0 / (1000.0 * (m_cb_ir[i].time - m_cb_ir[i-1].time)) << std::endl;
     }
 
 
@@ -346,9 +348,9 @@ namespace{
 
 
   bool
-  ChessboardSampling::showRecordingAndPoses(){
+  ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end){
 
-
+#if 0
     int port = 5000;
     int devicename = 7;
     sensor::device* d = sensor::devicemanager::the()->get_dtrack(port, sensor::timevalue::const_050_ms);
@@ -380,6 +382,7 @@ namespace{
 #if 0
       const float dist = glm::length((m_poses[i].mat * ori) - (target_mat * ori));
 #endif
+
       std::cerr << dist << " " << best_dist << std::endl;
       if(dist < best_dist){
 	best_dist =dist;
@@ -387,6 +390,8 @@ namespace{
       }
     }
     std::cout << best_id << " -> " << m_poses[best_id] << std::endl;
+#endif
+
 
     std::cout << "RGBD -----------------------------------------------------" << std::endl;
 
@@ -412,14 +417,17 @@ namespace{
       infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
       infile_fr.read((char*) ir->imageData, 512 * 424);
 
-      std::cout << "rgb time: " << rgb_time << " ir time: " << ir_time << std::endl;
 
-      // show rgb and ir image
-      int key = -1;
-      while(-1 == key){
-	cvShowImage( "rgb", rgb);
-	cvShowImage( "ir", ir);
-	key = cvWaitKey(10);
+      if((end == 0) || (start < i) && (i < end)){
+	std::cout << "cb_id: " << i << " rgb time: " << rgb_time << " ir time: " << ir_time << std::endl;
+
+	// show rgb and ir image
+	int key = -1;
+	while(-1 == key){
+	  cvShowImage( "rgb", rgb);
+	  cvShowImage( "ir", ir);
+	  key = cvWaitKey(10);
+	}
       }
 
     }
@@ -493,8 +501,10 @@ namespace{
 					      cb_ir.corners[c_id].y); 
 	}
 
+	
 	m_cb_rgb.push_back(cb_rgb);
 	m_cb_ir.push_back(cb_ir);
+	  
       }
     }
 
@@ -550,6 +560,35 @@ namespace{
   void
   ChessboardSampling::filterSamples(const float pose_offset){
     std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
+
+
+    std::cerr << "ChessboardSampling::filterSamples -> findJumps" << std::endl;
+
+    const float avgframerate = (1000.0 / computeAVGIRFrequency()) / 1000.0;
+    //std::cout << "avgframerate: " << avgframerate << std::endl;
+    unsigned jump_id = 0;
+    for(unsigned cb_id = 1; cb_id < m_cb_ir.size(); ++cb_id){
+      const float currtime = m_cb_ir[cb_id].time - m_cb_ir[cb_id - 1].time;
+      if(currtime > (2.5 * avgframerate)){
+	//std::cout << "cb_id: " << cb_id << " currrate: " << currtime << " avgframerate: " << avgframerate << std::endl;
+	jump_id = cb_id + 10;
+      }
+    }
+    std::vector<ChessboardViewRGB> cb_rgb;
+    std::vector<ChessboardViewIR> cb_ir;
+    for(unsigned i = jump_id; i < m_cb_rgb.size(); ++i){
+      cb_rgb.push_back(m_cb_rgb[i]);
+      cb_ir.push_back(m_cb_ir[i]);
+    }
+    m_cb_rgb = cb_rgb;
+    m_cb_ir  = cb_ir;
+
+
+
+
+
+
+
 
     std::cerr << "ChessboardSampling::filterSamples -> reinterpolateOutliers" << std::endl;
     reinterpolateOutliers();
@@ -634,22 +673,22 @@ namespace{
     }
 
 
-    std::map<unsigned, bool> needs_to_be_interpolated;
+    std::set<unsigned> needs_to_be_interpolated;
     for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
       if( !(rgb_orientations[i] && ir_orientations[i]) ){
-	needs_to_be_interpolated[i] = true;
+	needs_to_be_interpolated.insert(i);
       }
     }
 
     std::cout << "ChessboardSampling::reinterpolateOutliers -> need to reinterpolate "
 	      << needs_to_be_interpolated.size() << " Chessboard due to wrong orientation" << std::endl;
 
-    std::map<unsigned, bool> to_erase;
-    for(const auto& c_id : needs_to_be_interpolated){
-      const unsigned cb_id = c_id.first;
+    std::set<unsigned> to_erase;
+    for(const auto& cb_id : needs_to_be_interpolated){
+      std::cout << "checking interpolation for cb_id: " << cb_id << std::endl;
       const unsigned cb_id_a = [&] { unsigned result = cb_id;
 				     for( unsigned i = 0; i < cb_id; ++i){
-				       if( ! needs_to_be_interpolated[i] ){
+				       if( needs_to_be_interpolated.find(i) == needs_to_be_interpolated.end() ){
 					 result = i;
 				       }
 				     }
@@ -658,7 +697,7 @@ namespace{
 
       const unsigned cb_id_b = [&] { unsigned result = cb_id;
 				     for( unsigned i = cb_id + 1;  i < m_cb_ir.size(); ++i){
-				       if( ! needs_to_be_interpolated[i] ){
+				       if( needs_to_be_interpolated.find(i) == needs_to_be_interpolated.end() ){
 					 return i;
 				       }
 				     }
@@ -666,7 +705,7 @@ namespace{
       }();
 
       if( (cb_id_a < cb_id) &&
-	  (cb_id > cb_id_b) ){
+	  (cb_id < cb_id_b) ){
 	// compute alpha
 	const float t = (m_cb_ir[cb_id].time - m_cb_ir[cb_id_a].time) / (m_cb_ir[cb_id_b].time - m_cb_ir[cb_id_a].time);
 	std::cout << "interpolating between " << cb_id_a << " and " << cb_id_b << " t: " << t  << std::endl;
@@ -674,7 +713,7 @@ namespace{
 	m_cb_rgb[cb_id] = interpolate(m_cb_rgb[cb_id_a], m_cb_rgb[cb_id_b], t);
       }
       else{
-	to_erase[cb_id] = true;
+	to_erase.insert(cb_id);
       }
 
     }
@@ -685,7 +724,7 @@ namespace{
     std::vector<ChessboardViewRGB> cb_rgb;
     std::vector<ChessboardViewIR> cb_ir;
     for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
-      if( ! to_erase[i] ){
+      if( to_erase.find(i) == to_erase.end() ){
 	cb_rgb.push_back(m_cb_rgb[i]);
 	cb_ir.push_back(m_cb_ir[i]);
       }

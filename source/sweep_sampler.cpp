@@ -14,11 +14,13 @@ int main(int argc, char* argv[]){
   std::string pose_offset_filename = "../../../source/poseoffset";
   float pose_offset = 0.0; // in seconds
   float color_offset = 0.0;
-  
+  bool reload = true;
   CMDParser p("calibbasefilename sweepfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
-  p.addOpt("t",1,"trackingposeoffset", "pose offset in seconds of the tarcking system e.g. 0.08, default 0.0");
-  p.addOpt("c",1,"coloroffset", "color offset in seconds e.g. -0.02, default 0.0");
+  p.addOpt("t",1,"trackingposeoffset", "pose offset in seconds of the tarcking system e.g. 0.08, default: 0.0");
+  p.addOpt("c",1,"coloroffset", "color offset in seconds e.g. -0.02, default: 0.0");
+
+  p.addOpt("n",-1,"noreload", "do not reload sweep file from disk, default: reload");
 
   p.init(argc,argv);
 
@@ -31,6 +33,9 @@ int main(int argc, char* argv[]){
   }
   if(p.isOptSet("c")){
     color_offset = p.getOptsFloat("c")[0];
+  }
+  if(p.isOptSet("n")){
+    reload = false;
   }
 
 
@@ -54,7 +59,7 @@ int main(int argc, char* argv[]){
   }
 
   ChessboardSampling cs(p.getArgs()[1].c_str());
-  cs.init(true);
+  cs.init(reload);
   //cs.dump();
 
   SweepSampler ss(&cb, &cv, &cfg);

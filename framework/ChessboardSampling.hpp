@@ -43,7 +43,7 @@
     ChessboardSampling(const char* filenamebase);
     virtual ~ChessboardSampling();
 
-    void interactiveShow();
+    void interactiveShow(unsigned start, unsigned end);
 
     bool init(bool reload = true);
 
@@ -76,7 +76,7 @@
     bool loadPoses();
     bool loadRecording();
 
-    bool showRecordingAndPoses();
+    bool showRecordingAndPoses(unsigned start, unsigned end);
     
     bool loadChessboards();
 
