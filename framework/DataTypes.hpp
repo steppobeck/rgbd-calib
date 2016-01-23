@@ -140,6 +140,8 @@ glm::vec3 calcMean(const std::vector<glm::vec3>& vecs);
 
 void calcMeanSD(std::vector<float>& values, double& mean, double& stdev);
 
+void calcMeanSDMax(std::vector<float>& values, double& mean, double& stdev, double& ma);
+
 size_t calcNumFrames(std::ifstream& f, size_t fs);
 
 

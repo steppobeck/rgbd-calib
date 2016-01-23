@@ -74,6 +74,20 @@ namespace{
   }
 
 
+
+
+  std::ostream& operator << (std::ostream& o, const ChessboardRange& v){
+
+    o << "ChessboardRange: " << v.start << " -> " << v.end << std::endl;
+    o << "frametime stats: " << v.avg_frametime << ", [" << v.sd_frametime << "] , (" << v.max_frametime << ")" << std::endl;
+    return o;
+
+  }
+
+
+
+
+
   std::ostream& operator << (std::ostream& o, const ChessboardViewRGB& v){
     o << "ChessboardViewRGB time stamp: " << v.time << std::endl;
     o << "ChessboardViewRGB corners:" << std::endl;
@@ -101,6 +115,7 @@ namespace{
     ChessboardViewRGB res;
     // r.u = (1.0f - t)*a.u + t*b.u;
     res.time = (1.0f - t) * a.time + t * b.time;
+    res.valid = a.valid && b.valid;
     for(unsigned i = 0; i < CB_WIDTH*CB_HEIGHT; ++i){
       res.corners[i] = interpolate(a.corners[i], b.corners[i], t);
       res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
@@ -112,6 +127,7 @@ namespace{
     ChessboardViewIR res;
     // r.u = (1.0f - t)*a.u + t*b.u;
     res.time = (1.0f - t) * a.time + t * b.time;
+    res.valid = a.valid && b.valid;
     for(unsigned i = 0; i < CB_WIDTH*CB_HEIGHT; ++i){
       res.corners[i] = interpolate(a.corners[i], b.corners[i], t);
       res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
@@ -124,7 +140,8 @@ namespace{
     : m_filenamebase(filenamebase),
       m_poses(),
       m_cb_rgb(),
-      m_cb_ir()
+      m_cb_ir(),
+      m_valid_ranges()
   {}
 
 
@@ -254,9 +271,10 @@ namespace{
       valid = false;
       return ChessboardViewRGB();
     }
-    valid = true;
     const float t = (time - m_cb_rgb[a].time)/(m_cb_rgb[b].time - m_cb_rgb[a].time);
-    return interpolate(m_cb_rgb[a], m_cb_rgb[b], t);
+    ChessboardViewRGB result = interpolate(m_cb_rgb[a], m_cb_rgb[b], t);
+    valid = result.valid;
+    return result;
   }
 
 
@@ -279,9 +297,11 @@ namespace{
       valid = false;
       return ChessboardViewIR();
     }
-    valid = true;
+    
     const float t = (time - m_cb_ir[a].time)/(m_cb_ir[b].time - m_cb_ir[a].time);
-    return interpolate(m_cb_ir[a], m_cb_ir[b], t);
+    ChessboardViewIR result = interpolate(m_cb_ir[a], m_cb_ir[b], t);
+    valid = result.valid;
+    return result;
   }
 
 
@@ -474,10 +494,12 @@ namespace{
 					    + (512 * 424));
     for(size_t i = 0; i != num_frames; ++i){
       ChessboardViewRGB cb_rgb;
+      cb_rgb.valid = 1;
       infile_fr.read((char*) &cb_rgb.time, sizeof(double));
       infile_fr.read((char*) rgb, 1280*1080 * 3);
 
       ChessboardViewIR cb_ir;
+      cb_ir.valid = 1;
       infile_fr.read((char*) &cb_ir.time, sizeof(double));
       infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
       infile_fr.read((char*) ir, 512 * 424);
@@ -500,12 +522,15 @@ namespace{
 					      cb_ir.corners[c_id].x,
 					      cb_ir.corners[c_id].y); 
 	}
-
-	
-	m_cb_rgb.push_back(cb_rgb);
-	m_cb_ir.push_back(cb_ir);
-	  
       }
+      else{
+	cb_rgb.valid = 0;
+	cb_ir.valid = 0;
+      }
+	
+      m_cb_rgb.push_back(cb_rgb);
+      m_cb_ir.push_back(cb_ir);
+
     }
 
     std::cerr << "ChessboardSampling::loadRecording() loaded chessboard views: "
@@ -559,6 +584,39 @@ namespace{
 
   void
   ChessboardSampling::filterSamples(const float pose_offset){
+    std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
+
+    // 0. location where no corners where detected are already invalid
+
+    // 1. gather valid ranges to detect flipps
+    gatherValidRanges();
+    detectFlips(); // better, more generic detectFlipsInRanges!
+
+    // 2. gather valid ranges to detect time jumps
+    gatherValidRanges();
+    calcStatsInRanges();
+    // IMPLEMENT detectTimeJumpsInRanges();
+
+    // 3. compute quality based on speed
+    gatherValidRanges();
+    calcStatsInRanges();
+    // IMPLEMENT computeQualityFromSpeedIRInRanges(pose_offset);
+
+    // 4. apply OEFilter on ranges
+    // IMPLEMENT oneEuroFilterInRanges();
+
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
+
+    std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
+
+    return; // -> IMPLEMENT getValidRanges() ready for sweepsampler extractSamplesFromRanges!!!!!
+
+
+
+
+    // blow is old version which worked but was not generic
     std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
 
 
@@ -647,9 +705,48 @@ namespace{
 
     std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
 
-    
 
   }
+
+
+  void
+  ChessboardSampling::detectFlips(){
+
+    for(unsigned cb_id = 0; cb_id < m_cb_ir.size(); ++cb_id){
+      ChessboardViewRGB& cb_rgb = m_cb_rgb[cb_id];
+      ChessboardViewIR& cb_ir  = m_cb_ir[cb_id];
+
+      // if one of both is not valid both will be not valid
+      cb_rgb.valid = cb_ir.valid && cb_rgb.valid;
+      cb_ir.valid = cb_rgb.valid;
+
+      if(cb_ir.valid){
+
+	bool rgb_orientation;
+	bool ir_orientation;
+	{
+	  glm::vec2 a(cb_rgb.corners[CB_WIDTH - 1].u - cb_rgb.corners[0].u, cb_rgb.corners[CB_WIDTH - 1].v - cb_rgb.corners[0].v);
+	  glm::vec2 b(cb_rgb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - cb_rgb.corners[0].u, cb_rgb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - cb_rgb.corners[0].v);
+	  rgb_orientation = a.x > 0.0 && b.y > 0.0;
+	}
+	{
+	  glm::vec2 a(cb_ir.corners[CB_WIDTH - 1].x - cb_ir.corners[0].x, cb_ir.corners[CB_WIDTH - 1].y - cb_ir.corners[0].y);
+	  glm::vec2 b(cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].x - cb_ir.corners[0].y, cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].y - cb_ir.corners[0].y);
+	  ir_orientation = a.x > 0.0 && b.y > 0.0;
+	}
+
+	if( !(rgb_orientation && ir_orientation) ){
+	  cb_rgb.valid = 0;
+	  cb_ir.valid = 0;
+
+	  std::cout << "ChessboardSampling::detectFlips() -> detected flip at " << cb_id << std::endl;
+
+	}
+      }
+    }
+
+  }
+
 
 
   void
@@ -793,4 +890,66 @@ ChessboardSampling::computeAVGIRFrequency(){
     freq += (1000.0 / (1000.0 * (m_cb_ir[i].time - m_cb_ir[i-1].time)));
   }
   return freq / num_frames;
+}
+
+
+
+void
+ChessboardSampling::calcStatsInRanges(){
+
+  for(auto& r : m_valid_ranges){
+    std::vector<float> frame_times;
+    for(unsigned cb_id = r.start + 1; cb_id < r.end; ++cb_id){
+      frame_times.push_back(m_cb_ir[cb_id].time - m_cb_ir[cb_id - 1].time);
+    }
+    calcMeanSDMax(frame_times, r.avg_frametime, r.sd_frametime, r.max_frametime);
+  }
+
+}
+
+void
+ChessboardSampling::gatherValidRanges(){
+#define MIN_RANGE_SIZE 10
+
+  // input is always m_cb_rgb and m_cb_ir
+
+  // ouptut is always m_valid_ranges;
+
+  m_valid_ranges.clear();
+
+  ChessboardRange range_curr;
+  range_curr.start = 0;
+  range_curr.end = 0;
+  bool valid = true;
+  for(unsigned i = 0; i < m_cb_ir.size(); ++i){
+    
+    if(valid){
+      if(m_cb_ir[i].valid){
+	++range_curr.end;
+      }
+      else{
+	if((range_curr.end - range_curr.start) > MIN_RANGE_SIZE){
+	  m_valid_ranges.push_back(range_curr);
+	}
+	valid = false;
+      }
+    }
+    else{
+      if(m_cb_ir[i].valid){
+	range_curr.start = i;
+	range_curr.end = i + 1;
+	valid = true;
+      }
+    }
+
+  }
+
+  if((range_curr.end - range_curr.start) > MIN_RANGE_SIZE){
+    m_valid_ranges.push_back(range_curr);
+  }
+
+  std::cout << "ChessboardSampling::gatherValidRanges() -> valid ranges: " << m_valid_ranges.size() << std::endl;
+
+
+
 }

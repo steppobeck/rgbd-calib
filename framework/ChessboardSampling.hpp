@@ -9,12 +9,23 @@
 #include <vector>
 
 
+  class ChessboardRange{
+  public:
+    unsigned start;
+    unsigned end;
+    double avg_frametime;
+    double sd_frametime;
+    double max_frametime;
+  };
+
+  extern std::ostream& operator << (std::ostream& o, const ChessboardRange& v);
 
   class ChessboardViewRGB{
   public:
     uv corners[CB_WIDTH*CB_HEIGHT];
     float quality[CB_WIDTH*CB_HEIGHT];
     double time;
+    unsigned valid;
   };
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardViewRGB& v);
@@ -24,6 +35,7 @@
     xyz corners[CB_WIDTH*CB_HEIGHT];
     float quality[CB_WIDTH*CB_HEIGHT];
     double time;
+    unsigned valid;
   };
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardViewIR& v);
@@ -80,6 +92,7 @@
     
     bool loadChessboards();
 
+    void detectFlips();
 
     void computeQualityIR(const float pose_offset);
 
@@ -88,11 +101,16 @@
 
     void reinterpolateOutliers();
 
+    void calcStatsInRanges();
+
+    void gatherValidRanges();
+
     std::string m_filenamebase;
   protected:
     std::vector<ChessboardPose> m_poses;
     std::vector<ChessboardViewRGB> m_cb_rgb;
     std::vector<ChessboardViewIR> m_cb_ir;
+    std::vector<ChessboardRange> m_valid_ranges;
   };
 
 

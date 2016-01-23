@@ -392,6 +392,11 @@ void calcMeanSD(std::vector<float>& values, double& mean, double& stdev){
 }
 
 
+void calcMeanSDMax(std::vector<float>& values, double& mean, double& stdev, double& ma){
+  calcMeanSD(values, mean, stdev);
+  ma = *(std::max_element(values.begin(), values.end()));
+}
+
 size_t calcNumFrames(std::ifstream& f, size_t fs){
   f.seekg(0,std::ios::end);
   const unsigned number_of_frames = (f.tellg()/fs);
