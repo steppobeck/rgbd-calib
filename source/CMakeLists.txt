@@ -42,6 +42,11 @@ add_executable(play play.cpp)
 target_link_libraries(play framework ${LIBRARIES})
 add_dependencies(play glfw framework ${COPY_BINARY})
 
+add_executable(play_sweep play_sweep.cpp)
+target_link_libraries(play_sweep framework ${LIBRARIES})
+add_dependencies(play_sweep glfw framework ${COPY_BINARY})
+
+
 add_executable(convert_recording_to_point_cloud convert_recording_to_point_cloud.cpp)
 target_link_libraries(convert_recording_to_point_cloud framework ${LIBRARIES})
 add_dependencies(convert_recording_to_point_cloud glfw framework ${COPY_BINARY})
