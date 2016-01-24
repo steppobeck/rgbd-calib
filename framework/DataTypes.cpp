@@ -392,10 +392,24 @@ void calcMeanSD(std::vector<float>& values, double& mean, double& stdev){
 }
 
 
-void calcMeanSDMax(std::vector<float>& values, double& mean, double& stdev, double& ma){
+void calcMeanSDMaxMedian(std::vector<float>& values, double& mean, double& stdev, double& ma, double& median){
   calcMeanSD(values, mean, stdev);
   ma = *(std::max_element(values.begin(), values.end()));
+
+  std::vector<float> values_temp = values;
+  size_t size = values_temp.size();
+  std::sort(values_temp.begin(), values_temp.end());
+
+  if (size  % 2 == 0)
+  {
+      median = (values_temp[size / 2 - 1] + values_temp[size / 2]) / 2.0;
+  }
+  else 
+  {
+      median = values_temp[size / 2];
+  }
 }
+
 
 size_t calcNumFrames(std::ifstream& f, size_t fs){
   f.seekg(0,std::ios::end);

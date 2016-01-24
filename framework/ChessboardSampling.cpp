@@ -79,7 +79,7 @@ namespace{
   std::ostream& operator << (std::ostream& o, const ChessboardRange& v){
 
     o << "ChessboardRange: " << v.start << " -> " << v.end << std::endl;
-    o << "frametime stats: " << v.avg_frametime << ", [" << v.sd_frametime << "] , (" << v.max_frametime << ")" << std::endl;
+    o << "frametime stats: " << v.avg_frametime << " , [" << v.sd_frametime << "] , (" << v.max_frametime << ") , {" << v.median_frametime << "}" << std::endl;
     return o;
 
   }
@@ -581,6 +581,119 @@ namespace{
     return true;
   }
 
+  void
+  ChessboardSampling::detectTimeJumpsInRanges(){
+
+    std::set<unsigned> to_invalidate;
+    for(const auto& r : m_valid_ranges){
+      for(unsigned cb_id = r.start + 1; cb_id < r.end; ++cb_id){
+	const float curr_frametime = m_cb_ir[cb_id].time - m_cb_ir[cb_id - 1].time;
+	if(curr_frametime > (r.median_frametime + 3 * r.sd_frametime)){
+	  to_invalidate.insert(cb_id);
+	}
+      }
+    }
+
+    for(const auto& cb_id : to_invalidate){
+      invalidateAt(cb_id, 10);
+    }
+
+  }
+
+
+  void
+  ChessboardSampling::invalidateAt(unsigned cb_id, unsigned window_size){
+
+    for(unsigned i = std::max(0, (int(cb_id) - int(window_size))); i < std::min(unsigned(m_cb_ir.size()), (cb_id + window_size + 1u)); ++i){
+      m_cb_ir[i].valid = 0;
+      m_cb_rgb[i].valid = 0;
+    }
+
+  }
+
+  void
+  ChessboardSampling::oneEuroFilterInRanges(){
+
+
+    for(const auto& r : m_valid_ranges){
+
+      OneEuroFilterContainer rgb_filter(2, CB_WIDTH * CB_HEIGHT);
+      OneEuroFilterContainer ir_filter(3, CB_WIDTH * CB_HEIGHT);
+
+      // configure one euro filters
+      // 1. color corner
+      const double rgb_freq(1.0/r.avg_frametime);
+      const double rgb_mincutoff = 1.0; //
+      const double rgb_beta = 0.007;    // cutoff slope
+      const double rgb_dcutoff = 1.0;   // this one should be ok 
+      for(unsigned i = 0; i != CB_WIDTH * CB_HEIGHT; ++i){
+	rgb_filter.init(0, i, rgb_freq, rgb_mincutoff, rgb_beta, rgb_dcutoff);
+	rgb_filter.init(1, i, rgb_freq, rgb_mincutoff, rgb_beta, rgb_dcutoff);
+      }
+
+      // 2. ir corner + ir depth
+      const float ir_freq(1.0/r.avg_frametime);
+      const double ir_mincutoff = 1.0; //
+      const double ir_beta = 0.007;    // cutoff slope
+      const double ir_dcutoff = 1.0;   // this one should be ok 
+      
+      const double ird_mincutoff = 1.0; //
+      const double ird_beta = 0.007;    // cutoff slope
+      const double ird_dcutoff = 1.0;   // this one should be ok 
+      
+      for(unsigned i = 0; i != CB_WIDTH * CB_HEIGHT; ++i){
+	ir_filter.init(0, i, ir_freq, ir_mincutoff, ir_beta, ir_dcutoff);
+	ir_filter.init(1, i, ir_freq, ir_mincutoff, ir_beta, ir_dcutoff);
+	ir_filter.init(2, i, ir_freq, ird_mincutoff, ird_beta, ird_dcutoff);
+      }
+
+      
+      for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+	for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
+	  m_cb_rgb[cb_id].corners[cid].u = rgb_filter.filter(0 /*u*/,cid, m_cb_rgb[cb_id].corners[cid].u);
+	  m_cb_rgb[cb_id].corners[cid].v = rgb_filter.filter(1 /*v*/,cid, m_cb_rgb[cb_id].corners[cid].v);
+	  m_cb_ir[cb_id].corners[cid].x  =  ir_filter.filter(0 /*x*/,cid, m_cb_ir[cb_id].corners[cid].x);
+	  m_cb_ir[cb_id].corners[cid].y  =  ir_filter.filter(1 /*y*/,cid, m_cb_ir[cb_id].corners[cid].y);
+	  m_cb_ir[cb_id].corners[cid].z  =  ir_filter.filter(2 /*z*/,cid, m_cb_ir[cb_id].corners[cid].z);
+	}
+      }
+
+    }
+
+
+  }
+
+
+  void
+  ChessboardSampling::computeQualityFromSpeedIRInRanges(const float pose_offset){
+
+    for(const auto& r : m_valid_ranges){
+      const float best_frametime = std::min(0.0, r.avg_frametime - 3.0 * r.sd_frametime);
+      const float worst_frametime = r.avg_frametime + 3.0 * r.sd_frametime;
+
+      m_cb_ir[r.start].valid = 0;
+      m_cb_rgb[r.start].valid = 0;
+
+      for(unsigned cb_id = r.start + 1; cb_id < r.end; ++cb_id){
+	const float curr_frametime = m_cb_ir[cb_id].time - m_cb_ir[cb_id - 1].time;
+	if(curr_frametime > worst_frametime){
+	  m_cb_ir[cb_id].valid = 0;
+	  m_cb_rgb[cb_id].valid = 0;
+	}
+	else{
+	  const float quality = 1.0f - (  (std::max(best_frametime, curr_frametime) - best_frametime) / (worst_frametime - best_frametime) );
+
+	  for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
+	    m_cb_ir[cb_id].quality[c] = quality;
+	    m_cb_rgb[cb_id].quality[c] = quality;
+	  }
+
+
+	}
+      }
+    }
+
+  }
 
   void
   ChessboardSampling::filterSamples(const float pose_offset){
@@ -595,15 +708,21 @@ namespace{
     // 2. gather valid ranges to detect time jumps
     gatherValidRanges();
     calcStatsInRanges();
-    // IMPLEMENT detectTimeJumpsInRanges();
+    detectTimeJumpsInRanges();
 
-    // 3. compute quality based on speed
+
+    // 3. apply OEFilter on ranges
     gatherValidRanges();
     calcStatsInRanges();
-    // IMPLEMENT computeQualityFromSpeedIRInRanges(pose_offset);
+    oneEuroFilterInRanges();
+    
+    // 4. compute quality based on speed on range
+    computeQualityFromSpeedIRInRanges(pose_offset);
+    // computeQualityFromNoise();
 
-    // 4. apply OEFilter on ranges
-    // IMPLEMENT oneEuroFilterInRanges();
+
+    gatherValidRanges();
+    calcStatsInRanges();
 
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
@@ -611,7 +730,7 @@ namespace{
 
     std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
 
-    return; // -> IMPLEMENT getValidRanges() ready for sweepsampler extractSamplesFromRanges!!!!!
+    return;
 
 
 
@@ -902,7 +1021,7 @@ ChessboardSampling::calcStatsInRanges(){
     for(unsigned cb_id = r.start + 1; cb_id < r.end; ++cb_id){
       frame_times.push_back(m_cb_ir[cb_id].time - m_cb_ir[cb_id - 1].time);
     }
-    calcMeanSDMax(frame_times, r.avg_frametime, r.sd_frametime, r.max_frametime);
+    calcMeanSDMaxMedian(frame_times, r.avg_frametime, r.sd_frametime, r.max_frametime, r.median_frametime);
   }
 
 }

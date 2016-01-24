@@ -16,6 +16,7 @@
     double avg_frametime;
     double sd_frametime;
     double max_frametime;
+    double median_frametime;
   };
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardRange& v);
@@ -76,6 +77,10 @@
       return m_poses;
     }
 
+    const std::vector<ChessboardRange>& getValidRanges() const{
+      return m_valid_ranges;
+    }
+
     void filterSamples(const float pose_offset);
 
 
@@ -104,6 +109,14 @@
     void calcStatsInRanges();
 
     void gatherValidRanges();
+
+    void detectTimeJumpsInRanges();
+
+    void oneEuroFilterInRanges();
+
+    void computeQualityFromSpeedIRInRanges(const float pose_offset);
+
+    void invalidateAt(unsigned cb_id, unsigned window_size);
 
     std::string m_filenamebase;
   protected:

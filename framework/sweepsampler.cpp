@@ -60,11 +60,28 @@ SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, c
   
   cbs->filterSamples(pose_offset);
 
-  exit(0);
-
   std::cout << "SweepSampler::extractSamples -> start extracing samples from " << cbs->getIRs().size() << " chessboard locations" << std::endl;
 
+  const std::vector<ChessboardRange>& valid_ranges = cbs->getValidRanges();
+  const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
+  for(const auto& r : valid_ranges){
+    for(unsigned i = r.start; i != r.end; ++i){
+      const double time = cb_irs[i].time;
+      // interpolate color_chessboard 
+      bool valid_rgb = false;
+      ChessboardViewRGB cb_rgb_i = cbs->interpolateRGB(time + color_offset, valid_rgb);
+      // interpolate pose
+      bool valid_pose = false;
+      glm::mat4 pose_i = cbs->interpolatePose(time + pose_offset, valid_pose);
+      if(valid_rgb && valid_pose){
+	// add 35 corners to samplesPoints
+	addBoardSamples(pose_i, &cb_irs[i], &cb_rgb_i);
+      }
+    }
+  }
 
+
+#if 0
   const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
   for(unsigned i = 0; i != cb_irs.size(); ++i){
     const double time = cb_irs[i].time;
@@ -79,6 +96,7 @@ SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, c
       addBoardSamples(pose_i, &cb_irs[i], &cb_rgb_i);
     }
   }
+#endif
 
   return m_sps.size();
 }
@@ -102,7 +120,8 @@ SweepSampler::addBoardSamples(const glm::mat4& cb_transform, const ChessboardVie
 
     samplePoint sp;
     if(0.0 == corners_ir->quality[idx]){
-      std::cerr << "ERROR: corner quality == 0" << std::endl;
+      std::cerr << "ERROR: corner quality == 0 ... skipping " << std::endl;
+      continue;
     }
     sp.quality = corners_ir->quality[idx];
     sp.tex_color = c_c;
