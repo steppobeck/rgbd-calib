@@ -2,6 +2,7 @@
 #define RGBD_CALIB_CHESSBOARDSAMPLING_H
 
 #include <DataTypes.hpp>
+
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -105,6 +106,7 @@
     float computeAVGIRFrequency();
 
     void reinterpolateOutliers();
+    void detectCorruptedDepthInRanges();
 
     void calcStatsInRanges();
 

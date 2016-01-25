@@ -1,5 +1,7 @@
 #include "NearestNeighbourSearch.hpp"
 
+
+
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Search_traits_3.h>
 #include <CGAL/Search_traits_adapter.h>
@@ -19,7 +21,6 @@ typedef CGAL::Search_traits_adapter<Point_and_int,
 typedef CGAL::Orthogonal_k_neighbor_search<Traits>          K_neighbor_search;
 typedef K_neighbor_search::Tree                             Tree;
 typedef K_neighbor_search::Distance                         Distance;
-
 
 
   

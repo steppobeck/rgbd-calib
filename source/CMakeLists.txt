@@ -26,6 +26,10 @@ add_executable(display_sweep display_sweep.cpp)
 target_link_libraries(display_sweep framework ${LIBRARIES})
 add_dependencies(display_sweep glfw framework ${COPY_BINARY})
 
+add_executable(test_stuff test_stuff.cpp)
+target_link_libraries(test_stuff framework ${LIBRARIES})
+add_dependencies(test_stuff glfw framework ${COPY_BINARY})
+
 add_executable(calibrate calibrate.cpp)
 target_link_libraries(calibrate framework ${LIBRARIES})
 add_dependencies(calibrate glfw framework ${COPY_BINARY})

@@ -1,8 +1,15 @@
+
+
 #include "ChessboardSampling.hpp"
+
+
+
 #include <OpenCVChessboardCornerDetector.hpp>
 #include <MatrixInterpolation.hpp>
 
 #include <OneEuroFilterContainer.hpp>
+
+#include <PlaneFit.hpp>
 
 #include <sensor.hpp>
 #include <timevalue.hpp>
@@ -20,6 +27,8 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
+
+
 
 
 #include <set>
@@ -696,14 +705,68 @@ namespace{
   }
 
   void
+  ChessboardSampling::detectCorruptedDepthInRanges(){
+
+    for(const auto& r : m_valid_ranges){
+
+      std::vector<float> plane_qualities;
+      for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+
+	std::vector<xyz> corners;
+	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
+
+	  xyz corner(m_cb_ir[cb_id].corners[c]);
+#if 0
+	  // for testing
+	  if(cb_id % 30 == 0 && c == 23)
+	    corner.z = 0;
+#endif
+	  corners.push_back(corner);
+	}
+
+	const auto pq = detectPlaneQuality(corners);
+	//std::cout << "cb_id: " << cb_id << " -> " << pq << std::endl;
+	plane_qualities.push_back(pq);
+      }
+
+
+      double mean;
+      double sd;
+      calcMeanSD(plane_qualities, mean, sd);
+
+      for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+	const float curr_quality = plane_qualities[cb_id];
+	if (curr_quality < (mean - 3.0 * sd)){
+	  
+	  std::cout << "found corrupted depth buffer in cb_id: " << cb_id << " -> plane quality: " << curr_quality << std::endl;
+	  m_cb_ir[cb_id].valid = 0;
+	  m_cb_rgb[cb_id].valid = 0;
+	}
+      }
+
+
+    }
+
+    
+
+  }
+
+  void
   ChessboardSampling::filterSamples(const float pose_offset){
     std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
 
     // 0. location where no corners where detected are already invalid
 
+
     // 1. gather valid ranges to detect flipps
     gatherValidRanges();
     detectFlips(); // better, more generic detectFlipsInRanges!
+
+
+    // 1.5 detectCorruptedDepthInRanges
+    gatherValidRanges();
+    detectCorruptedDepthInRanges();
+
 
     // 2. gather valid ranges to detect time jumps
     gatherValidRanges();
