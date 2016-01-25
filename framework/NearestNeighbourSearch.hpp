@@ -1,10 +1,8 @@
 #ifndef KINECT_NEARESTNEIGHBOURSEARCH_HPP
 #define KINECT_NEARESTNEIGHBOURSEARCH_HPP
 
-#include <DataTypes.hpp>
 
 #include <NaturalNeighbourInterpolator.hpp>
-
 
 
 #include <vector>
