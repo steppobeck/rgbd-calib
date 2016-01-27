@@ -84,7 +84,7 @@
 
     void filterSamples(const float pose_offset);
 
-
+    bool loadChessboards();
 
     bool saveChessboards();
 
@@ -96,7 +96,7 @@
 
     bool showRecordingAndPoses(unsigned start, unsigned end);
     
-    bool loadChessboards();
+    
 
     void detectFlips();
 

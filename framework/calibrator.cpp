@@ -1,6 +1,7 @@
 #include "calibrator.hpp"
 
-
+#include <ChessboardSampling.hpp>
+#include <PlaneFit.hpp>
 
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
@@ -198,6 +199,54 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (" << max_2D << ") (in pixels)" << std::endl;
 
 }
+
+
+
+float
+Calibrator::evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg){
+
+  const unsigned cv_width = cv->width;
+  const unsigned cv_height = cv->height;
+  const unsigned cv_depth = cv->depth;
+
+
+  std::vector<float> plane_qualities;
+  const std::vector<ChessboardRange>& valid_ranges = cbs->getValidRanges();
+  const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
+  for(const auto& r : valid_ranges){
+    for(unsigned cb_id = r.start; cb_id != r.end; ++cb_id){
+
+      std::vector<xyz> world_space_corners;
+      for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
+
+	const xyz corner = cb_irs[cb_id].corners[idx];
+	const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
+	const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
+	const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
+	xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
+
+	pos.x *= 10;
+	pos.y *= 10;
+	pos.z *= 10;
+
+	world_space_corners.push_back(pos);
+      }
+
+      const auto pq = detectPlaneQuality(world_space_corners);
+      //std::cout << "cb_id: " << cb_id << " -> " << pq << std::endl;
+      plane_qualities.push_back(pq);
+
+
+    }
+  }
+  
+  double mean;
+  double sd;
+  calcMeanSD(plane_qualities, mean, sd);
+
+  return mean;
+}
+
 
 
 void

@@ -6,6 +6,7 @@
 #include <rgbdsensor.hpp>
 #include <NearestNeighbourSearch.hpp>
 
+class ChessboardSampling;
 
 class Calibrator{
 
@@ -16,6 +17,9 @@ public:
 
   void applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours);
   void evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg);
+
+
+  float evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg);
 
 private:
   void applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours);

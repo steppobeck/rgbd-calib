@@ -1,39 +1,33 @@
 #include "PlaneFit.hpp"
 
+
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/linear_least_squares_fitting_3.h>
+
+#include <vector>
 #include <cstdlib>
-#include <sstream>
 #include <fstream>
-
-namespace {
-
-  template <class T>
-  inline std::string
-  toString(T value){
-    std::ostringstream stream;
-    stream << value;
-    return stream.str();
-  }
+#include <sstream>
 
 
-}
+typedef double                      FT;
+typedef CGAL::Simple_cartesian<FT>  K;
+typedef K::Plane_3                  Plane;
+typedef K::Point_3                  Point;
 
-float
+
+
+
+double
 detectPlaneQuality(const std::vector<xyz>& corners){
 
-  std::string estr("/home/steppo/Desktop/my-git/rgbd-calib/thirdparty/planefit/planefit");
+  std::vector<Point> points;
   for(const auto& c : corners){
-    estr += " " + toString(c.x) + " " + toString(c.y) + " " + toString(c.z);
+    points.push_back(Point(c.x, c.y, c.z));
   }
-  //std::cout << "execution of: " << estr  << std::endl;
 
-  system(estr.c_str());
+  Plane plane;
 
-  float quality;
-  std::ifstream qualityfile("/tmp/planequality");
-  qualityfile >> quality;
-  qualityfile.close();
+  return linear_least_squares_fitting_3(points.begin(),points.end(),plane,CGAL::Dimension_tag<0>());
 
-  //std::cout << "quality is: " << quality  << std::endl;
-  
-  return quality;
 }

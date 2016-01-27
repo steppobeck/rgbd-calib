@@ -34,6 +34,10 @@ add_executable(calibrate calibrate.cpp)
 target_link_libraries(calibrate framework ${LIBRARIES})
 add_dependencies(calibrate glfw framework ${COPY_BINARY})
 
+add_executable(sweep_calibrate sweep_calibrate.cpp)
+target_link_libraries(sweep_calibrate framework ${LIBRARIES})
+add_dependencies(sweep_calibrate glfw framework ${COPY_BINARY})
+
 add_executable(evaluate evaluate.cpp)
 target_link_libraries(evaluate framework ${LIBRARIES})
 add_dependencies(evaluate glfw framework ${COPY_BINARY})

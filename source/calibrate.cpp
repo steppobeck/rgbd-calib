@@ -3,7 +3,6 @@
 #include <rgbdsensor.hpp>
 #include <DataTypes.hpp>
 #include <CMDParser.hpp>
-#include <stablesampler.hpp>
 #include <calibrator.hpp>
 
 #include <glm/gtc/type_ptr.hpp>

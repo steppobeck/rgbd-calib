@@ -8,6 +8,6 @@
 
 
 
-float detectPlaneQuality(const std::vector<xyz>& corners);
+double detectPlaneQuality(const std::vector<xyz>& corners);
 
 #endif // #ifndef RGBD_CALIB_PLANEFIT_HPP
