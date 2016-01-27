@@ -22,7 +22,7 @@ detectPlaneQuality(const std::vector<xyz>& corners){
 
   std::string estr("/home/steppo/Desktop/my-git/rgbd-calib/thirdparty/planefit/planefit");
   for(const auto& c : corners){
-    estr += " " + toString(c.x) + " " + toString(c.y) + " " + toString(100.0f * c.z);
+    estr += " " + toString(c.x) + " " + toString(c.y) + " " + toString(c.z);
   }
   //std::cout << "execution of: " << estr  << std::endl;
 

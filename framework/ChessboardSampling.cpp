@@ -716,6 +716,7 @@ namespace{
 	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
 
 	  xyz corner(m_cb_ir[cb_id].corners[c]);
+	  corner.z = 100.0f;
 #if 0
 	  // for testing
 	  if(cb_id % 30 == 0 && c == 23)
