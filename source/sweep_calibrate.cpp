@@ -30,7 +30,7 @@ int main(int argc, char* argv[]){
   unsigned idwneighbours = 20;
 
   bool reload = true;
-
+  unsigned optimization_stride = 1;
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
@@ -43,6 +43,7 @@ int main(int argc, char* argv[]){
 
   p.addOpt("r",-1,"noreload", "do not reload sweep file from disk, default: reload = true");
 
+  p.addOpt("o",1,"optimizationstride", "perform optimization only for every n-th checkerboard location, default: 1");
 
   p.init(argc,argv);
 
@@ -78,6 +79,10 @@ int main(int argc, char* argv[]){
 
   if(p.isOptSet("r")){
     reload = false;
+  }
+
+  if(p.isOptSet("o")){
+    optimization_stride = p.getOptsInt("o")[0];
   }
 
   CalibVolume cv_init(cv_width, cv_height, cv_depth, cv_min_d, cv_max_d);
@@ -185,14 +190,14 @@ int main(int argc, char* argv[]){
     cs_sweep.loadChessboards();
 
     SweepSampler ss(&cb, &cv_sweep, &cfg);
-    const size_t numsamples = ss.extractSamples(&cs_sweep, tracking_offset_time, color_offset_time);
+    const size_t numsamples = ss.extractSamples(&cs_sweep, tracking_offset_time, color_offset_time, optimization_stride);
 
     const std::vector<samplePoint>& sps = ss.getSamplePoints();
     Calibrator   c;
     c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
   
     // evalute at valid chessboard location
-    const double avg_quality = c.evalutePlanes(&cv_sweep, &cs_sweep, cfg);
+    const double avg_quality = c.evalutePlanes(&cv_sweep, &cs_sweep, cfg, optimization_stride);
 
     if(avg_quality > best_avg_quality){
       best_avg_quality = avg_quality;

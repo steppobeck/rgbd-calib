@@ -55,7 +55,7 @@ SweepSampler::appendSamplesToFile(const char* filename){
 
 
 size_t
-SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, const float color_offset){
+SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, const float color_offset, unsigned stride){
 
   
   cbs->filterSamples(pose_offset);
@@ -66,37 +66,22 @@ SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, c
   const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
   for(const auto& r : valid_ranges){
     for(unsigned i = r.start; i != r.end; ++i){
-      const double time = cb_irs[i].time;
-      // interpolate color_chessboard 
-      bool valid_rgb = false;
-      ChessboardViewRGB cb_rgb_i = cbs->interpolateRGB(time + color_offset, valid_rgb);
-      // interpolate pose
-      bool valid_pose = false;
-      glm::mat4 pose_i = cbs->interpolatePose(time + pose_offset, valid_pose);
-      if(valid_rgb && valid_pose){
-	// add 35 corners to samplesPoints
-	addBoardSamples(pose_i, &cb_irs[i], &cb_rgb_i);
+
+      if((i % stride) == 0){
+	const double time = cb_irs[i].time;
+	// interpolate color_chessboard 
+	bool valid_rgb = false;
+	ChessboardViewRGB cb_rgb_i = cbs->interpolateRGB(time + color_offset, valid_rgb);
+	// interpolate pose
+	bool valid_pose = false;
+	glm::mat4 pose_i = cbs->interpolatePose(time + pose_offset, valid_pose);
+	if(valid_rgb && valid_pose){
+	  // add 35 corners to samplesPoints
+	  addBoardSamples(pose_i, &cb_irs[i], &cb_rgb_i);
+	}
       }
     }
   }
-
-
-#if 0
-  const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
-  for(unsigned i = 0; i != cb_irs.size(); ++i){
-    const double time = cb_irs[i].time;
-    // interpolate color_chessboard 
-    bool valid_rgb;
-    ChessboardViewRGB cb_rgb_i = cbs->interpolateRGB(time + color_offset, valid_rgb);
-    // interpolate pose
-    bool valid_pose;
-    glm::mat4 pose_i = cbs->interpolatePose(time + pose_offset, valid_pose);
-    if(valid_rgb && valid_pose){
-      // add 35 corners to samplesPoints
-      addBoardSamples(pose_i, &cb_irs[i], &cb_rgb_i);
-    }
-  }
-#endif
 
   return m_sps.size();
 }

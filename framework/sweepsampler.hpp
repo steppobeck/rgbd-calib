@@ -20,7 +20,7 @@ public:
   void appendSamplesToFile(const char* filename);
 
 
-  size_t extractSamples(ChessboardSampling* cbs, const float pose_offset, const float color_offset);
+  size_t extractSamples(ChessboardSampling* cbs, const float pose_offset, const float color_offset, unsigned stride = 1);
 
 
 private:
