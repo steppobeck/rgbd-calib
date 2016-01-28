@@ -202,7 +202,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 
 
 
-float
+double
 Calibrator::evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg){
 
   const unsigned cv_width = cv->width;
@@ -210,7 +210,7 @@ Calibrator::evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDCo
   const unsigned cv_depth = cv->depth;
 
 
-  std::vector<float> plane_qualities;
+  std::vector<double> plane_qualities;
   const std::vector<ChessboardRange>& valid_ranges = cbs->getValidRanges();
   const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
   for(const auto& r : valid_ranges){

@@ -142,6 +142,12 @@ void calcMeanSD(std::vector<float>& values, double& mean, double& stdev);
 
 void calcMeanSDMaxMedian(std::vector<float>& values, double& mean, double& stdev, double& ma, double& median);
 
+
+void calcMeanSD(std::vector<double>& values, double& mean, double& stdev);
+
+void calcMeanSDMaxMedian(std::vector<double>& values, double& mean, double& stdev, double& ma, double& median);
+
+
 size_t calcNumFrames(std::ifstream& f, size_t fs);
 
 

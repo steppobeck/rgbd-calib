@@ -411,6 +411,39 @@ void calcMeanSDMaxMedian(std::vector<float>& values, double& mean, double& stdev
 }
 
 
+void calcMeanSD(std::vector<double>& values, double& mean, double& stdev){
+
+  const double sum = std::accumulate(values.begin(), values.end(), 0.0);
+  mean = sum / values.size();
+  
+  const double sq_sum = std::inner_product(values.begin(), values.end(), values.begin(), 0.0);
+  stdev = std::sqrt(sq_sum / values.size() - mean * mean);
+  
+}
+
+
+void calcMeanSDMaxMedian(std::vector<double>& values, double& mean, double& stdev, double& ma, double& median){
+  calcMeanSD(values, mean, stdev);
+  ma = *(std::max_element(values.begin(), values.end()));
+
+  std::vector<double> values_temp = values;
+  size_t size = values_temp.size();
+  std::sort(values_temp.begin(), values_temp.end());
+
+  if (size  % 2 == 0)
+  {
+      median = (values_temp[size / 2 - 1] + values_temp[size / 2]) / 2.0;
+  }
+  else 
+  {
+      median = values_temp[size / 2];
+  }
+}
+
+
+
+
+
 size_t calcNumFrames(std::ifstream& f, size_t fs){
   f.seekg(0,std::ios::end);
   const unsigned number_of_frames = (f.tellg()/fs);

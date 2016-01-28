@@ -19,7 +19,7 @@ public:
   void evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg);
 
 
-  float evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg);
+  double evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg);
 
 private:
   void applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours);

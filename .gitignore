@@ -25,3 +25,10 @@ cmake_out
 
 # Temporary backup files
 *~
+
+# Intermediate calibration files
+*.chessboardsir
+*.chessboardsrgb
+*.poses
+*.cv_samples
+

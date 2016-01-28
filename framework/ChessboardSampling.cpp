@@ -709,7 +709,7 @@ namespace{
 
     for(const auto& r : m_valid_ranges){
 
-      std::vector<float> plane_qualities;
+      std::vector<double> plane_qualities;
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
 
 	std::vector<xyz> corners;

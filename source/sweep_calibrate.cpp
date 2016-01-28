@@ -22,7 +22,7 @@ int main(int argc, char* argv[]){
 
   // ./sweep_sampler ../../../data/23.cv ../../../data/23_sweep -t -0.157 -c -0.01 -n
 
-  const float tracking_offset_time_step = 0.01; // in seconds
+  const float tracking_offset_time_step = 0.005; // in seconds
   float tracking_offset_time_min = -0.2; // in seconds
   float tracking_offset_time_max = 0.0; // in seconds
   float color_offset_time = -0.01;
@@ -174,7 +174,7 @@ int main(int argc, char* argv[]){
 
 
   // 3. optimize tracking_offset_time
-  float best_avg_quality = 0.0f;
+  double best_avg_quality = 0.0f;
   float best_tracking_offset_time = 0.0f;
   for(float tracking_offset_time = tracking_offset_time_min;
       tracking_offset_time < tracking_offset_time_max;
@@ -192,7 +192,7 @@ int main(int argc, char* argv[]){
     c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
   
     // evalute at valid chessboard location
-    const float avg_quality = c.evalutePlanes(&cv_sweep, &cs_sweep, cfg);
+    const double avg_quality = c.evalutePlanes(&cv_sweep, &cs_sweep, cfg);
 
     if(avg_quality > best_avg_quality){
       best_avg_quality = avg_quality;
