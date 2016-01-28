@@ -11,6 +11,8 @@
 
 #include <PlaneFit.hpp>
 
+#include <CSVExporter.hpp>
+
 #include <sensor.hpp>
 #include <timevalue.hpp>
 #include <devicemanager.hpp>
@@ -622,6 +624,22 @@ namespace{
 
   void
   ChessboardSampling::oneEuroFilterInRanges(){
+    //#define GATHER_CSV_STATS 1
+
+#if GATHER_CSV_STATS
+    CSVExporter csv_color_x(2);
+    csv_color_x.slotnames.push_back("unfiltered");
+    csv_color_x.slotnames.push_back("one_euro");
+
+    CSVExporter csv_depth_x(2);
+    csv_depth_x.slotnames.push_back("unfiltered");
+    csv_depth_x.slotnames.push_back("one_euro");
+
+    CSVExporter csv_depth_z(2);
+    csv_depth_z.slotnames.push_back("unfiltered");
+    csv_depth_z.slotnames.push_back("one_euro");
+#endif
+
 
 
     for(const auto& r : m_valid_ranges){
@@ -656,8 +674,21 @@ namespace{
 	ir_filter.init(2, i, ir_freq, ird_mincutoff, ird_beta, ird_dcutoff);
       }
 
+
+
+
+
+
       
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+
+#if GATHER_CSV_STATS
+	csv_color_x.push(0, m_cb_rgb[cb_id].corners[0].u);
+	csv_depth_x.push(0, m_cb_ir[cb_id].corners[0].x);
+	csv_depth_z.push(0, m_cb_ir[cb_id].corners[0].z);
+#endif
+
+
 	for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
 	  m_cb_rgb[cb_id].corners[cid].u = rgb_filter.filter(0 /*u*/,cid, m_cb_rgb[cb_id].corners[cid].u);
 	  m_cb_rgb[cb_id].corners[cid].v = rgb_filter.filter(1 /*v*/,cid, m_cb_rgb[cb_id].corners[cid].v);
@@ -665,9 +696,25 @@ namespace{
 	  m_cb_ir[cb_id].corners[cid].y  =  ir_filter.filter(1 /*y*/,cid, m_cb_ir[cb_id].corners[cid].y);
 	  m_cb_ir[cb_id].corners[cid].z  =  ir_filter.filter(2 /*z*/,cid, m_cb_ir[cb_id].corners[cid].z);
 	}
+
+#if GATHER_CSV_STATS
+	csv_color_x.push(1, m_cb_rgb[cb_id].corners[0].u);
+	csv_depth_x.push(1, m_cb_ir[cb_id].corners[0].x);
+	csv_depth_z.push(1, m_cb_ir[cb_id].corners[0].z);
+#endif
+
+
       }
 
     }
+
+
+#if GATHER_CSV_STATS
+    csv_color_x.save("csv_color_x.txt");
+    csv_depth_x.save("csv_depth_x.txt");
+    csv_depth_z.save("csv_depth_z.txt");
+    exit(0);
+#endif
 
 
   }
@@ -774,11 +821,12 @@ namespace{
     calcStatsInRanges();
     detectTimeJumpsInRanges();
 
-
-    // 3. apply OEFilter on ranges
+   
     gatherValidRanges();
     calcStatsInRanges();
-    oneEuroFilterInRanges();
+    
+    // 3. apply OEFilter on ranges
+    //oneEuroFilterInRanges();
     
     // 4. compute quality based on speed on range
     computeQualityFromSpeedIRInRanges(pose_offset);
