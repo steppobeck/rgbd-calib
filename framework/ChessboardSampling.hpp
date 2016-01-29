@@ -100,12 +100,9 @@
 
     void detectFlips();
 
-    void computeQualityIR(const float pose_offset);
-
     float computeAVGRGBFrequency();
     float computeAVGIRFrequency();
 
-    void reinterpolateOutliers();
     void detectCorruptedDepthInRanges();
 
     void calcStatsInRanges();
@@ -113,6 +110,9 @@
     void gatherValidRanges();
 
     void detectTimeJumpsInRanges();
+
+    void gatherCornerTracesInRanges(const char* prefix);
+
 
     void oneEuroFilterInRanges();
 

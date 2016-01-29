@@ -624,22 +624,6 @@ namespace{
 
   void
   ChessboardSampling::oneEuroFilterInRanges(){
-    //#define GATHER_CSV_STATS 1
-
-#if GATHER_CSV_STATS
-    CSVExporter csv_color_x(2);
-    csv_color_x.slotnames.push_back("unfiltered");
-    csv_color_x.slotnames.push_back("one_euro");
-
-    CSVExporter csv_depth_x(2);
-    csv_depth_x.slotnames.push_back("unfiltered");
-    csv_depth_x.slotnames.push_back("one_euro");
-
-    CSVExporter csv_depth_z(2);
-    csv_depth_z.slotnames.push_back("unfiltered");
-    csv_depth_z.slotnames.push_back("one_euro");
-#endif
-
 
 
     for(const auto& r : m_valid_ranges){
@@ -675,19 +659,8 @@ namespace{
       }
 
 
-
-
-
-
       
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
-
-#if GATHER_CSV_STATS
-	csv_color_x.push(0, m_cb_rgb[cb_id].corners[0].u);
-	csv_depth_x.push(0, m_cb_ir[cb_id].corners[0].x);
-	csv_depth_z.push(0, m_cb_ir[cb_id].corners[0].z);
-#endif
-
 
 	for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
 	  m_cb_rgb[cb_id].corners[cid].u = rgb_filter.filter(0 /*u*/,cid, m_cb_rgb[cb_id].corners[cid].u);
@@ -697,25 +670,217 @@ namespace{
 	  m_cb_ir[cb_id].corners[cid].z  =  ir_filter.filter(2 /*z*/,cid, m_cb_ir[cb_id].corners[cid].z);
 	}
 
-#if GATHER_CSV_STATS
-	csv_color_x.push(1, m_cb_rgb[cb_id].corners[0].u);
-	csv_depth_x.push(1, m_cb_ir[cb_id].corners[0].x);
-	csv_depth_z.push(1, m_cb_ir[cb_id].corners[0].z);
-#endif
-
-
       }
 
     }
+  }
 
 
-#if GATHER_CSV_STATS
-    csv_color_x.save("csv_color_x.txt");
-    csv_depth_x.save("csv_depth_x.txt");
-    csv_depth_z.save("csv_depth_z.txt");
-    exit(0);
-#endif
 
+  void
+  ChessboardSampling::gatherCornerTracesInRanges(const char* prefix){
+    CSVExporter csv(35 + 2*35 + 2*35);
+    // z..., x... y... s... t...
+
+    csv.slotnames.push_back("00z");
+    csv.slotnames.push_back("01z");
+    csv.slotnames.push_back("02z");
+    csv.slotnames.push_back("03z");
+    csv.slotnames.push_back("04z");
+    csv.slotnames.push_back("05z");
+    csv.slotnames.push_back("06z");
+    csv.slotnames.push_back("07z");
+    csv.slotnames.push_back("08z");
+    csv.slotnames.push_back("09z");
+    csv.slotnames.push_back("10z");
+    csv.slotnames.push_back("11z");
+    csv.slotnames.push_back("12z");
+    csv.slotnames.push_back("13z");
+    csv.slotnames.push_back("14z");
+    csv.slotnames.push_back("15z");
+    csv.slotnames.push_back("16z");
+    csv.slotnames.push_back("17z");
+    csv.slotnames.push_back("18z");
+    csv.slotnames.push_back("19z");
+    csv.slotnames.push_back("20z");
+    csv.slotnames.push_back("21z");
+    csv.slotnames.push_back("22z");
+    csv.slotnames.push_back("23z");
+    csv.slotnames.push_back("24z");
+    csv.slotnames.push_back("25z");
+    csv.slotnames.push_back("26z");
+    csv.slotnames.push_back("27z");
+    csv.slotnames.push_back("28z");
+    csv.slotnames.push_back("29z");
+    csv.slotnames.push_back("30z");
+    csv.slotnames.push_back("31z");
+    csv.slotnames.push_back("32z");
+    csv.slotnames.push_back("33z");
+    csv.slotnames.push_back("34z");
+
+
+    csv.slotnames.push_back("00x");
+    csv.slotnames.push_back("01x");
+    csv.slotnames.push_back("02x");
+    csv.slotnames.push_back("03x");
+    csv.slotnames.push_back("04x");
+    csv.slotnames.push_back("05x");
+    csv.slotnames.push_back("06x");
+    csv.slotnames.push_back("07x");
+    csv.slotnames.push_back("08x");
+    csv.slotnames.push_back("09x");
+    csv.slotnames.push_back("10x");
+    csv.slotnames.push_back("11x");
+    csv.slotnames.push_back("12x");
+    csv.slotnames.push_back("13x");
+    csv.slotnames.push_back("14x");
+    csv.slotnames.push_back("15x");
+    csv.slotnames.push_back("16x");
+    csv.slotnames.push_back("17x");
+    csv.slotnames.push_back("18x");
+    csv.slotnames.push_back("19x");
+    csv.slotnames.push_back("20x");
+    csv.slotnames.push_back("21x");
+    csv.slotnames.push_back("22x");
+    csv.slotnames.push_back("23x");
+    csv.slotnames.push_back("24x");
+    csv.slotnames.push_back("25x");
+    csv.slotnames.push_back("26x");
+    csv.slotnames.push_back("27x");
+    csv.slotnames.push_back("28x");
+    csv.slotnames.push_back("29x");
+    csv.slotnames.push_back("30x");
+    csv.slotnames.push_back("31x");
+    csv.slotnames.push_back("32x");
+    csv.slotnames.push_back("33x");
+    csv.slotnames.push_back("34x");
+
+
+    csv.slotnames.push_back("00y");
+    csv.slotnames.push_back("01y");
+    csv.slotnames.push_back("02y");
+    csv.slotnames.push_back("03y");
+    csv.slotnames.push_back("04y");
+    csv.slotnames.push_back("05y");
+    csv.slotnames.push_back("06y");
+    csv.slotnames.push_back("07y");
+    csv.slotnames.push_back("08y");
+    csv.slotnames.push_back("09y");
+    csv.slotnames.push_back("10y");
+    csv.slotnames.push_back("11y");
+    csv.slotnames.push_back("12y");
+    csv.slotnames.push_back("13y");
+    csv.slotnames.push_back("14y");
+    csv.slotnames.push_back("15y");
+    csv.slotnames.push_back("16y");
+    csv.slotnames.push_back("17y");
+    csv.slotnames.push_back("18y");
+    csv.slotnames.push_back("19y");
+    csv.slotnames.push_back("20y");
+    csv.slotnames.push_back("21y");
+    csv.slotnames.push_back("22y");
+    csv.slotnames.push_back("23y");
+    csv.slotnames.push_back("24y");
+    csv.slotnames.push_back("25y");
+    csv.slotnames.push_back("26y");
+    csv.slotnames.push_back("27y");
+    csv.slotnames.push_back("28y");
+    csv.slotnames.push_back("29y");
+    csv.slotnames.push_back("30y");
+    csv.slotnames.push_back("31y");
+    csv.slotnames.push_back("32y");
+    csv.slotnames.push_back("33y");
+    csv.slotnames.push_back("34y");
+
+
+    csv.slotnames.push_back("00s");
+    csv.slotnames.push_back("01s");
+    csv.slotnames.push_back("02s");
+    csv.slotnames.push_back("03s");
+    csv.slotnames.push_back("04s");
+    csv.slotnames.push_back("05s");
+    csv.slotnames.push_back("06s");
+    csv.slotnames.push_back("07s");
+    csv.slotnames.push_back("08s");
+    csv.slotnames.push_back("09s");
+    csv.slotnames.push_back("10s");
+    csv.slotnames.push_back("11s");
+    csv.slotnames.push_back("12s");
+    csv.slotnames.push_back("13s");
+    csv.slotnames.push_back("14s");
+    csv.slotnames.push_back("15s");
+    csv.slotnames.push_back("16s");
+    csv.slotnames.push_back("17s");
+    csv.slotnames.push_back("18s");
+    csv.slotnames.push_back("19s");
+    csv.slotnames.push_back("20s");
+    csv.slotnames.push_back("21s");
+    csv.slotnames.push_back("22s");
+    csv.slotnames.push_back("23s");
+    csv.slotnames.push_back("24s");
+    csv.slotnames.push_back("25s");
+    csv.slotnames.push_back("26s");
+    csv.slotnames.push_back("27s");
+    csv.slotnames.push_back("28s");
+    csv.slotnames.push_back("29s");
+    csv.slotnames.push_back("30s");
+    csv.slotnames.push_back("31s");
+    csv.slotnames.push_back("32s");
+    csv.slotnames.push_back("33s");
+    csv.slotnames.push_back("34s");
+
+    csv.slotnames.push_back("00t");
+    csv.slotnames.push_back("01t");
+    csv.slotnames.push_back("02t");
+    csv.slotnames.push_back("03t");
+    csv.slotnames.push_back("04t");
+    csv.slotnames.push_back("05t");
+    csv.slotnames.push_back("06t");
+    csv.slotnames.push_back("07t");
+    csv.slotnames.push_back("08t");
+    csv.slotnames.push_back("09t");
+    csv.slotnames.push_back("10t");
+    csv.slotnames.push_back("11t");
+    csv.slotnames.push_back("12t");
+    csv.slotnames.push_back("13t");
+    csv.slotnames.push_back("14t");
+    csv.slotnames.push_back("15t");
+    csv.slotnames.push_back("16t");
+    csv.slotnames.push_back("17t");
+    csv.slotnames.push_back("18t");
+    csv.slotnames.push_back("19t");
+    csv.slotnames.push_back("20t");
+    csv.slotnames.push_back("21t");
+    csv.slotnames.push_back("22t");
+    csv.slotnames.push_back("23t");
+    csv.slotnames.push_back("24t");
+    csv.slotnames.push_back("25t");
+    csv.slotnames.push_back("26t");
+    csv.slotnames.push_back("27t");
+    csv.slotnames.push_back("28t");
+    csv.slotnames.push_back("29t");
+    csv.slotnames.push_back("30t");
+    csv.slotnames.push_back("31t");
+    csv.slotnames.push_back("32t");
+    csv.slotnames.push_back("33t");
+    csv.slotnames.push_back("34t");
+
+    for(const auto& r : m_valid_ranges){
+      for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+	// z... x... y... s... t...
+	// 0  1   35 36  71 
+	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
+	  csv.push(c, m_cb_ir[cb_id].corners[c].z);
+	  csv.push(c + 1 * 35, m_cb_ir[cb_id].corners[c].x);
+	  csv.push(c + 2 * 35, m_cb_ir[cb_id].corners[c].y);
+	  csv.push(c + 3 * 35, m_cb_rgb[cb_id].corners[c].u);
+	  csv.push(c + 4 * 35, m_cb_rgb[cb_id].corners[c].v);
+	}
+
+      }
+    }
+    const std::string filename(std::string(prefix) + ".txt");
+    csv.save(filename.c_str());
 
   }
 
@@ -827,10 +992,18 @@ namespace{
     
     // 3. apply OEFilter on ranges
     //oneEuroFilterInRanges();
-    
+
+
+#if 1
+    gatherCornerTracesInRanges("corner_traces");
+    exit(0);
+#endif
+
     // 4. compute quality based on speed on range
     computeQualityFromSpeedIRInRanges(pose_offset);
-    // computeQualityFromNoise();
+
+
+    // filterCornerQualityInRanges();
 
 
     gatherValidRanges();
@@ -841,101 +1014,6 @@ namespace{
     }
 
     std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
-
-    return;
-
-
-
-
-    // blow is old version which worked but was not generic
-    std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
-
-
-    std::cerr << "ChessboardSampling::filterSamples -> findJumps" << std::endl;
-
-    const float avgframerate = (1000.0 / computeAVGIRFrequency()) / 1000.0;
-    //std::cout << "avgframerate: " << avgframerate << std::endl;
-    unsigned jump_id = 0;
-    for(unsigned cb_id = 1; cb_id < m_cb_ir.size(); ++cb_id){
-      const float currtime = m_cb_ir[cb_id].time - m_cb_ir[cb_id - 1].time;
-      if(currtime > (2.5 * avgframerate)){
-	//std::cout << "cb_id: " << cb_id << " currrate: " << currtime << " avgframerate: " << avgframerate << std::endl;
-	jump_id = cb_id + 10;
-      }
-    }
-    std::vector<ChessboardViewRGB> cb_rgb;
-    std::vector<ChessboardViewIR> cb_ir;
-    for(unsigned i = jump_id; i < m_cb_rgb.size(); ++i){
-      cb_rgb.push_back(m_cb_rgb[i]);
-      cb_ir.push_back(m_cb_ir[i]);
-    }
-    m_cb_rgb = cb_rgb;
-    m_cb_ir  = cb_ir;
-
-
-
-
-
-
-
-
-    std::cerr << "ChessboardSampling::filterSamples -> reinterpolateOutliers" << std::endl;
-    reinterpolateOutliers();
-
-    std::cerr << "ChessboardSampling::filterSamples -> computeQualityIR" << std::endl;
-    computeQualityIR(pose_offset);
-    
-    std::cerr << "ChessboardSampling::filterSamples -> apply One Euro Filter" << std::endl;
-
-    OneEuroFilterContainer rgb_filter(2, CB_WIDTH * CB_HEIGHT);
-    OneEuroFilterContainer ir_filter(3, CB_WIDTH * CB_HEIGHT);
-
-    // configure one euro filters
-    // 1. color corner
-    const double rgb_freq(computeAVGRGBFrequency());
-    const double rgb_mincutoff = 1.0; //
-    const double rgb_beta = 0.007;    // cutoff slope
-    const double rgb_dcutoff = 1.0;   // this one should be ok 
-    for(unsigned i = 0; i != CB_WIDTH * CB_HEIGHT; ++i){
-      rgb_filter.init(0, i, rgb_freq, rgb_mincutoff, rgb_beta, rgb_dcutoff);
-      rgb_filter.init(1, i, rgb_freq, rgb_mincutoff, rgb_beta, rgb_dcutoff);
-    }
-
-    // 2. ir corner + ir depth
-    const float ir_freq(computeAVGIRFrequency());
-    const double ir_mincutoff = 1.0; //
-    const double ir_beta = 0.007;    // cutoff slope
-    const double ir_dcutoff = 1.0;   // this one should be ok 
-
-    const double ird_mincutoff = 1.0; //
-    const double ird_beta = 0.007;    // cutoff slope
-    const double ird_dcutoff = 1.0;   // this one should be ok 
-
-    for(unsigned i = 0; i != CB_WIDTH * CB_HEIGHT; ++i){
-      ir_filter.init(0, i, ir_freq, ir_mincutoff, ir_beta, ir_dcutoff);
-      ir_filter.init(1, i, ir_freq, ir_mincutoff, ir_beta, ir_dcutoff);
-      ir_filter.init(2, i, ir_freq, ird_mincutoff, ird_beta, ird_dcutoff);
-    }
-
-    // TEST OEF for u value of 1st corner in RGB chessboard
-    for(auto& cb : m_cb_rgb){
-      for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
-	cb.corners[cid].u = rgb_filter.filter(0 /*u*/,cid, cb.corners[cid].u);
-	cb.corners[cid].v = rgb_filter.filter(1 /*v*/,cid, cb.corners[cid].v);
-      }
-    }
-
-    // TEST OEF for z value of 1st corner in IR chessboard
-    for(auto& cb : m_cb_ir){
-      for(unsigned cid = 0; cid != CB_WIDTH * CB_HEIGHT; ++cid){
-	cb.corners[cid].x = ir_filter.filter(0 /*x*/,cid, cb.corners[cid].x);
-	cb.corners[cid].y = ir_filter.filter(1 /*y*/,cid, cb.corners[cid].y);
-	cb.corners[cid].z = ir_filter.filter(2 /*z*/,cid, cb.corners[cid].z);
-      }
-    }
-
-    std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
-
 
   }
 
@@ -980,124 +1058,9 @@ namespace{
 
 
 
-  void
-  ChessboardSampling::reinterpolateOutliers(){
-
-    std::cerr << "ChessboardSampling::reinterpolateOutliers -> begin" << std::endl;
-
-    // 1. for each chessboard, both, RGB and IR compute CCW, CW;
-    std::vector<bool> rgb_orientations;
-    std::vector<bool> ir_orientations;
-    for(auto& cb : m_cb_rgb){
-      glm::vec2 a(cb.corners[CB_WIDTH - 1].u - cb.corners[0].u, cb.corners[CB_WIDTH - 1].v - cb.corners[0].v);
-      glm::vec2 b(cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - cb.corners[0].u, cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - cb.corners[0].v);
-      rgb_orientations.push_back(a.x > 0.0 && b.y > 0.0);
-    }
-
-    for(auto& cb : m_cb_ir){
-      glm::vec2 a(cb.corners[CB_WIDTH - 1].x - cb.corners[0].x, cb.corners[CB_WIDTH - 1].y - cb.corners[0].y);
-      glm::vec2 b(cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].x - cb.corners[0].y, cb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].y - cb.corners[0].y);
-      ir_orientations.push_back(a.x > 0.0 && b.y > 0.0);
-    }
-
-
-    std::set<unsigned> needs_to_be_interpolated;
-    for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
-      if( !(rgb_orientations[i] && ir_orientations[i]) ){
-	needs_to_be_interpolated.insert(i);
-      }
-    }
-
-    std::cout << "ChessboardSampling::reinterpolateOutliers -> need to reinterpolate "
-	      << needs_to_be_interpolated.size() << " Chessboard due to wrong orientation" << std::endl;
-
-    std::set<unsigned> to_erase;
-    for(const auto& cb_id : needs_to_be_interpolated){
-      std::cout << "checking interpolation for cb_id: " << cb_id << std::endl;
-      const unsigned cb_id_a = [&] { unsigned result = cb_id;
-				     for( unsigned i = 0; i < cb_id; ++i){
-				       if( needs_to_be_interpolated.find(i) == needs_to_be_interpolated.end() ){
-					 result = i;
-				       }
-				     }
-				     return result;
-      }();
-
-      const unsigned cb_id_b = [&] { unsigned result = cb_id;
-				     for( unsigned i = cb_id + 1;  i < m_cb_ir.size(); ++i){
-				       if( needs_to_be_interpolated.find(i) == needs_to_be_interpolated.end() ){
-					 return i;
-				       }
-				     }
-				     return result;
-      }();
-
-      if( (cb_id_a < cb_id) &&
-	  (cb_id < cb_id_b) ){
-	// compute alpha
-	const float t = (m_cb_ir[cb_id].time - m_cb_ir[cb_id_a].time) / (m_cb_ir[cb_id_b].time - m_cb_ir[cb_id_a].time);
-	std::cout << "interpolating between " << cb_id_a << " and " << cb_id_b << " t: " << t  << std::endl;
-	m_cb_ir[cb_id] = interpolate(m_cb_ir[cb_id_a], m_cb_ir[cb_id_b], t);
-	m_cb_rgb[cb_id] = interpolate(m_cb_rgb[cb_id_a], m_cb_rgb[cb_id_b], t);
-      }
-      else{
-	to_erase.insert(cb_id);
-      }
-
-    }
-
-
-    std::cerr << "ChessboardSampling::reinterpolateOutliers have to erase " << to_erase.size() << " because interpolation not possible!" << std::endl;
-
-    std::vector<ChessboardViewRGB> cb_rgb;
-    std::vector<ChessboardViewIR> cb_ir;
-    for(unsigned i = 0; i < m_cb_rgb.size(); ++i){
-      if( to_erase.find(i) == to_erase.end() ){
-	cb_rgb.push_back(m_cb_rgb[i]);
-	cb_ir.push_back(m_cb_ir[i]);
-      }
-    }
-    m_cb_rgb = cb_rgb;
-    m_cb_ir  = cb_ir;
-
-
-
-    // 2. track changes in (CB_WIDTH - 1) * (CB_HEIGHT - 1) local Areas from board location to board location
-
-
-    std::cerr << "ChessboardSampling::reinterpolateOutliers -> end" << std::endl;
-
-
-  }
-
-
-
   double 
   ChessboardSampling::searchStartIR() const{
     return m_cb_ir[10 < m_cb_ir.size() ? 10 : 0].time;
-  }
-
-  void
-  ChessboardSampling::computeQualityIR(const float pose_offset){
-
-    const float max_speed = 0.01;
-    const float min_speed = 0.0;
-
-    // for each chessboardview
-    for(unsigned i = 0; i < m_cb_ir.size(); ++i){
-
-      const float time = m_cb_ir[i].time;
-      bool valid_speed;
-      const float pose_speed = getPoseSpeed(time + pose_offset, valid_speed);
-      const float speed_quality = 1.0 - std::min(pose_speed, max_speed) / max_speed;
-      //std::cerr << "pose speed at time " << time + pose_offset << " : " << pose_speed  << " -> " << speed_quality << std::endl;
-
-      // 0. set quality to 1 for all corners
-      for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
-	m_cb_ir[i].quality[c] = speed_quality;
-      }
-      
-    }
   }
 
 

@@ -104,8 +104,8 @@ SweepSampler::addBoardSamples(const glm::mat4& cb_transform, const ChessboardVie
     c_d_tex.v = c_d.y;
 
     samplePoint sp;
-    if(0.0 == corners_ir->quality[idx]){
-      std::cerr << "ERROR: corner quality == 0 ... skipping " << std::endl;
+    if(0.0 == corners_ir->quality[idx] || 0.0 == corners_rgb->quality[idx]){
+      //std::cerr << "ERROR: corner quality == 0 ... skipping " << std::endl;
       continue;
     }
     sp.quality = corners_ir->quality[idx];
