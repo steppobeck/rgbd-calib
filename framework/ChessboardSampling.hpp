@@ -118,6 +118,8 @@
 
     void computeQualityFromSpeedIRInRanges(const float pose_offset);
 
+    void computeCornerQualityInRanges();
+
     void invalidateAt(unsigned cb_id, unsigned window_size);
 
     std::string m_filenamebase;

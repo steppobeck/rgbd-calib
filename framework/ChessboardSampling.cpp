@@ -381,6 +381,66 @@ namespace{
   bool
   ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end){
 
+    unsigned char* rgb = new unsigned char[1280*1080 * 3];
+    float* depth = new float[512*424];
+    unsigned char* ir = new unsigned char[512*424];
+
+
+
+    OpenCVChessboardCornerDetector cd_c(1280,
+					1080,
+					8 /*bits per channel*/,
+					3 /*num channels*/,
+					CB_WIDTH, CB_HEIGHT);
+
+    OpenCVChessboardCornerDetector cd_i(512,
+					424,
+					8 /*bits per channel*/,
+					1,
+					CB_WIDTH, CB_HEIGHT);
+
+
+
+
+    std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
+    const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
+					    + (1280 * 1080 * 3)
+					    + (512 * 424 * sizeof(float))
+					    + (512 * 424));
+    for(size_t i = 0; i != num_frames; ++i){
+
+      ChessboardViewRGB cb_rgb;
+      cb_rgb.valid = 1;
+      infile_fr.read((char*) &cb_rgb.time, sizeof(double));
+      infile_fr.read((char*) rgb, 1280*1080 * 3);
+
+      ChessboardViewIR cb_ir;
+      cb_ir.valid = 1;
+      infile_fr.read((char*) &cb_ir.time, sizeof(double));
+      infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
+      infile_fr.read((char*) ir, 512 * 424);
+
+      if((end == 0) || (start < i) && (i < end)){
+	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << std::endl;
+
+	// show rgb and ir image
+
+	bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, true);
+	bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, true);
+	int key = -1;
+	while(-1 == key){
+	  // detect corners in color image
+	  key = cvWaitKey(10);
+	}
+      }
+
+    }
+
+
+
+
+
+
 #if 0
     int port = 5000;
     int devicename = 7;
@@ -423,7 +483,7 @@ namespace{
     std::cout << best_id << " -> " << m_poses[best_id] << std::endl;
 #endif
 
-
+#if 0
     std::cout << "RGBD -----------------------------------------------------" << std::endl;
 
     cvNamedWindow("rgb", CV_WINDOW_AUTOSIZE);
@@ -466,7 +526,7 @@ namespace{
     cvReleaseImage(&rgb);
     delete [] depth;
     cvReleaseImage(&ir);
-
+#endif
   }
 
 
@@ -916,6 +976,106 @@ namespace{
 
   }
 
+
+  void
+  ChessboardSampling::computeCornerQualityInRanges(){
+    for(const auto& r : m_valid_ranges){
+
+      m_cb_ir[r.start].valid = 0;
+      //m_cb_ir[r.end].valid = 0;
+
+      m_cb_rgb[r.start].valid = 0;
+      //m_cb_rgb[r.end].valid = 0;
+
+
+      for(unsigned cb_id = (r.start + 1); cb_id < r.end; ++cb_id){
+	std::vector<double> ir_diffs_x;
+	std::vector<double> ir_diffs_y;
+	std::vector<double> rgb_diffs_u;
+	std::vector<double> rgb_diffs_v;
+
+	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
+	  ir_diffs_x.push_back(  (m_cb_ir[cb_id].corners[c].x - m_cb_ir[cb_id-1].corners[c].x)/* +
+												 (m_cb_ir[cb_id+1].corners[c].x - m_cb_ir[cb_id].corners[c].x)*/);
+	  ir_diffs_y.push_back(  (m_cb_ir[cb_id].corners[c].y - m_cb_ir[cb_id-1].corners[c].y)/* +
+												 (m_cb_ir[cb_id+1].corners[c].y - m_cb_ir[cb_id].corners[c].y)*/);
+
+	  rgb_diffs_u.push_back( (m_cb_rgb[cb_id].corners[c].u - m_cb_rgb[cb_id-1].corners[c].u)/* +
+												   (m_cb_rgb[cb_id+1].corners[c].u - m_cb_rgb[cb_id].corners[c].u)*/);
+	  rgb_diffs_v.push_back( (m_cb_rgb[cb_id].corners[c].v - m_cb_rgb[cb_id-1].corners[c].v)/* +
+												   (m_cb_rgb[cb_id+1].corners[c].v - m_cb_rgb[cb_id].corners[c].v)*/);
+
+
+	}
+
+	double avg_ir_x;
+	double sd_ir_x;
+	calcMeanSD(ir_diffs_x, avg_ir_x, sd_ir_x);
+	for(unsigned c = 0; c < ir_diffs_x.size(); ++c){
+	  if(std::abs(ir_diffs_x[c] - avg_ir_x) > 3.0 * sd_ir_x ){
+	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_ir[cb_id].quality[c] = 0.0f;
+	    //m_cb_ir[cb_id + 1].quality[c] = 0.0f;
+	  }
+	}
+
+	double avg_ir_y;
+	double sd_ir_y;
+	calcMeanSD(ir_diffs_y, avg_ir_y, sd_ir_y);
+	for(unsigned c = 0; c < ir_diffs_y.size(); ++c){
+	  if(std::abs(ir_diffs_y[c] - avg_ir_y) > 3.0 * sd_ir_y ){
+	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_ir[cb_id].quality[c] = 0.0f;
+	    //m_cb_ir[cb_id + 1].quality[c] = 0.0f;
+	  }
+	}
+
+	double avg_rgb_u;
+	double sd_rgb_u;
+	calcMeanSD(rgb_diffs_u, avg_rgb_u, sd_rgb_u);
+	for(unsigned c = 0; c < rgb_diffs_u.size(); ++c){
+	  if(std::abs(rgb_diffs_u[c] - avg_rgb_u) > 3.0 * sd_rgb_u ){
+	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id].quality[c] = 0.0f;
+	    //m_cb_rgb[cb_id + 1].quality[c] = 0.0f;
+	  }
+	}
+
+	double avg_rgb_v;
+	double sd_rgb_v;
+	calcMeanSD(rgb_diffs_v, avg_rgb_v, sd_rgb_v);
+	for(unsigned c = 0; c < rgb_diffs_v.size(); ++c){
+	  if(std::abs(rgb_diffs_v[c] - avg_rgb_v) > 3.0 * sd_rgb_v ){
+	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id].quality[c] = 0.0f;
+	    //m_cb_rgb[cb_id + 1].quality[c] = 0.0f;
+	  }
+	}
+
+
+	unsigned removed_ir  = 0;
+	unsigned removed_rgb = 0;
+	// check which corner qualities were set to zero
+	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
+	  if(m_cb_ir[cb_id].quality[c] == 0.0){
+	    ++removed_ir;
+	  }
+	  if(m_cb_rgb[cb_id].quality[c] == 0.0){
+	    ++removed_rgb;
+	  }
+	}
+
+	if(removed_ir || removed_rgb){
+	  std::cout << "cb_id: " << cb_id << " removed_ir: " << removed_ir << " removed_rgb: " << removed_rgb << std::endl;
+	}
+
+
+      }
+
+    }
+  }
+
+
   void
   ChessboardSampling::detectCorruptedDepthInRanges(){
 
@@ -994,16 +1154,15 @@ namespace{
     //oneEuroFilterInRanges();
 
 
-#if 1
+#if 0
     gatherCornerTracesInRanges("corner_traces");
     exit(0);
 #endif
 
     // 4. compute quality based on speed on range
     computeQualityFromSpeedIRInRanges(pose_offset);
-
-
-    // filterCornerQualityInRanges();
+    // 5. compute und update individual corner quality based on local knowledge
+    computeCornerQualityInRanges();
 
 
     gatherValidRanges();
