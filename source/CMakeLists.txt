@@ -2,6 +2,14 @@ add_executable(measure_pose_offset measure_pose_offset.cpp)
 target_link_libraries(measure_pose_offset framework ${LIBRARIES})
 add_dependencies(measure_pose_offset glfw framework ${COPY_BINARY})
 
+add_executable(zmq_sender zmq_sender.cpp)
+target_link_libraries(zmq_sender framework ${LIBRARIES})
+add_dependencies(zmq_sender glfw framework ${COPY_BINARY})
+
+add_executable(zmq_receiver zmq_receiver.cpp)
+target_link_libraries(zmq_receiver framework ${LIBRARIES})
+add_dependencies(zmq_receiver glfw framework ${COPY_BINARY})
+
 add_executable(viewer viewer.cpp)
 target_link_libraries(viewer framework ${LIBRARIES})
 add_dependencies(viewer glfw framework ${COPY_BINARY})

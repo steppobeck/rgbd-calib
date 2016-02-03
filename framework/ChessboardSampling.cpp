@@ -381,6 +381,8 @@ namespace{
   bool
   ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end){
 
+
+#if 1
     unsigned char* rgb = new unsigned char[1280*1080 * 3];
     float* depth = new float[512*424];
     unsigned char* ir = new unsigned char[512*424];
@@ -436,7 +438,7 @@ namespace{
 
     }
 
-
+#endif
 
 
 
