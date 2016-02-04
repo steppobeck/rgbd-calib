@@ -8,7 +8,7 @@
 
 #include <fstream>
 #include <iostream>
-
+#include <iomanip>
 
 int main(int argc, char* argv[]){
 
@@ -218,7 +218,7 @@ int main(int argc, char* argv[]){
     }
 
     if(logfile != 0){
-      *logfile << tracking_offset_time << ";" << avg_quality << ";" << best_tracking_offset_time << ";" << best_avg_quality << std::endl;
+      *logfile << tracking_offset_time << ";" << std::setprecision(10) << avg_quality << ";" << best_tracking_offset_time << ";" << std::setprecision(10) << best_avg_quality << std::endl;
     }
 
     std::cout << "tracking_offset_time: " << tracking_offset_time << " (best: " << best_tracking_offset_time << ") -> avg_quality: " << avg_quality << " (best: " << best_avg_quality << ")" << std::endl;
