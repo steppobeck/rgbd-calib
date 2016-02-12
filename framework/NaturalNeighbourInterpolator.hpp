@@ -46,7 +46,7 @@
     NaturalNeighbourInterpolator(const std::vector<nniSample>& samples);
     ~NaturalNeighbourInterpolator();
 
-    bool interpolate(nniSample& ipolant);
+    bool interpolate(nniSample& ipolant) const;
 
   private:
     Dh m_dt;

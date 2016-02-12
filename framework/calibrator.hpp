@@ -7,10 +7,11 @@
 #include <NearestNeighbourSearch.hpp>
 
 class ChessboardSampling;
-
+class NaturalNeighbourInterpolator;
 class Calibrator{
 
 public:
+  static bool using_nni;
 
   Calibrator();
   ~Calibrator();
@@ -22,8 +23,12 @@ public:
   double evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride = 1);
 
 private:
-  void applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours);
+  void applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours, unsigned char* nni_possible, CalibVolume* cv_nni, const NaturalNeighbourInterpolator* nnip);
   void idw_interpolate(const std::vector<nniSample>& neighbours, unsigned idw_neigbours, nniSample& ipolant, const float max_influence_dist);
+
+
+
+
 
 };
 

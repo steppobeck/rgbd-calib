@@ -30,6 +30,7 @@ int main(int argc, char* argv[]){
   unsigned idwneighbours = 20;
   std::string optimize_log("");
   bool reload = true;
+  bool using_nni = false;
   unsigned optimization_stride = 1;
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
@@ -46,6 +47,8 @@ int main(int argc, char* argv[]){
   p.addOpt("o",1,"optimizationstride", "perform optimization only for every n-th checkerboard location, default: 1");
 
   p.addOpt("l",1,"log", "log the optimization process to given filename, default: no log ");
+
+  p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
 
   p.init(argc,argv);
 
@@ -91,6 +94,9 @@ int main(int argc, char* argv[]){
     optimize_log = p.getOptsString("l")[0];
   }
 
+  if(p.isOptSet("i")){
+    using_nni = true;
+  }
 
   CalibVolume cv_init(cv_width, cv_height, cv_depth, cv_min_d, cv_max_d);
 
@@ -193,7 +199,7 @@ int main(int argc, char* argv[]){
   }
 
   double best_avg_quality = 0.0f;
-  float best_tracking_offset_time = 0.0f;
+  float best_tracking_offset_time = (tracking_offset_time_max + tracking_offset_time_min) * 0.5f;
   for(float tracking_offset_time = tracking_offset_time_min;
       tracking_offset_time < tracking_offset_time_max;
       tracking_offset_time += tracking_offset_time_step){
@@ -207,6 +213,7 @@ int main(int argc, char* argv[]){
 
     const std::vector<samplePoint>& sps = ss.getSamplePoints();
     Calibrator   c;
+    c.using_nni = using_nni;
     c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
   
     // evalute at valid chessboard location
@@ -238,6 +245,7 @@ int main(int argc, char* argv[]){
 
   const std::vector<samplePoint>& sps = ss.getSamplePoints();
   Calibrator   c;
+  c.using_nni = using_nni;
   c.applySamples(&cv_init, sps, cfg, idwneighbours);
 
 

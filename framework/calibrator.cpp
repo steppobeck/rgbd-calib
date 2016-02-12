@@ -1,5 +1,7 @@
 #include "calibrator.hpp"
 
+
+#include <NaturalNeighbourInterpolator.hpp>
 #include <ChessboardSampling.hpp>
 #include <PlaneFit.hpp>
 
@@ -16,8 +18,18 @@
 #include <limits>
 #include <fstream>
 
+#include <string.h> // memset
 
 namespace{
+
+  template <class T>
+  inline std::string
+  toString(T value)
+  {
+    std::ostringstream stream;
+    stream << value;
+    return stream.str();
+  }
 
 
   float
@@ -73,6 +85,7 @@ namespace{
 
 }
 
+/*static*/ bool Calibrator::using_nni = false;
 
 Calibrator::Calibrator()
 {}
@@ -134,19 +147,95 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
 	    << nnisamples.size() << " for volume" << std::endl;
 
 
-  std::cerr << "initializing nearest neighbor search from " << nnisamples.size() << " samples." << std::endl;
+  std::cerr << "initializing nearest neighbor search for " << nnisamples.size() << " samples." << std::endl;
   NearestNeighbourSearch nns(nnisamples);
+  std::cerr << "initializing neatural neighbor interpolation for " << nnisamples.size() << " samples." << std::endl;
+  std::shuffle(std::begin(nnisamples), std::end(nnisamples), std::default_random_engine());
+  NaturalNeighbourInterpolator nnip(nnisamples);
+
   const unsigned numthreads = 24;
-  std::cerr << "start interpolation per thread for " << numthreads << std::endl;
+  std::cerr << "start interpolation per thread for " << numthreads << " threads." << std::endl;
+
+  unsigned char* nni_possible = new unsigned char [cv->width * cv->height * cv->depth];
+  memset(nni_possible, 0, cv->width * cv->height * cv->depth);
+  CalibVolume cv_nni(cv->width, cv->height, cv->depth, cv->min_d, cv->max_d);
+
   boost::thread_group threadGroup;
     
   for (unsigned tid = 0; tid < numthreads; ++tid){
-    threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours));
+    threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, nni_possible, &cv_nni, &nnip));
   }
   threadGroup.join_all();
   auto end_time = std::chrono::system_clock::now();
   std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done, applying took seconds: "
 	    <<  std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << std::endl;
+
+  // print stats for nni_possible and write to volume file
+  if(using_nni){
+    size_t possible = 0;
+    for(size_t idx = 0; idx < (cv->width * cv->height * cv->depth); ++idx){
+      possible += nni_possible[idx] > 0 ? 1 : 0;
+    }
+    std::cout << "natural neighbor interpolation was possible for: " << possible << " out of: " << (cv->width * cv->height * cv->depth) << std::endl;
+
+
+    // blend between NNI and IDW
+    unsigned char* nni_percentage = new unsigned char [cv->width * cv->height * cv->depth];
+    memset(nni_percentage, 0, cv->width * cv->height * cv->depth);
+    const int kernel_size = 8;
+
+    for(unsigned z = /*tid*/0; z < cv->depth; z += /*numthreads*/1){
+      for(unsigned y = 0; y < cv->height; ++y){
+	for(unsigned x = 0; x < cv->width; ++x){
+	  const unsigned cv_index = (z * cv->width * cv->height) + (y * cv->width) + x;
+	  if(nni_possible[cv_index]){
+
+	    
+	    unsigned poss = 0;
+	    unsigned sum  = 0;
+	    for(int z_l = std::max(0 , (int(z) - kernel_size)); z_l < std::min(int(cv->depth), (int(z) + kernel_size + 1)); ++z_l){
+	      for(int y_l = std::max(0 , (int(y) - kernel_size)); y_l < std::min(int(cv->height), (int(y) + kernel_size + 1)); ++y_l){
+		for(int x_l = std::max(0 , (int(x) - kernel_size)); x_l < std::min(int(cv->width), (int(x) + kernel_size + 1)); ++x_l){
+		  const unsigned cv_index_l = (z_l * cv->width * cv->height) + (y_l * cv->width) + x_l;
+		  ++sum;
+		  poss += nni_possible[cv_index_l] > 0 ? 1 : 0;
+		}
+	      }
+	    }
+	    
+	    const float t_blend = (1.0 * poss) / sum;
+	    nni_percentage[cv_index] = (unsigned char) std::max(0.0f, std::min(255.0f, 255.0f * t_blend));
+	    const xyz xyz_idw = cv->cv_xyz[cv_index];
+	    const xyz xyz_nni = cv_nni.cv_xyz[cv_index];
+
+	    const uv uv_idw = cv->cv_uv[cv_index];
+	    const uv uv_nni = cv_nni.cv_uv[cv_index];
+
+	    cv->cv_xyz[cv_index] = interpolate(xyz_idw, xyz_nni, t_blend);
+	    cv->cv_uv[cv_index]  = interpolate(uv_idw , uv_nni , t_blend);
+	    
+	  }
+	}
+      }
+    }
+
+
+
+
+    // 0_body_w256_h256_d256_c1_b8.raw
+    FILE* f_nni_stats = fopen( (std::string("0_nnistats_w") + toString(cv->width) + "_h" + toString(cv->height) + "_d" + toString(cv->depth) + "_c1_b8.raw").c_str(), "wb");
+    fwrite(nni_possible, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_stats);
+    fclose(f_nni_stats);
+
+    FILE* f_nni_percentage = fopen( (std::string("0_nnipercentage_w") + toString(cv->width) + "_h" + toString(cv->height) + "_d" + toString(cv->depth) + "_c1_b8.raw").c_str(), "wb");
+    fwrite(nni_percentage, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_percentage);
+    fclose(f_nni_percentage);
+
+    delete [] nni_percentage;
+
+  }
+
+  delete [] nni_possible;
 
 }
 
@@ -250,7 +339,7 @@ Calibrator::evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDCo
 
 
 void
-Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours){
+Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours, unsigned char* nni_possible, CalibVolume* cv_nni, const NaturalNeighbourInterpolator* nnip){
 
 
   const glm::vec3 diameter(cv->width, cv->height, cv->depth);
@@ -278,26 +367,39 @@ Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch*
 
 	  ipolant.s_tex_off.u = 0.0;
 	  ipolant.s_tex_off.v = 0.0;
-
-
+	  
 	  std::vector<nniSample> neighbours = nns->search(ipolant,idwneighbours);
 	  if(neighbours.empty()){
 	    std::cerr << "ERROR in Calibrator::applySamplesPerThread -> no neighbours found, skipping voxel at pos " << ipolant.s_pos << std::endl;
 	    continue;
 	  }
+	  idw_interpolate(neighbours, idwneighbours, ipolant, max_influence_dist);
 
-	  // NNI possible?
-	  //std::vector<nniSample> neighbours = nns->search(ipolant,50);
-	  //std::shuffle(std::begin(neighbours), std::end(neighbours), std::default_random_engine());
-	  //NaturalNeighbourInterpolator nni(neighbours);
-	  //bool nni_valid = nni.interpolate(ipolant);
+	  xyz xyz_curr = cv->cv_xyz[cv_index];
+	  uv  uv_curr  = cv->cv_uv[cv_index];
 
-	  bool nni_valid = false;
-	  if(!nni_valid){
-	    idw_interpolate(neighbours, idwneighbours, ipolant, max_influence_dist);
-	  }
 	  cv->cv_xyz[cv_index] = cv->cv_xyz[cv_index] + ipolant.s_pos_off;
 	  cv->cv_uv[cv_index]  = cv->cv_uv[cv_index]  + ipolant.s_tex_off;
+	  
+	  if(using_nni){
+	    nniSample ipolant_nni;
+	    ipolant_nni.s_pos.x = x;
+	    ipolant_nni.s_pos.y = y;
+	    ipolant_nni.s_pos.z = z;
+	    
+	    ipolant_nni.s_pos_off.x = 0.0;
+	    ipolant_nni.s_pos_off.y = 0.0;
+	    ipolant_nni.s_pos_off.z = 0.0;
+	    
+	    ipolant_nni.s_tex_off.u = 0.0;
+	    ipolant_nni.s_tex_off.v = 0.0;
+	    bool nni_valid = nnip->interpolate(ipolant_nni);
+	    nni_possible[cv_index] = nni_valid ? 255 : 0;
+	    if(nni_valid){
+	      cv_nni->cv_xyz[cv_index] = xyz_curr + ipolant_nni.s_pos_off;
+	      cv_nni->cv_uv[cv_index]  = uv_curr  + ipolant_nni.s_tex_off;	      
+	    }
+	  }
 
 	}
       }

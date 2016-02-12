@@ -15,9 +15,11 @@
 int main(int argc, char* argv[]){
   unsigned evaluation_stride = 0;
   unsigned idwneighbours = 20;
+  bool using_nni = false;
   CMDParser p("basefilename");
   p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
   p.addOpt("e",1,"evaluationstride", "the stride to use for evaluation, default: 0 (no evaluation performed)");
+  p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
 
   p.init(argc,argv);
 
@@ -29,6 +31,10 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("e")){
     evaluation_stride = p.getOptsInt("e")[0];
     std::cout << "setting evaluationstride to " << evaluation_stride << std::endl;
+  }
+
+  if(p.isOptSet("i")){
+    using_nni = true;
   }
 
   RGBDConfig cfg;
@@ -83,6 +89,7 @@ int main(int argc, char* argv[]){
     }
       CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
       Calibrator   c;
+      c.using_nni = using_nni;
       std::cout << "--------------------------------------------------------------------" << std::endl;
       std::cout << "Calibration error before calibration at " << sps_eval.size() << " sample points" << std::endl;
       c.evaluateSamples(&cv, sps_eval, cfg);
@@ -94,6 +101,7 @@ int main(int argc, char* argv[]){
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
   Calibrator   c;
+  c.using_nni = using_nni;
   c.applySamples(&cv, sps, cfg, idwneighbours);
   cv.save(filename_xyz.c_str(), filename_uv.c_str());
 

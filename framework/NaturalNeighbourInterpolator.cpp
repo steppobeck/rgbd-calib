@@ -30,7 +30,7 @@
   }
     
   bool
-  NaturalNeighbourInterpolator::interpolate(nniSample& ipolant){
+  NaturalNeighbourInterpolator::interpolate(nniSample& ipolant) const{
 
 
     Point3 ipos(ipolant.s_pos.x, ipolant.s_pos.y, ipolant.s_pos.z);
@@ -62,7 +62,13 @@
 
     for(it = coor_sibson.begin() ; it != coor_sibson.end() ; ++it, ++c_idx){
       double contribution_i = it->second;
-      nniSample s = m_vd[it->first];
+
+      auto iter = m_vd.find(it->first);
+      if(iter == m_vd.end()){
+	return false;
+      }
+
+      nniSample s = iter->second;//m_vd[it->first];
       pos_off.x += contribution_i * s.s_pos_off.x;
       pos_off.y += contribution_i * s.s_pos_off.y;
       pos_off.z += contribution_i * s.s_pos_off.z;
