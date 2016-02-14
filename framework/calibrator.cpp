@@ -176,15 +176,16 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, cv_nni, &nnip));
   }
   threadGroup.join_all();
-  auto end_time = std::chrono::system_clock::now();
-  std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! done, applying took seconds: "
-	    <<  std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << std::endl;
 
   
   if(using_nni){
     blendIDW2NNI(cv, cv_nni);
   }
 
+  auto end_time = std::chrono::system_clock::now();
+  std::cerr << "finished interpolation in "
+	    <<  std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count()
+	    << " seconds" << std::endl;
 
 }
 
@@ -202,32 +203,72 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
 	    << possible << " out of: " << (cv->width * cv->height * cv->depth)
 	    << std::endl;
 
-
-  // blend between NNI and IDW
-  unsigned char* nni_percentage = new unsigned char [cv->width * cv->height * cv->depth];
-  memset(nni_percentage, 0, cv->width * cv->height * cv->depth);
-
-  const int kernel_size = 8;
-
-  for(unsigned z = /*tid*/0; z < cv->depth; z += /*numthreads*/1){
+  // 1st pass detect border
+  unsigned char* nni_border = new unsigned char[cv->width * cv->height * cv->depth];
+  memset(nni_border, 0, cv->width * cv->height * cv->depth);
+  const int border_size = 1;
+  for(unsigned z = 0; z < cv->depth; ++z){
     for(unsigned y = 0; y < cv->height; ++y){
       for(unsigned x = 0; x < cv->width; ++x){
 	const unsigned cv_index = (z * cv->width * cv->height) + (y * cv->width) + x;
 	if(m_nni_possible[cv_index]){
-
-	  unsigned poss = 0;
-	  unsigned sum  = 0;
-	  for(int z_l = std::max(0 , (int(z) - kernel_size)); z_l < std::min(int(cv->depth), (int(z) + kernel_size + 1)); ++z_l){
-	    for(int y_l = std::max(0 , (int(y) - kernel_size)); y_l < std::min(int(cv->height), (int(y) + kernel_size + 1)); ++y_l){
-	      for(int x_l = std::max(0 , (int(x) - kernel_size)); x_l < std::min(int(cv->width), (int(x) + kernel_size + 1)); ++x_l){
+	  bool border = false;
+	  for(int z_l = std::max(0 , (int(z) - border_size));
+	      z_l < std::min(int(cv->depth), (int(z) + border_size + 1));
+	      ++z_l){
+	    for(int y_l = std::max(0 , (int(y) - border_size));
+		y_l < std::min(int(cv->height), (int(y) + border_size + 1));
+		++y_l){
+	      for(int x_l = std::max(0 , (int(x) - border_size));
+		  x_l < std::min(int(cv->width), (int(x) + border_size + 1));
+		  ++x_l){
 		const unsigned cv_index_l = (z_l * cv->width * cv->height) + (y_l * cv->width) + x_l;
-		++sum;
-		poss += m_nni_possible[cv_index_l] > 0 ? 1 : 0;
+		if(0 == m_nni_possible[cv_index_l]){
+		  border = true;
+		}
 	      }
 	    }
 	  }
-	  
-	  const float t_blend = (1.0 * poss) / sum;
+	  nni_border[cv_index] = border ? 255 : 0;
+	}
+      }
+    }
+  }
+
+  // 2nd pass blend between NNI and IDW
+  unsigned char* nni_percentage = new unsigned char [cv->width * cv->height * cv->depth];
+  memset(nni_percentage, 0, cv->width * cv->height * cv->depth);
+  const int kernel_size = 8;
+  const float min_dist = 1.0f;
+  const float max_dist = 6.0f;
+
+  for(unsigned z = 0; z < cv->depth; ++z){
+    for(unsigned y = 0; y < cv->height; ++y){
+      for(unsigned x = 0; x < cv->width; ++x){
+	const unsigned cv_index = (z * cv->width * cv->height) + (y * cv->width) + x;
+	if(m_nni_possible[cv_index]){
+	  float distance_to_border = std::numeric_limits<float>::max();
+	  glm::vec3 voxel_curr(1.0f * x, 1.0f * y, 1.0f * z);
+	  for(int z_l = std::max(0 , (int(z) - kernel_size));
+	      z_l < std::min(int(cv->depth), (int(z) + kernel_size + 1));
+	      ++z_l){
+	    for(int y_l = std::max(0 , (int(y) - kernel_size));
+		y_l < std::min(int(cv->height), (int(y) + kernel_size + 1));
+		++y_l){
+	      for(int x_l = std::max(0 , (int(x) - kernel_size));
+		  x_l < std::min(int(cv->width), (int(x) + kernel_size + 1));
+		  ++x_l){
+		const unsigned cv_index_l = (z_l * cv->width * cv->height) + (y_l * cv->width) + x_l;
+		if(nni_border[cv_index_l] > 0){
+		  distance_to_border = std::min(distance_to_border,
+						glm::length(voxel_curr - glm::vec3(1.0f * x_l, 1.0f * y_l, 1.0f * z_l)));
+		}
+	      }
+	    }
+	  }
+  
+	  const float t_blend = std::min( max_dist, std::max(min_dist, distance_to_border)) / max_dist;
+
 	  nni_percentage[cv_index] = (unsigned char) std::max(0.0f, std::min(255.0f, 255.0f * t_blend));
 	  const xyz xyz_idw = cv->cv_xyz[cv_index];
 	  const xyz xyz_nni = cv_nni->cv_xyz[cv_index];
@@ -237,7 +278,7 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
 	  
 	  cv->cv_xyz[cv_index] = interpolate(xyz_idw, xyz_nni, t_blend);
 	  cv->cv_uv[cv_index]  = interpolate(uv_idw , uv_nni , t_blend);
-	  
+
 	}
       }
     }
@@ -248,10 +289,16 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
   fwrite(m_nni_possible, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_stats);
   fclose(f_nni_stats);
   
+  FILE* f_nni_border = fopen( (std::string("0_nniborder_w") + toString(cv->width) + "_h" + toString(cv->height) + "_d" + toString(cv->depth) + "_c1_b8.raw").c_str(), "wb");
+  fwrite(nni_border, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_border);
+  fclose(f_nni_border);
+  
   FILE* f_nni_percentage = fopen( (std::string("0_nnipercentage_w") + toString(cv->width) + "_h" + toString(cv->height) + "_d" + toString(cv->depth) + "_c1_b8.raw").c_str(), "wb");
   fwrite(nni_percentage, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_percentage);
   fclose(f_nni_percentage);
-  
+
+
+  delete [] nni_border;
   delete [] nni_percentage;
 
 }
