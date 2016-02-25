@@ -29,7 +29,6 @@ int main(int argc, char* argv[]){
 
   unsigned idwneighbours = 20;
   std::string optimize_log("");
-  bool reload = true;
   bool using_nni = false;
   unsigned optimization_stride = 1;
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep");
@@ -41,8 +40,6 @@ int main(int argc, char* argv[]){
   p.addOpt("c",1,"coloroffset", "offset in seconds of the color frame relative to the depth frame of the sensor , e.g. -0.02, default: -0.01");
 
   p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
-
-  p.addOpt("r",-1,"noreload", "do not reload sweep file from disk, default: reload = true");
 
   p.addOpt("o",1,"optimizationstride", "perform optimization only for every n-th checkerboard location, default: 1");
 
@@ -80,10 +77,6 @@ int main(int argc, char* argv[]){
 
   if(p.isOptSet("n")){
     idwneighbours = p.getOptsInt("n")[0];
-  }
-
-  if(p.isOptSet("r")){
-    reload = false;
   }
 
   if(p.isOptSet("o")){
@@ -143,7 +136,7 @@ int main(int argc, char* argv[]){
   }
 
   ChessboardSampling cbs(p.getArgs()[1].c_str());
-  cbs.init(reload);
+  cbs.init();
 
   glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world_static(cbs, cb);
   std::cerr << "extrinsic of sensor is: " << eye_d_to_world << std::endl;
@@ -188,7 +181,7 @@ int main(int argc, char* argv[]){
 
   // 2. load recording from sweepfilename
   ChessboardSampling cs_sweep(p.getArgs()[2].c_str());
-  cs_sweep.init(reload);
+  cs_sweep.init();
 
 
   // 3. optimize tracking_offset_time

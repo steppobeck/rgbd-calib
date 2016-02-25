@@ -82,7 +82,7 @@ int main(int argc, char* argv[]){
 
 
   ChessboardSampling cbs(p.getArgs()[1].c_str());
-  cbs.init(true);
+  cbs.init();
 
   glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world_static(cbs, cb);
   std::cerr << "extrinsic of sensor is: " << eye_d_to_world << std::endl;

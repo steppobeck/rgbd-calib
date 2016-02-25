@@ -59,7 +59,7 @@
 
     void interactiveShow(unsigned start, unsigned end);
 
-    bool init(bool reload = true);
+    bool init();
 
     void dump();
 
@@ -91,6 +91,9 @@
     double searchStartIR() const;
 
   private:
+
+    bool needToReload();
+
     bool loadPoses();
     bool loadRecording();
 

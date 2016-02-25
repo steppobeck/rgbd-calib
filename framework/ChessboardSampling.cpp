@@ -35,6 +35,9 @@
 
 #include <set>
 
+
+#include <sys/types.h>
+#include <sys/stat.h> 
 #include <unistd.h>
 #include <cmath>
 #include <fstream>
@@ -159,11 +162,25 @@ namespace{
   ChessboardSampling::~ChessboardSampling()
   {}
 
+  bool
+  ChessboardSampling::needToReload(){
+
+    struct stat st_base;
+    stat(m_filenamebase.c_str(), &st_base);
+
+    struct stat st_target;
+    std::string target_filename(m_filenamebase + ".chessboardsrgb");
+    if(0 != stat(target_filename.c_str(), &st_target))
+      return true;
+
+    return st_base.st_mtime > st_target.st_mtime;
+
+  }
 
   bool
-  ChessboardSampling::init(bool reload){
+  ChessboardSampling::init(){
     bool res = false;
-    if(reload){
+    if(needToReload()){
       res = loadRecording();
       res = saveChessboards();
     }
