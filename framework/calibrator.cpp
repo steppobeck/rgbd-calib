@@ -153,14 +153,9 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
 
   std::cerr << "initializing nearest neighbor search for " << nnisamples.size() << " samples." << std::endl;
   NearestNeighbourSearch nns(nnisamples);
-  std::cerr << "initializing neatural neighbor interpolation for " << nnisamples.size() << " samples." << std::endl;
-  std::shuffle(std::begin(nnisamples), std::end(nnisamples), std::default_random_engine());
-  NaturalNeighbourInterpolator nnip(nnisamples);
-
-  const unsigned numthreads = 24;
-  std::cerr << "start interpolation per thread for " << numthreads << " threads." << std::endl;
 
   // init calib volume for natural neighbor interpolation
+  NaturalNeighbourInterpolator* nnip = 0;
   CalibVolume* cv_nni = 0;
   if(using_nni){
     if(m_nni_possible == 0){
@@ -168,12 +163,18 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     }
     memset(m_nni_possible, 0, cv->width * cv->height * cv->depth);
     cv_nni = new CalibVolume(cv->width, cv->height, cv->depth, cv->min_d, cv->max_d);
+    std::cerr << "initializing natural neighbor interpolation for " << nnisamples.size() << " samples." << std::endl;
+    std::shuffle(std::begin(nnisamples), std::end(nnisamples), std::default_random_engine());
+    nnip =   new NaturalNeighbourInterpolator(nnisamples);
   }
+
+  const unsigned numthreads = 24;
+  std::cerr << "start interpolation per thread for " << numthreads << " threads." << std::endl;
 
   boost::thread_group threadGroup;
     
   for (unsigned tid = 0; tid < numthreads; ++tid){
-    threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, cv_nni, &nnip));
+    threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, cv_nni, nnip));
   }
   threadGroup.join_all();
 

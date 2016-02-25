@@ -205,8 +205,8 @@ int main(int argc, char* argv[]){
     const size_t numsamples = ss.extractSamples(&cs_sweep, tracking_offset_time, color_offset_time, optimization_stride);
 
     const std::vector<samplePoint>& sps = ss.getSamplePoints();
-    Calibrator   c;
-    c.using_nni = using_nni;
+
+    Calibrator   c; // do not use nni during optimization
     c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
   
     // evalute at valid chessboard location
