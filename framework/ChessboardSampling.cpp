@@ -1125,12 +1125,12 @@ namespace{
       double mean;
       double sd;
       calcMeanSD(plane_qualities, mean, sd);
-
+      std::cout << "checking plane qualities in depth frame from cb_id range " << r.start << " to " << r.end << std::endl;
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
-	const float curr_quality = plane_qualities[cb_id];
+	const float curr_quality = plane_qualities[cb_id - r.start];
 	if (curr_quality < (mean - 3.0 * sd)){
 	  
-	  std::cout << "found corrupted depth buffer in cb_id: " << cb_id << " -> plane quality: " << curr_quality << std::endl;
+	  std::cout << "found corrupted depth buffer in cb_id: " << cb_id << " -> plane quality: " << curr_quality << " mean quality: "<< mean << std::endl;
 	  m_cb_ir[cb_id].valid = 0;
 	  m_cb_rgb[cb_id].valid = 0;
 	}
