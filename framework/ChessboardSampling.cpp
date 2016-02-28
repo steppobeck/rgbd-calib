@@ -1034,7 +1034,9 @@ namespace{
 	  if(std::abs(ir_diffs_x[c] - avg_ir_x) > 3.0 * sd_ir_x ){
 	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
 	    m_cb_ir[cb_id].quality[c] = 0.0f;
-	    //m_cb_ir[cb_id + 1].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id].quality[c] = 0.0f;
+
 	  }
 	}
 
@@ -1045,7 +1047,8 @@ namespace{
 	  if(std::abs(ir_diffs_y[c] - avg_ir_y) > 3.0 * sd_ir_y ){
 	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
 	    m_cb_ir[cb_id].quality[c] = 0.0f;
-	    //m_cb_ir[cb_id + 1].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id].quality[c] = 0.0f;
 	  }
 	}
 
@@ -1056,7 +1059,8 @@ namespace{
 	  if(std::abs(rgb_diffs_u[c] - avg_rgb_u) > 3.0 * sd_rgb_u ){
 	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
 	    m_cb_rgb[cb_id].quality[c] = 0.0f;
-	    //m_cb_rgb[cb_id + 1].quality[c] = 0.0f;
+	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_ir[cb_id].quality[c] = 0.0f;
 	  }
 	}
 
@@ -1067,7 +1071,8 @@ namespace{
 	  if(std::abs(rgb_diffs_v[c] - avg_rgb_v) > 3.0 * sd_rgb_v ){
 	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
 	    m_cb_rgb[cb_id].quality[c] = 0.0f;
-	    //m_cb_rgb[cb_id + 1].quality[c] = 0.0f;
+	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
+	    m_cb_ir[cb_id].quality[c] = 0.0f;
 	  }
 	}
 
