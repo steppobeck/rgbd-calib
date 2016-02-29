@@ -63,6 +63,137 @@ namespace{
 
 
 
+
+/*static*/ std::vector<shape_desc> ChessboardViewRGB::shape_descs;
+
+void
+ChessboardViewRGB::fillShapeIds(){
+  for(unsigned y = 0; y < (CB_HEIGHT - 1); ++y){
+    for(unsigned x = 0; x < (CB_WIDTH - 1); ++x){
+      shape_desc sd( y*CB_WIDTH + x, y*CB_WIDTH + x + 1, (y + 1)*CB_WIDTH + x + 1, (y + 1)*CB_WIDTH + x);
+      //std::cout << sd << std::endl;
+      shape_descs.push_back(sd);
+    }
+  }
+}
+
+shape_stats
+ChessboardViewRGB::calcShapeStats(){
+  if(shape_descs.empty()){
+    fillShapeIds();
+  }
+
+  
+  shape_stats stats;
+  for(const auto& s : shape_descs){
+    glm::vec3 a(corners[s.id[0]].u, corners[s.id[0]].v, 0.0f);
+    glm::vec3 b(corners[s.id[1]].u, corners[s.id[1]].v, 0.0f);
+    glm::vec3 c(corners[s.id[2]].u, corners[s.id[2]].v, 0.0f);
+    glm::vec3 d(corners[s.id[3]].u, corners[s.id[3]].v, 0.0f);
+
+
+    // calculate the area of abc
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    glm::vec3 cross_0H = glm::cross(ab,ac);
+    const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
+
+    // calculate the area of cda
+    glm::vec3 cd = d - c;
+    glm::vec3 ca = a - c;
+    glm::vec3 cross_1H = glm::cross(cd,ca);
+    const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
+
+    stats.areas.push_back(area_0H + area_1H);
+    stats.ratiosH.push_back(area_0H / area_1H);
+
+    // calculate the area of dab
+    glm::vec3 da = a - d;
+    glm::vec3 db = b - d;
+    glm::vec3 cross_0V = glm::cross(da,db);
+    const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
+
+    // calculate the area of bcd
+    glm::vec3 bc = c - b;
+    glm::vec3 bd = d - b;
+    glm::vec3 cross_1V = glm::cross(bc,bd);
+    const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
+
+    stats.ratiosV.push_back(area_0V / area_1V);
+
+  }
+
+  return stats;
+}
+
+
+/*static*/ std::vector<shape_desc> ChessboardViewIR::shape_descs;
+
+void
+ChessboardViewIR::fillShapeIds(){
+  for(unsigned y = 0; y < (CB_HEIGHT - 1); ++y){
+    for(unsigned x = 0; x < (CB_WIDTH - 1); ++x){
+      shape_desc sd( y*CB_WIDTH + x, y*CB_WIDTH + x + 1, (y + 1)*CB_WIDTH + x + 1, (y + 1)*CB_WIDTH + x);
+      //std::cout << sd << std::endl;
+      shape_descs.push_back(sd);
+    }
+  }
+}
+
+shape_stats
+ChessboardViewIR::calcShapeStats(){
+  if(shape_descs.empty()){
+    fillShapeIds();
+  }
+
+  shape_stats stats;
+  for(const auto& s : shape_descs){
+    glm::vec3 a(corners[s.id[0]].x, corners[s.id[0]].y, 0.0f);
+    glm::vec3 b(corners[s.id[1]].x, corners[s.id[1]].y, 0.0f);
+    glm::vec3 c(corners[s.id[2]].x, corners[s.id[2]].y, 0.0f);
+    glm::vec3 d(corners[s.id[3]].x, corners[s.id[3]].y, 0.0f);
+
+
+    // calculate the area of abc
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    glm::vec3 cross_0H = glm::cross(ab,ac);
+    const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
+
+    // calculate the area of cda
+    glm::vec3 cd = d - c;
+    glm::vec3 ca = a - c;
+    glm::vec3 cross_1H = glm::cross(cd,ca);
+    const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
+
+    stats.areas.push_back(area_0H + area_1H);
+    stats.ratiosH.push_back(area_0H / area_1H);
+
+    // calculate the area of dab
+    glm::vec3 da = a - d;
+    glm::vec3 db = b - d;
+    glm::vec3 cross_0V = glm::cross(da,db);
+    const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
+
+    // calculate the area of bcd
+    glm::vec3 bc = c - b;
+    glm::vec3 bd = d - b;
+    glm::vec3 cross_1V = glm::cross(bc,bd);
+    const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
+
+    stats.ratiosV.push_back(area_0V / area_1V);
+  }
+
+  return stats;
+}
+
+
+
+
+
+
+
+
   float computeAverageDist(xyz* a, xyz* b){
     float dx = 0.0;
     float dy = 0.0;
@@ -439,13 +570,11 @@ namespace{
       infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
       infile_fr.read((char*) ir, 512 * 424);
 
-      if((end == 0) || (start < i) && (i < end)){
-	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << std::endl;
-
+      if((end == 0) || (start <= i) && (i <= end)){
 	// show rgb and ir image
-
 	bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, true);
 	bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, true);
+	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
 	int key = -1;
 	while(-1 == key){
 	  // detect corners in color image
@@ -576,7 +705,7 @@ namespace{
 
 
 
-
+    unsigned valid = 0;
     std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
     const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
 					    + (1280 * 1080 * 3)
@@ -601,7 +730,7 @@ namespace{
       if(found_color && found_ir &&
 	 (cd_i.corners.size() == cd_c.corners.size() &&
 	  (cd_i.corners.size() == CB_WIDTH * CB_HEIGHT))){
-
+	++valid;
 	for(unsigned c_id = 0; c_id != cd_c.corners.size(); ++c_id){
 	  cb_rgb.corners[c_id].u = cd_c.corners[c_id].u;
 	  cb_rgb.corners[c_id].v = cd_c.corners[c_id].v;
@@ -616,6 +745,7 @@ namespace{
       else{
 	cb_rgb.valid = 0;
 	cb_ir.valid = 0;
+	std::cout << "skipping cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
       }
 	
       m_cb_rgb.push_back(cb_rgb);
@@ -624,7 +754,7 @@ namespace{
     }
 
     std::cerr << "ChessboardSampling::loadRecording() loaded chessboard views: "
-	      << m_cb_rgb.size() << std::endl;
+	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
 
     delete [] rgb;
     delete [] depth;
@@ -1148,6 +1278,93 @@ namespace{
 
   }
 
+
+
+  void
+  ChessboardSampling::detectShapeFaultsInRanges(){
+
+    for(const auto& r : m_valid_ranges){
+      for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+
+	std::cout << "shape Areas for CB: " << cb_id << std::endl;
+
+	{
+	  shape_stats stats = m_cb_ir[cb_id].calcShapeStats();
+
+
+	  bool remove_cb = false;
+
+	  { // find oultiers based on triangle ratiosH
+	    double mean;
+	    double sd;
+	    calcMeanSD(stats.ratiosH, mean, sd);
+	    for(const auto& ratio : stats.ratiosH){
+	      if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
+		remove_cb = true;
+	      }
+	    }
+	  }
+	  { // find oultiers based on triangle ratiosV
+	    double mean;
+	    double sd;
+	    calcMeanSD(stats.ratiosV, mean, sd);
+	    for(const auto& ratio : stats.ratiosV){
+	      if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
+		remove_cb = true;
+	      }
+	    }
+	  }
+
+	  if(remove_cb){
+	    std::cout << "removing cb_id: " << cb_id << " because IRs shape ratio is outlier" << std::endl;
+	    m_cb_ir[cb_id].valid = 0;
+	    m_cb_rgb[cb_id].valid = 0;
+	  }
+	}
+
+	{
+	  shape_stats stats = m_cb_rgb[cb_id].calcShapeStats();
+
+	  bool remove_cb = false;
+	  
+	  { // find oultiers based on triangle ratiosH
+	    double mean;
+	    double sd;
+	    calcMeanSD(stats.ratiosH, mean, sd);
+	    for(const auto& ratio : stats.ratiosH){
+	      if(std::abs(double(ratio) - mean) > (4.0 * sd)){
+		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
+		remove_cb = true;
+	      }
+	    }
+	  }
+	  { // find oultiers based on triangle ratiosV
+	    double mean;
+	    double sd;
+	    calcMeanSD(stats.ratiosV, mean, sd);
+	    for(const auto& ratio : stats.ratiosV){
+	      if(std::abs(double(ratio) - mean) > (4.0 * sd)){
+		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
+		remove_cb = true;
+	      }
+	    }
+	  }
+
+	  if(remove_cb){
+	    std::cout << "removing cb_id: " << cb_id << " because RGBs shape ratio is outlier" << std::endl;
+	    m_cb_ir[cb_id].valid = 0;
+	    m_cb_rgb[cb_id].valid = 0;
+	  }
+	}
+
+
+      }
+    }
+  }
+
+
   void
   ChessboardSampling::filterSamples(const float pose_offset){
     std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
@@ -1159,6 +1376,9 @@ namespace{
     gatherValidRanges();
     detectFlips(); // better, more generic detectFlipsInRanges!
 
+    // 1.2 detect shape errors based on local area ratios of corner quads
+    gatherValidRanges();
+    detectShapeFaultsInRanges();
 
     // 1.5 detectCorruptedDepthInRanges
     gatherValidRanges();
@@ -1197,7 +1417,7 @@ namespace{
     }
 
     std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
-
+    
   }
 
 

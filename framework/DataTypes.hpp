@@ -13,6 +13,22 @@
 #include <fstream>
 #include <vector>
 
+class shape_desc{
+public:
+  shape_desc(unsigned a, unsigned b, unsigned c, unsigned d);
+  unsigned id[4];
+};
+
+extern std::ostream& operator << (std::ostream& o, const shape_desc& sd);
+
+
+class shape_stats{
+public:
+  std::vector<float> areas;
+  std::vector<float> ratiosH;
+  std::vector<float> ratiosV;
+};
+
 class Checkerboard{
 public:
   glm::mat4 pose_offset;
@@ -20,7 +36,7 @@ public:
 
   bool save_pose_offset(const char* filename);
   bool load_pose_offset(const char* filename);
-
+ 
 };
 
 

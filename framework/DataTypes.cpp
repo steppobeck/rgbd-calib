@@ -41,6 +41,20 @@ Checkerboard::load_pose_offset(const char* filename){
 }
 
 
+shape_desc::shape_desc(unsigned a, unsigned b, unsigned c, unsigned d)
+  : id(){
+  id[0] = a;
+  id[1] = b;
+  id[2] = c;
+  id[3] = d;
+}
+
+std::ostream& operator << (std::ostream& o, const shape_desc& sd){
+  o << "shape_desc: " << sd.id[0] << ", " << sd.id[1] << ", " << sd.id[2] << ", " << sd.id[3];
+  return o;
+}
+
+
 std::ostream& operator << (std::ostream& o, const glm::vec3& v){
     o << "(" << v.x << "," << v.y << "," << v.z << ")";
     return o;

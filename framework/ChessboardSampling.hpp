@@ -22,12 +22,20 @@
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardRange& v);
 
+
+
   class ChessboardViewRGB{
   public:
     uv corners[CB_WIDTH*CB_HEIGHT];
     float quality[CB_WIDTH*CB_HEIGHT];
     double time;
     unsigned valid;
+
+    shape_stats calcShapeStats();
+  private:
+    void fillShapeIds();
+    static std::vector<shape_desc> shape_descs;
+
   };
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardViewRGB& v);
@@ -38,6 +46,12 @@
     float quality[CB_WIDTH*CB_HEIGHT];
     double time;
     unsigned valid;
+
+    shape_stats calcShapeStats();
+  private:
+    void fillShapeIds();
+    static std::vector<shape_desc> shape_descs;
+
   };
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardViewIR& v);
@@ -107,6 +121,8 @@
     float computeAVGIRFrequency();
 
     void detectCorruptedDepthInRanges();
+
+    void detectShapeFaultsInRanges();
 
     void calcStatsInRanges();
 

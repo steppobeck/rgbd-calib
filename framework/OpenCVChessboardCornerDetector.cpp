@@ -107,9 +107,12 @@
     //std::cerr << found << " " << corner_count << std::endl;
     // Get subpixel accuracy on those corners
 #if 1
-    if( corner_count == m_num_corners ){			
+    if((found != 0) && (corner_count == m_num_corners)){			
       cvFindCornerSubPix( m_gray_image, m_corners, corner_count, cvSize( 5, 5 ), 
 			  cvSize( -1, -1 ), cvTermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
+    }
+    else{
+      return false;
     }
 #endif
 
