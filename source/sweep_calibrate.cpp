@@ -10,6 +10,92 @@
 #include <iostream>
 #include <iomanip>
 
+
+
+
+
+
+double sampleQuality(const std::string& filename_xyz, const std::string& filename_uv,
+		     ChessboardSampling& cs_sweep,
+		     const RGBDConfig& cfg,
+		     const Checkerboard& cb,
+		     const float tracking_offset_time,
+		     const float color_offset_time,
+		     const unsigned optimization_stride,
+		     const unsigned idwneighbours){
+    CalibVolume cv_sweep(filename_xyz.c_str(), filename_uv.c_str());
+    cs_sweep.loadChessboards();
+    SweepSampler ss(&cb, &cv_sweep, &cfg);
+    ss.extractSamples(&cs_sweep, tracking_offset_time, color_offset_time, optimization_stride);
+    const std::vector<samplePoint>& sps = ss.getSamplePoints();
+    Calibrator   c; // do not use nni during optimization
+    c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
+    // evalute at valid chessboard location
+    return c.evalutePlanes(&cv_sweep, &cs_sweep, cfg, optimization_stride);
+}
+
+
+float optimizeBruteForce(const std::string& filename_xyz, const std::string& filename_uv,
+			 ChessboardSampling& cs_sweep,
+			 const RGBDConfig& cfg,
+			 const Checkerboard& cb,
+			 const float tracking_offset_time_min,
+			 const float tracking_offset_time_max,
+			 const float tracking_offset_time_step,
+			 const float color_offset_time,
+			 const unsigned optimization_stride,
+			 const unsigned idwneighbours,
+			 const std::string& optimize_log){
+
+  
+  std::ofstream* logfile;
+  if(optimize_log != ""){
+    logfile = new std::ofstream(optimize_log.c_str());
+    *logfile << "tracking_offset_time;avg_quality;best_tracking_offset_time;best_avg_quality" << std::endl;
+  }
+
+  float best_tracking_offset_time = (tracking_offset_time_max + tracking_offset_time_min) * 0.5f;
+  double best_avg_quality = 0.0f;
+  for(float tracking_offset_time = tracking_offset_time_min;
+      tracking_offset_time < tracking_offset_time_max;
+      tracking_offset_time += tracking_offset_time_step){
+    
+#if 1
+    const double avg_quality = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+	      tracking_offset_time, color_offset_time, optimization_stride, idwneighbours);
+#endif
+#if 0
+    CalibVolume cv_sweep(filename_xyz.c_str(), filename_uv.c_str());
+    cs_sweep.loadChessboards();
+    SweepSampler ss(&cb, &cv_sweep, &cfg);
+    ss.extractSamples(&cs_sweep, tracking_offset_time, color_offset_time, optimization_stride);
+    const std::vector<samplePoint>& sps = ss.getSamplePoints();
+    Calibrator   c; // do not use nni during optimization
+    c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
+    // evalute at valid chessboard location
+    const double avg_quality = c.evalutePlanes(&cv_sweep, &cs_sweep, cfg, optimization_stride);
+#endif
+
+    if(avg_quality > best_avg_quality){
+      best_avg_quality = avg_quality;
+      best_tracking_offset_time = tracking_offset_time;
+    }
+
+    if(logfile != 0){
+      *logfile << tracking_offset_time << ";" << std::setprecision(10) << avg_quality << ";" << best_tracking_offset_time << ";" << std::setprecision(10) << best_avg_quality << std::endl;
+    }
+
+    std::cout << "tracking_offset_time: " << tracking_offset_time << " (best: " << best_tracking_offset_time << ") -> avg_quality: " << avg_quality << " (best: " << best_avg_quality << ")" << std::endl;
+
+  }
+  if(logfile != 0){
+    logfile->close();
+  }
+  return best_tracking_offset_time;
+}
+
+
+
 int main(int argc, char* argv[]){
 
   std::string pose_offset_filename = "../../../source/poseoffset";
@@ -20,7 +106,7 @@ int main(int argc, char* argv[]){
   float    cv_max_d  = 4.5;
 
 
-  // ./sweep_sampler ../../../data/23.cv ../../../data/23_sweep -t -0.157 -c -0.01
+  // ./sweep_calibrate ../../../data/23.cv ../../../data/23_init ../../../data/23_sweep -t -0.05 -0.0 -o 1 -l ../../../data/23.optimize_log.csv -i
 
   const float tracking_offset_time_step = 0.001; // in seconds
   float tracking_offset_time_min = -0.2; // in seconds
@@ -184,57 +270,26 @@ int main(int argc, char* argv[]){
   cs_sweep.init();
 
 
-  // 3. optimize tracking_offset_time
-  std::ofstream* logfile;
-  if(optimize_log != ""){
-    logfile = new std::ofstream(optimize_log.c_str());
-    *logfile << "tracking_offset_time;avg_quality;best_tracking_offset_time;best_avg_quality" << std::endl;
-  }
+  float best_tracking_offset_time = 0.0f;
+  // do it brutre force
+  best_tracking_offset_time = optimizeBruteForce(filename_xyz, filename_uv,
+						 cs_sweep,
+						 cfg,
+						 cb,
+						 tracking_offset_time_min,
+						 tracking_offset_time_max,
+						 tracking_offset_time_step,
+						 color_offset_time,
+						 optimization_stride,
+						 idwneighbours,
+						 optimize_log);
 
-  double best_avg_quality = 0.0f;
-  float best_tracking_offset_time = (tracking_offset_time_max + tracking_offset_time_min) * 0.5f;
-  for(float tracking_offset_time = tracking_offset_time_min;
-      tracking_offset_time < tracking_offset_time_max;
-      tracking_offset_time += tracking_offset_time_step){
 
-    CalibVolume cv_sweep(filename_xyz.c_str(), filename_uv.c_str());
-
-    cs_sweep.loadChessboards();
-
-    SweepSampler ss(&cb, &cv_sweep, &cfg);
-    const size_t numsamples = ss.extractSamples(&cs_sweep, tracking_offset_time, color_offset_time, optimization_stride);
-
-    const std::vector<samplePoint>& sps = ss.getSamplePoints();
-
-    Calibrator   c; // do not use nni during optimization
-    c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
-  
-    // evalute at valid chessboard location
-    const double avg_quality = c.evalutePlanes(&cv_sweep, &cs_sweep, cfg, optimization_stride);
-
-    if(avg_quality > best_avg_quality){
-      best_avg_quality = avg_quality;
-      best_tracking_offset_time = tracking_offset_time;
-    }
-
-    if(logfile != 0){
-      *logfile << tracking_offset_time << ";" << std::setprecision(10) << avg_quality << ";" << best_tracking_offset_time << ";" << std::setprecision(10) << best_avg_quality << std::endl;
-    }
-
-    std::cout << "tracking_offset_time: " << tracking_offset_time << " (best: " << best_tracking_offset_time << ") -> avg_quality: " << avg_quality << " (best: " << best_avg_quality << ")" << std::endl;
-
-  }
-
-  if(logfile != 0){
-    logfile->close();
-  }
+  // do the calibration based on the best_tracking_offset_time
   std::cout << "best_tracking_offset_time: " << best_tracking_offset_time << std::endl;
-
-
-
   cs_sweep.loadChessboards();
   SweepSampler ss(&cb, &cv_init, &cfg);
-  const size_t numsamples = ss.extractSamples(&cs_sweep, best_tracking_offset_time, color_offset_time);
+  ss.extractSamples(&cs_sweep, best_tracking_offset_time, color_offset_time);
 
   const std::vector<samplePoint>& sps = ss.getSamplePoints();
   Calibrator   c;
