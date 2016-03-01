@@ -35,6 +35,38 @@ double sampleQuality(const std::string& filename_xyz, const std::string& filenam
 }
 
 
+
+
+float optimizeParabelFitting(const std::string& filename_xyz, const std::string& filename_uv,
+			     ChessboardSampling& cs_sweep,
+			     const RGBDConfig& cfg,
+			     const Checkerboard& cb,
+			     const float tracking_offset_time_min,
+			     const float tracking_offset_time_max,
+			     const float color_offset_time,
+			     const unsigned optimization_stride,
+			     const unsigned idwneighbours){
+
+  const double x1 = tracking_offset_time_min;
+  const double x2 = 0.5f*(tracking_offset_time_min + tracking_offset_time_max);
+  const double x3 = tracking_offset_time_max;
+
+  const double d  = x2 - x1;
+
+  const double y1 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+				  x1, color_offset_time, optimization_stride, idwneighbours);
+  const double y2 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+				  x2, color_offset_time, optimization_stride, idwneighbours);
+  const double y3 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+				  x3, color_offset_time, optimization_stride, idwneighbours);
+
+
+  const double xs = x2 + (0.5*d*(y3 - y1))/(2.0*y2 - y1 - y3);
+  return float(xs);
+}
+
+
+
 float optimizeBruteForce(const std::string& filename_xyz, const std::string& filename_uv,
 			 ChessboardSampling& cs_sweep,
 			 const RGBDConfig& cfg,
@@ -106,7 +138,7 @@ int main(int argc, char* argv[]){
   float    cv_max_d  = 4.5;
 
 
-  // ./sweep_calibrate ../../../data/23.cv ../../../data/23_init ../../../data/23_sweep -t -0.05 -0.0 -o 1 -l ../../../data/23.optimize_log.csv -i
+  // ./sweep_calibrate ../../../data/23.cv ../../../data/23_init ../../../data/23_sweep -t -0.05 -0.0 -o 0 -l ../../../data/23.optimize_log.csv -i
 
   const float tracking_offset_time_step = 0.001; // in seconds
   float tracking_offset_time_min = -0.2; // in seconds
@@ -116,7 +148,8 @@ int main(int argc, char* argv[]){
   unsigned idwneighbours = 20;
   std::string optimize_log("");
   bool using_nni = false;
-  unsigned optimization_stride = 1;
+  const unsigned optimization_stride = 1;
+  unsigned optimization_type = 0;
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
@@ -127,11 +160,13 @@ int main(int argc, char* argv[]){
 
   p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
 
-  p.addOpt("o",1,"optimizationstride", "perform optimization only for every n-th checkerboard location, default: 1");
+  p.addOpt("o",1,"optimizationtype", "perform optimization using parabel fitting (0), brute force sampling (1), gradient descent (2), binary search (3), default: 0");
 
   p.addOpt("l",1,"log", "log the optimization process to given filename, default: no log ");
 
   p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
+
+
 
   p.init(argc,argv);
 
@@ -166,7 +201,7 @@ int main(int argc, char* argv[]){
   }
 
   if(p.isOptSet("o")){
-    optimization_stride = p.getOptsInt("o")[0];
+    optimization_type = p.getOptsInt("o")[0];
   }
 
   if(p.isOptSet("l")){
@@ -271,22 +306,41 @@ int main(int argc, char* argv[]){
 
 
   float best_tracking_offset_time = 0.0f;
-  // do it brutre force
-  best_tracking_offset_time = optimizeBruteForce(filename_xyz, filename_uv,
-						 cs_sweep,
-						 cfg,
-						 cb,
-						 tracking_offset_time_min,
-						 tracking_offset_time_max,
-						 tracking_offset_time_step,
-						 color_offset_time,
-						 optimization_stride,
-						 idwneighbours,
-						 optimize_log);
 
+  switch(optimization_type){
+  case 0:
+    std::cout << "INFO: performing optimization using parabel fitting." << std::endl;
+    best_tracking_offset_time = optimizeParabelFitting(filename_xyz, filename_uv,
+						       cs_sweep,
+						       cfg,
+						       cb,
+						       tracking_offset_time_min,
+						       tracking_offset_time_max,
+						       color_offset_time,
+						       optimization_stride,
+						       idwneighbours);
+    break;
+  case 1:
+    std::cout << "INFO: performing optimization using brute force sampling." << std::endl;
+    best_tracking_offset_time = optimizeBruteForce(filename_xyz, filename_uv,
+						   cs_sweep,
+						   cfg,
+						   cb,
+						   tracking_offset_time_min,
+						   tracking_offset_time_max,
+						   tracking_offset_time_step,
+						   color_offset_time,
+						   optimization_stride,
+						   idwneighbours,
+						   optimize_log);
+    break;
+  default:
+    std::cerr << "ERROR: invalid optimization_type: " << optimization_type << " -> exiting...!" << std::endl;
+    return -1;
+    break;
+  }
 
   // do the calibration based on the best_tracking_offset_time
-  std::cout << "best_tracking_offset_time: " << best_tracking_offset_time << std::endl;
   cs_sweep.loadChessboards();
   SweepSampler ss(&cb, &cv_init, &cfg);
   ss.extractSamples(&cs_sweep, best_tracking_offset_time, color_offset_time);
@@ -302,5 +356,6 @@ int main(int argc, char* argv[]){
   filename_uv  += "_sweep";
   cv_init.save(filename_xyz.c_str(), filename_uv.c_str());
 
+  std::cout << "best_tracking_offset_time was: " << best_tracking_offset_time << std::endl;
   return 0;
 }
