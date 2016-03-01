@@ -168,7 +168,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     nnip =   new NaturalNeighbourInterpolator(nnisamples);
   }
 
-  const unsigned numthreads = 24;
+  const unsigned numthreads = 32;
   std::cerr << "start interpolation per thread for " << numthreads << " threads." << std::endl;
 
   boost::thread_group threadGroup;
