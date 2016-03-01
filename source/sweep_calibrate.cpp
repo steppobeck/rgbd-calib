@@ -22,13 +22,15 @@ double sampleQuality(const std::string& filename_xyz, const std::string& filenam
 		     const float tracking_offset_time,
 		     const float color_offset_time,
 		     const unsigned optimization_stride,
-		     const unsigned idwneighbours){
+		     const unsigned idwneighbours,
+		     bool using_nni){
     CalibVolume cv_sweep(filename_xyz.c_str(), filename_uv.c_str());
     cs_sweep.loadChessboards();
     SweepSampler ss(&cb, &cv_sweep, &cfg);
     ss.extractSamples(&cs_sweep, tracking_offset_time, color_offset_time, optimization_stride);
     const std::vector<samplePoint>& sps = ss.getSamplePoints();
-    Calibrator   c; // do not use nni during optimization
+    Calibrator   c;
+    c.using_nni = using_nni;
     c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
     // evalute at valid chessboard location
     return c.evalutePlanes(&cv_sweep, &cs_sweep, cfg, optimization_stride);
@@ -45,7 +47,8 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
 			     const float tracking_offset_time_max,
 			     const float color_offset_time,
 			     const unsigned optimization_stride,
-			     const unsigned idwneighbours){
+			     const unsigned idwneighbours,
+			     bool using_nni){
 
   const double x1 = tracking_offset_time_min;
   const double x2 = 0.5f*(tracking_offset_time_min + tracking_offset_time_max);
@@ -54,11 +57,11 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
   const double d  = x2 - x1;
 
   const double y1 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				  x1, color_offset_time, optimization_stride, idwneighbours);
+				  x1, color_offset_time, optimization_stride, idwneighbours, using_nni);
   const double y2 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				  x2, color_offset_time, optimization_stride, idwneighbours);
+				  x2, color_offset_time, optimization_stride, idwneighbours, using_nni);
   const double y3 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				  x3, color_offset_time, optimization_stride, idwneighbours);
+				  x3, color_offset_time, optimization_stride, idwneighbours, using_nni);
 
 
   const double xs = x2 + (0.5*d*(y3 - y1))/(2.0*y2 - y1 - y3);
@@ -77,7 +80,8 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
 			 const float color_offset_time,
 			 const unsigned optimization_stride,
 			 const unsigned idwneighbours,
-			 const std::string& optimize_log){
+			 const std::string& optimize_log,
+			 bool using_nni){
 
   
   std::ofstream* logfile;
@@ -94,7 +98,7 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
     
 #if 1
     const double avg_quality = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-	      tracking_offset_time, color_offset_time, optimization_stride, idwneighbours);
+					     tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
 #endif
 #if 0
     CalibVolume cv_sweep(filename_xyz.c_str(), filename_uv.c_str());
@@ -318,7 +322,8 @@ int main(int argc, char* argv[]){
 						       tracking_offset_time_max,
 						       color_offset_time,
 						       optimization_stride,
-						       idwneighbours);
+						       idwneighbours,
+						       using_nni);
     break;
   case 1:
     std::cout << "INFO: performing optimization using brute force sampling." << std::endl;
@@ -332,7 +337,8 @@ int main(int argc, char* argv[]){
 						   color_offset_time,
 						   optimization_stride,
 						   idwneighbours,
-						   optimize_log);
+						   optimize_log,
+						   using_nni);
     break;
   default:
     std::cerr << "ERROR: invalid optimization_type: " << optimization_type << " -> exiting...!" << std::endl;
