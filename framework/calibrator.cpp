@@ -134,11 +134,16 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     grid[grid_loc].push_back(s);
   }
   nnisamples.clear();
+
+
+
+  std::vector<nniSample> nnisamples_nni;
   std::cerr << "grid size: " << grid.size() << " of " << cv->width * cv->height * cv->depth << std::endl;
   for(const auto& smpls : grid){
     nniSample tmp = qwa(smpls.second);
     if(! std::isnan(tmp.quality)){
       nnisamples.push_back(tmp);
+      nnisamples_nni.push_back(tmp);
     }
     else{
       std::cerr << "INFO QWA sample is not valid!...skipping" << std::endl;
@@ -152,7 +157,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
 
 
   std::cerr << "initializing nearest neighbor search for " << nnisamples.size() << " samples." << std::endl;
-  NearestNeighbourSearch nns(nnisamples);
+  NearestNeighbourSearch nns(nnisamples); // Be careful, nnisamples are just shared here!!!!
 
   // init calib volume for natural neighbor interpolation
   NaturalNeighbourInterpolator* nnip = 0;
@@ -163,9 +168,9 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     }
     memset(m_nni_possible, 0, cv->width * cv->height * cv->depth);
     cv_nni = new CalibVolume(cv->width, cv->height, cv->depth, cv->min_d, cv->max_d);
-    std::cerr << "initializing natural neighbor interpolation for " << nnisamples.size() << " samples." << std::endl;
-    std::shuffle(std::begin(nnisamples), std::end(nnisamples), std::default_random_engine());
-    nnip =   new NaturalNeighbourInterpolator(nnisamples);
+    std::cerr << "initializing natural neighbor interpolation for " << nnisamples_nni.size() << " samples." << std::endl;
+    std::shuffle(std::begin(nnisamples_nni), std::end(nnisamples_nni), std::default_random_engine());
+    nnip =   new NaturalNeighbourInterpolator(nnisamples_nni);
   }
 
   const unsigned numthreads = 32;
@@ -269,6 +274,10 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
 	  }
   
 	  const float t_blend = std::min( max_dist, std::max(min_dist, distance_to_border)) / max_dist;
+	  if(t_blend > 1.0f || t_blend < 0.0f){
+	    std::cerr << "ERROR: invalid t_blend: " << t_blend << std::endl;
+	    exit(0);
+	  }
 
 	  nni_percentage[cv_index] = (unsigned char) std::max(0.0f, std::min(255.0f, 255.0f * t_blend));
 	  const xyz xyz_idw = cv->cv_xyz[cv_index];
@@ -439,8 +448,8 @@ Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch*
 	  }
 	  idw_interpolate(neighbours, idwneighbours, ipolant, max_influence_dist);
 
-	  xyz xyz_curr = cv->cv_xyz[cv_index];
-	  uv  uv_curr  = cv->cv_uv[cv_index];
+	  const xyz xyz_curr = cv->cv_xyz[cv_index];
+	  const uv  uv_curr  = cv->cv_uv[cv_index];
 
 	  cv->cv_xyz[cv_index] = cv->cv_xyz[cv_index] + ipolant.s_pos_off;
 	  cv->cv_uv[cv_index]  = cv->cv_uv[cv_index]  + ipolant.s_tex_off;
@@ -461,7 +470,10 @@ Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch*
 	    m_nni_possible[cv_index] = nni_valid ? 255 : 0;
 	    if(nni_valid){
 	      cv_nni->cv_xyz[cv_index] = xyz_curr + ipolant_nni.s_pos_off;
-	      cv_nni->cv_uv[cv_index]  = uv_curr  + ipolant_nni.s_tex_off;	      
+	      cv_nni->cv_uv[cv_index]  = uv_curr  + ipolant_nni.s_tex_off;
+	      // STEPPO REMOVE
+	      //std::cerr << "IDW: " << ipolant << std::endl;
+	      //std::cerr << "NNI: " << ipolant_nni << std::endl;
 	    }
 	  }
 

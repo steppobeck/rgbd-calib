@@ -68,7 +68,7 @@
 	return false;
       }
 
-      nniSample s = iter->second;//m_vd[it->first];
+      nniSample s = iter->second; //nniSample s = m_vd[it->first];
       pos_off.x += contribution_i * s.s_pos_off.x;
       pos_off.y += contribution_i * s.s_pos_off.y;
       pos_off.z += contribution_i * s.s_pos_off.z;
@@ -92,6 +92,7 @@
     ipolant.s_tex_off.u = tex_off.u / norm_coeff_sibson;
     ipolant.s_tex_off.v = tex_off.v / norm_coeff_sibson;
 
-    return true;//is_correct_natural_neighborhood(m_dt,ipos, coor_sibson.begin(), coor_sibson.end(), norm_coeff_sibson);
+    return true;
+    //return is_correct_natural_neighborhood(m_dt,ipos, coor_sibson.begin(), coor_sibson.end(), norm_coeff_sibson);
   }
     
