@@ -815,6 +815,7 @@ ChessboardViewIR::calcShapeStats(){
     }
 
     for(const auto& cb_id : to_invalidate){
+      std::cout << "detectTimeJumps: invalidating between: " << cb_id - 10 << " and " << cb_id + 10 << " (where ranges are still valid)" << std::endl;
       invalidateAt(cb_id, 10);
     }
 
@@ -1286,7 +1287,7 @@ ChessboardViewIR::calcShapeStats(){
     for(const auto& r : m_valid_ranges){
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
 
-	std::cout << "shape Areas for CB: " << cb_id << std::endl;
+	//std::cout << "shape Areas for CB: " << cb_id << std::endl;
 
 	{
 	  shape_stats stats = m_cb_ir[cb_id].calcShapeStats();
@@ -1374,44 +1375,72 @@ ChessboardViewIR::calcShapeStats(){
 
     // 1. gather valid ranges to detect flipps
     gatherValidRanges();
+    calcStatsInRanges();
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
+    std::cerr << "ChessboardSampling::filterSamples -> detectFlips" << std::endl;
     detectFlips(); // better, more generic detectFlipsInRanges!
 
     // 1.2 detect shape errors based on local area ratios of corner quads
     gatherValidRanges();
+    calcStatsInRanges();
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
+    std::cerr << "ChessboardSampling::filterSamples -> detectShapeFaults" << std::endl;
     detectShapeFaultsInRanges();
 
     // 1.5 detectCorruptedDepthInRanges
     gatherValidRanges();
+    calcStatsInRanges();
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
+    std::cerr << "ChessboardSampling::filterSamples -> detectCorruptedDepth" << std::endl;
     detectCorruptedDepthInRanges();
 
 
     // 2. gather valid ranges to detect time jumps
     gatherValidRanges();
     calcStatsInRanges();
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
+    std::cerr << "ChessboardSampling::filterSamples -> detectTimeJumps" << std::endl;
     detectTimeJumpsInRanges();
 
    
     gatherValidRanges();
     calcStatsInRanges();
-    
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
+
+
     // 3. apply OEFilter on ranges
     //oneEuroFilterInRanges();
-
-
 #if 0
     gatherCornerTracesInRanges("corner_traces");
     exit(0);
 #endif
 
-    // 4. compute quality based on speed on range
-    computeQualityFromSpeedIRInRanges(pose_offset);
-    // 5. compute und update individual corner quality based on local knowledge
-    computeCornerQualityInRanges();
 
+    // 4. compute quality based on speed on range
+    std::cerr << "ChessboardSampling::filterSamples -> computeCornerQualityFromSpeed" << std::endl;
+    computeQualityFromSpeedIRInRanges(pose_offset);
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
+    // 5. compute und update individual corner quality based on local knowledge
+    std::cerr << "ChessboardSampling::filterSamples -> computeCornerQualityOutliers" << std::endl;
+    computeCornerQualityInRanges();
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+    }
 
     gatherValidRanges();
     calcStatsInRanges();
-
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
     }
@@ -1527,6 +1556,8 @@ ChessboardSampling::gatherValidRanges(){
       else{
 	if((range_curr.end - range_curr.start) > MIN_RANGE_SIZE){
 	  m_valid_ranges.push_back(range_curr);
+	  range_curr.start = 0;
+	  range_curr.end = 0;
 	}
 	valid = false;
       }
@@ -1536,6 +1567,9 @@ ChessboardSampling::gatherValidRanges(){
 	range_curr.start = i;
 	range_curr.end = i + 1;
 	valid = true;
+      }
+      else{
+	;
       }
     }
 
