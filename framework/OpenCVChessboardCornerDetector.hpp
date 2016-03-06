@@ -9,7 +9,7 @@
   class OpenCVChessboardCornerDetector{
 
   public:
-    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h);
+    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages = true);
     ~OpenCVChessboardCornerDetector();
 
     bool process(const void*, unsigned bytes, bool showimages = true);

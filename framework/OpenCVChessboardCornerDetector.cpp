@@ -14,7 +14,7 @@
 
 
 
-  OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h)
+  OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages)
     : m_channels(channels),
       m_width(width),
       m_height(height),
@@ -41,14 +41,17 @@
     if(1 != m_channels){
       m_image = cvCreateImage(cvSize(width,height), depth, channels);
       m_gray_image = cvCreateImage(cvSize(width,height), depth, 1);
-      cvNamedWindow(name.c_str(), CV_WINDOW_AUTOSIZE);
+      if(showimages){
+	cvNamedWindow(name.c_str(), CV_WINDOW_AUTOSIZE);
+      }
     }
     else{
       m_tmp_image = cvCreateImage(cvSize(width,height), depth, 1);
       m_gray_image = cvCreateImage(cvSize(1*width,1*height), depth, 1);
       m_gray_image_f = cvCreateImage(cvSize(1*width,1*height), depth, 1);
-      cvNamedWindow(name.c_str(), CV_WINDOW_AUTOSIZE);
-      
+      if(showimages){
+	cvNamedWindow(name.c_str(), CV_WINDOW_AUTOSIZE);
+      }
     }
     
 
@@ -120,19 +123,19 @@
 
     if(showimages){
 
-    const void * address = static_cast<const void*>(this);
-    std::stringstream ss;
-    ss << address;  
-    std::string name = ss.str();
-
+      const void * address = static_cast<const void*>(this);
+      std::stringstream ss;
+      ss << address;  
+      std::string name = ss.str();
+      
 
       // Draw it
       cvDrawChessboardCorners( m_gray_image, m_board_sz, m_corners, corner_count, found );
-
+      
       if(1 != m_channels){
 	// original
 	//cvShowImage( name.c_str(), m_gray_image);
-
+	
 	// needed for talk
 	
 	IplImage* tmp_image = cvCreateImage(cvSize(m_width,m_height), m_depth, m_channels);
@@ -157,7 +160,7 @@
 	uv c;
 	c.u = m_corners[j].x;
 	c.v = m_corners[j].y;
-
+	
 #if 0
 	//std::cerr << "NOTE: if KinectV1 need to smooth and translate the corners from IR to depth by ir_x += 5 and ir_y += 4" << std::endl;
 	if(1 == m_channels){
@@ -165,17 +168,17 @@
 	  c.v += 4;
 	}
 #endif
-
-
+	
+	
 	corners.push_back(c);
-
+	
 
       }
-
-
+      
+      
       return true;
     }
-
+    
     return false;
   }
 

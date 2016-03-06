@@ -65,6 +65,8 @@
   extern std::ostream& operator << (std::ostream& o, const ChessboardPose& v);
 
 
+  class OpenCVChessboardCornerDetector;
+
   class ChessboardSampling{
 
   public:
@@ -140,6 +142,18 @@
     void computeCornerQualityInRanges();
 
     void invalidateAt(unsigned cb_id, unsigned window_size);
+
+
+    void processPerThread(unsigned char* rgb,
+			  float* depth,
+			  unsigned char* ir,
+			  OpenCVChessboardCornerDetector* cd_c,
+			  OpenCVChessboardCornerDetector* cd_i,
+			  std::vector<unsigned>* valids,
+			  const size_t frame_id,
+			  const unsigned tid);
+			  
+
 
     std::string m_filenamebase;
   protected:

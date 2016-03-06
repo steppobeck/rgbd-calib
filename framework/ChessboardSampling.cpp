@@ -30,7 +30,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 
-
+#include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
 
 
 #include <set>
@@ -678,6 +679,141 @@ ChessboardViewIR::calcShapeStats(){
   }
 
 
+  void
+  ChessboardSampling::processPerThread(unsigned char* rgb,
+				       float* depth,
+				       unsigned char* ir,
+				       OpenCVChessboardCornerDetector* cd_c,
+				       OpenCVChessboardCornerDetector* cd_i,
+				       std::vector<unsigned>* valids,
+				       const size_t frame_id,
+				       const unsigned tid){
+
+
+    // detect corners in color image
+    bool found_color = cd_c->process((unsigned char*) rgb, 1280*1080 * 3, false);
+    bool found_ir = cd_i->process((unsigned char*) ir, 512 * 424, false);
+      
+    if(found_color && found_ir &&
+       (cd_i->corners.size() == cd_c->corners.size() &&
+	(cd_i->corners.size() == CB_WIDTH * CB_HEIGHT))){
+      
+      (*valids)[tid] = 1;
+      for(unsigned c_id = 0; c_id != cd_c->corners.size(); ++c_id){
+	m_cb_rgb[frame_id].corners[c_id].u = cd_c->corners[c_id].u;
+	m_cb_rgb[frame_id].corners[c_id].v = cd_c->corners[c_id].v;
+	
+	m_cb_ir[frame_id].corners[c_id].x = cd_i->corners[c_id].u;
+	m_cb_ir[frame_id].corners[c_id].y = cd_i->corners[c_id].v;
+	m_cb_ir[frame_id].corners[c_id].z = getBilinear(depth, 512, 424,
+							m_cb_ir[frame_id].corners[c_id].x,
+							m_cb_ir[frame_id].corners[c_id].y); 
+      }
+    }
+    else{
+      (*valids)[tid] = 0;
+      m_cb_rgb[frame_id].valid = 0;
+      m_cb_ir[frame_id].valid = 0;
+      std::cout << tid << "skipping cb_id: " << frame_id << " rgb time: " << m_cb_rgb[frame_id].time << " ir time: " << m_cb_ir[frame_id].time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
+    }
+  }
+
+  bool
+  ChessboardSampling::loadRecording(){
+
+    m_cb_rgb.clear();
+    m_cb_ir.clear();
+    std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
+    const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
+					    + (1280 * 1080 * 3)
+					    + (512 * 424 * sizeof(float))
+					    + (512 * 424));
+    m_cb_rgb.resize(num_frames);
+    m_cb_ir.resize(num_frames);
+
+    const unsigned num_threads = 12;
+
+    // allocate resources for threads
+    std::vector<unsigned char* > rgbs;
+    std::vector<float* > depths;
+    std::vector<unsigned char* > irs;
+    std::vector<OpenCVChessboardCornerDetector*> cd_cs;
+    std::vector<OpenCVChessboardCornerDetector*> cd_is;
+    std::vector<unsigned> valids;
+    for(unsigned tid = 0; tid != num_threads; ++tid){
+      rgbs.push_back(new unsigned char[1280*1080 * 3]);
+      depths.push_back(new float[512*424]);
+      irs.push_back(new unsigned char[512*424]);
+      cd_cs.push_back(new OpenCVChessboardCornerDetector(1280,
+							 1080,
+							 8 /*bits per channel*/,
+							 3 /*num channels*/,
+							 CB_WIDTH, CB_HEIGHT, false));
+      cd_is.push_back(new OpenCVChessboardCornerDetector(512,
+							 424,
+							 8 /*bits per channel*/,
+							 1,
+							 CB_WIDTH, CB_HEIGHT, false));
+      valids.push_back(0);
+    }
+
+    size_t valid = 0;
+    size_t frame_id = 0;
+    while(frame_id < num_frames){
+
+      std::vector<size_t> targets;
+      for(unsigned tid = 0; tid != num_threads; ++tid){
+
+	if(frame_id < num_frames){
+
+	  m_cb_rgb[frame_id].valid = 1;
+	  infile_fr.read((char*) &m_cb_rgb[frame_id].time, sizeof(double));
+	  infile_fr.read((char*) rgbs[tid], 1280*1080 * 3);
+
+	  m_cb_ir[frame_id].valid = 1;
+	  infile_fr.read((char*) &m_cb_ir[frame_id].time, sizeof(double));
+	  infile_fr.read((char*) depths[tid], 512 * 424 * sizeof(float));
+	  infile_fr.read((char*) irs[tid], 512 * 424);
+
+	  targets.push_back(frame_id);
+	  ++frame_id;
+	}
+      }
+
+
+      boost::thread_group threadGroup;
+      for(unsigned tid = 0; tid != targets.size(); ++tid){
+	threadGroup.create_thread(boost::bind(&ChessboardSampling::processPerThread, this,
+					      rgbs[tid], depths[tid], irs[tid], cd_cs[tid], cd_is[tid], &valids, targets[tid], tid));
+      }
+      threadGroup.join_all();
+
+      for(unsigned tid = 0; tid != targets.size(); ++tid){
+	valid += valids[tid];
+      }
+
+    }
+
+
+    // free resources for threads
+    for(unsigned tid = 0; tid != num_threads; ++tid){
+      delete [] rgbs[tid];
+      delete [] depths[tid];
+      delete [] irs[tid];
+      delete cd_cs[tid];
+      delete cd_is[tid];
+    }
+    
+
+    std::cerr << "ChessboardSampling::loadRecording() loaded chessboard views: "
+	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
+
+    
+    return true;
+  }
+
+
+#if 0
   bool
   ChessboardSampling::loadRecording(){
 
@@ -711,6 +847,7 @@ ChessboardViewIR::calcShapeStats(){
 					    + (1280 * 1080 * 3)
 					    + (512 * 424 * sizeof(float))
 					    + (512 * 424));
+
     for(size_t i = 0; i != num_frames; ++i){
       ChessboardViewRGB cb_rgb;
       cb_rgb.valid = 1;
@@ -763,6 +900,8 @@ ChessboardViewIR::calcShapeStats(){
 
     return true;
   }
+#endif
+
 
   bool
   ChessboardSampling::saveChessboards(){
