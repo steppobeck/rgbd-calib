@@ -585,6 +585,7 @@ ChessboardViewIR::calcShapeStats(){
 
     }
 
+    infile_fr.close();
 #endif
 
 
@@ -808,14 +809,14 @@ ChessboardViewIR::calcShapeStats(){
     std::cerr << "ChessboardSampling::loadRecording() loaded chessboard views: "
 	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
 
-    
+    infile_fr.close();
     return true;
   }
 
 
-#if 0
+
   bool
-  ChessboardSampling::loadRecording(){
+  ChessboardSampling::loadRecordingSeq(){
 
     m_cb_rgb.clear();
     m_cb_ir.clear();
@@ -897,10 +898,10 @@ ChessboardViewIR::calcShapeStats(){
     delete [] depth;
     delete [] ir;
 
-
+    infile_fr.close();
     return true;
   }
-#endif
+
 
 
   bool

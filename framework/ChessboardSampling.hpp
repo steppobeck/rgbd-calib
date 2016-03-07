@@ -100,6 +100,9 @@
 
     void filterSamples(const float pose_offset);
 
+    bool loadRecording();
+    bool loadRecordingSeq();
+
     bool loadChessboards();
 
     bool saveChessboards();
@@ -111,7 +114,7 @@
     bool needToReload();
 
     bool loadPoses();
-    bool loadRecording();
+    
 
     bool showRecordingAndPoses(unsigned start, unsigned end);
     
