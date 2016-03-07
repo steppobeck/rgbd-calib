@@ -236,18 +236,23 @@ ChessboardViewIR::calcShapeStats(){
 
   std::ostream& operator << (std::ostream& o, const ChessboardViewRGB& v){
     o << "ChessboardViewRGB time stamp: " << v.time << std::endl;
+    o << "ChessboardViewRGB valid: " << v.valid << std::endl;
     o << "ChessboardViewRGB corners:" << std::endl;
     for(unsigned i = 0; i< CB_WIDTH * CB_HEIGHT; ++i){
       o << i << " -> " << v.corners[i] << std::endl;
+      o << i << " -> " << v.quality[i] << std::endl;
+      
     }
     return o;
   }
 
   std::ostream& operator << (std::ostream& o, const ChessboardViewIR& v){
     o << "ChessboardViewIR time stamp: " << v.time << std::endl;
+    o << "ChessboardViewIR valid: " << v.valid << std::endl;
     o << "ChessboardViewIR corners:" << std::endl;
     for(unsigned i = 0; i< CB_WIDTH * CB_HEIGHT; ++i){
       o << i << " -> " << v.corners[i] << std::endl;
+      o << i << " -> " << v.quality[i] << std::endl;
     }
     return o;
   }
@@ -891,7 +896,7 @@ ChessboardViewIR::calcShapeStats(){
 
     }
 
-    std::cerr << "ChessboardSampling::loadRecording() loaded chessboard views: "
+    std::cerr << "ChessboardSampling::loadRecordingSeq() loaded chessboard views: "
 	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
 
     delete [] rgb;
