@@ -365,7 +365,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 
 
 double
-Calibrator::evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride){
+Calibrator::evaluatePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride){
 
   const unsigned cv_width = cv->width;
   const unsigned cv_height = cv->height;
@@ -405,6 +405,53 @@ Calibrator::evalutePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDCo
   double mean;
   double sd;
   calcMeanSD(plane_qualities, mean, sd);
+
+  return mean;
+}
+
+double
+Calibrator::evaluateShapes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride){
+
+  const unsigned cv_width = cv->width;
+  const unsigned cv_height = cv->height;
+  const unsigned cv_depth = cv->depth;
+
+  const float gt_area = 6.0 * 4.0 * 0.075 * 0.075;
+  std::vector<double> shape_qualities;
+  const std::vector<ChessboardRange>& valid_ranges = cbs->getValidRanges();
+  const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
+  for(const auto& r : valid_ranges){
+    for(unsigned cb_id = r.start; cb_id != r.end; ++cb_id){
+      if((cb_id % stride) == 0){
+
+	ChessboardViewIR tmp_ir;
+	
+	for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
+	  
+	  const xyz corner = cb_irs[cb_id].corners[idx];
+	  const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
+	  const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
+	  const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
+
+	  tmp_ir.corners[idx] = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
+	  
+	}
+	
+	const auto st = tmp_ir.calcShapeStats3D();
+	double area = 0.0;
+	for(const auto& a : st.areas){
+	  area += a;
+	}
+	const double sq = 1.0 - (std::abs(gt_area - area)/gt_area);
+	shape_qualities.push_back(sq);
+      }
+
+    }
+  }
+  
+  double mean;
+  double sd;
+  calcMeanSD(shape_qualities, mean, sd);
 
   return mean;
 }

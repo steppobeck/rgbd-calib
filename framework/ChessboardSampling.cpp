@@ -188,6 +188,53 @@ ChessboardViewIR::calcShapeStats(){
   return stats;
 }
 
+shape_stats
+ChessboardViewIR::calcShapeStats3D(){
+  if(shape_descs.empty()){
+    fillShapeIds();
+  }
+
+  shape_stats stats;
+  for(const auto& s : shape_descs){
+    glm::vec3 a(corners[s.id[0]].x, corners[s.id[0]].y, corners[s.id[0]].z);
+    glm::vec3 b(corners[s.id[1]].x, corners[s.id[1]].y, corners[s.id[1]].z);
+    glm::vec3 c(corners[s.id[2]].x, corners[s.id[2]].y, corners[s.id[2]].z);
+    glm::vec3 d(corners[s.id[3]].x, corners[s.id[3]].y, corners[s.id[3]].z);
+
+
+    // calculate the area of abc
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    glm::vec3 cross_0H = glm::cross(ab,ac);
+    const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
+
+    // calculate the area of cda
+    glm::vec3 cd = d - c;
+    glm::vec3 ca = a - c;
+    glm::vec3 cross_1H = glm::cross(cd,ca);
+    const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
+
+    stats.areas.push_back(area_0H + area_1H);
+    stats.ratiosH.push_back(area_0H / area_1H);
+
+    // calculate the area of dab
+    glm::vec3 da = a - d;
+    glm::vec3 db = b - d;
+    glm::vec3 cross_0V = glm::cross(da,db);
+    const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
+
+    // calculate the area of bcd
+    glm::vec3 bc = c - b;
+    glm::vec3 bd = d - b;
+    glm::vec3 cross_1V = glm::cross(bc,bd);
+    const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
+
+    stats.ratiosV.push_back(area_0V / area_1V);
+  }
+
+  return stats;
+}
+
 
 
 
