@@ -11,7 +11,7 @@
 #include <iomanip>
 
 
-
+unsigned num_samples_taken = 0;
 
 double sampleQuality(const std::string& filename_xyz, const std::string& filename_uv,
 		     ChessboardSampling& cs_sweep,
@@ -30,7 +30,7 @@ double sampleQuality(const std::string& filename_xyz, const std::string& filenam
     Calibrator   c;
     c.using_nni = using_nni;
     c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
-
+    ++num_samples_taken;
     return c.evaluatePlanes(&cv_sweep, &cs_sweep, cfg, optimization_stride);
 }
 
@@ -38,8 +38,8 @@ double sampleGradient(const std::string& filename_xyz, const std::string& filena
 		ChessboardSampling& cs_sweep,
 		const RGBDConfig& cfg,
 		const Checkerboard& cb,
-		const float left_tracking_offset_time,
-		const float right_tracking_offset_time,
+		const double left_tracking_offset_time,
+		const double right_tracking_offset_time,
 		const float color_offset_time,
 		const unsigned optimization_stride,
 		const unsigned idwneighbours,
@@ -51,7 +51,7 @@ double sampleGradient(const std::string& filename_xyz, const std::string& filena
   const double  y_right = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
 					right_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
   
-  return y_right - y_left;
+  return (y_right - y_left)/(right_tracking_offset_time - left_tracking_offset_time);
 
 }
 
@@ -65,24 +65,26 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
 	     const unsigned idwneighbours,
 	     bool using_nni){
   
-  std::cerr << "ERROR: not working" << std::endl;
-  exit(0);
-  const double min_gradient  = 0.000000001;
-  float gradient_step = 0.002; // 1.0ms
+
+  const double min_gradient  = 0.000001;
+  const double gradient_step = 0.03;
+  const double step = 1.0;
   float tracking_offset_time = best_tracking_offset_time;
 
-  std::cout << "refine: starting refinement at " << std::setprecision(10) << tracking_offset_time << std::endl;
+  std::cout << "refine: starting refinement at "
+	    << std::setprecision(10) << tracking_offset_time << std::endl;
 
   for(unsigned rs = 0; rs < 15; ++rs){
-    std::cout << "refine: refining at " << std::setprecision(10) << tracking_offset_time << " with gradient step " << gradient_step << std::endl;
+    std::cout << "refine: refining at "
+	      << std::setprecision(10) << tracking_offset_time << std::endl;
     double gradient = sampleGradient(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				     tracking_offset_time - 0.5 * gradient_step, tracking_offset_time + 0.5 * gradient_step,
+				     tracking_offset_time - 0.5 * gradient_step,
+				     tracking_offset_time + 0.5 * gradient_step,
 				     color_offset_time, optimization_stride, idwneighbours, using_nni);
-    std::cout << "refine: gradient is " << std::setprecision(10) << gradient << std::endl;
+    std::cout << rs << " refine: at " << std::setprecision(10)
+	      << tracking_offset_time << " gradient is " << gradient << std::endl;
     if(std::abs(gradient) > min_gradient){
-      gradient_step = (std::abs(gradient)/min_gradient) * (0.0001 /*min_step*/);
-      tracking_offset_time = tracking_offset_time + (gradient > 0 ? gradient_step : -1.0 * gradient_step );
-      
+      tracking_offset_time = tracking_offset_time + step * gradient;
     }
     else{
       break;
@@ -387,24 +389,43 @@ int main(int argc, char* argv[]){
     break;
   case 2:
     std::cout << "INFO: performing optimization using refine with gradient descent." << std::endl;
-    best_tracking_offset_time = refine(filename_xyz, filename_uv,
-				       cs_sweep,
-				       cfg,
-				       cb,
-				       optimizeParabelFitting(filename_xyz, filename_uv,
-						       cs_sweep,
-						       cfg,
-						       cb,
-						       tracking_offset_time_min,
-						       tracking_offset_time_max,
-						       color_offset_time,
-						       optimization_stride,
-						       idwneighbours,
-						       using_nni),
-				       color_offset_time,
-				       optimization_stride,
-				       idwneighbours,
-				       using_nni);
+    {
+      const float parabel_fit_time = -0.01;/*optimizeParabelFitting(filename_xyz, filename_uv,
+							    cs_sweep,
+							    cfg,
+							    cb,
+							    tracking_offset_time_min,
+							    tracking_offset_time_max,
+							    color_offset_time,
+							    optimization_stride,
+							    idwneighbours,
+							    using_nni);*/
+      // not needed for release
+      const float parabel_fit_value = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+						    parabel_fit_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
+
+      best_tracking_offset_time = refine(filename_xyz, filename_uv,
+					 cs_sweep,
+					 cfg,
+					 cb,
+					 parabel_fit_time,
+					 color_offset_time,
+					 optimization_stride,
+					 idwneighbours,
+					 using_nni);
+      // not neded for release
+      const float refined_value = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+						best_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
+
+      std::cout << "num_samples_taken: " << num_samples_taken
+		<< " refine finished -> parabel_fit_time: " << std::setprecision(10)
+		<< parabel_fit_time
+		<< " parabel_fit_value: " << parabel_fit_value
+		<< " refined_time: " <<  best_tracking_offset_time
+		<< " refined_value: " <<  refined_value
+		<< std::endl;
+
+    }
     break;
   default:
     std::cerr << "ERROR: invalid optimization_type: " << optimization_type << " -> exiting...!" << std::endl;
