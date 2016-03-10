@@ -315,6 +315,10 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
 void
 Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg){
 
+
+
+  std::vector<nniSample> nnisamples_error_vol;
+
   std::vector<float> errors_3D;
   std::vector<float> errors_2D;
   float max_3D = std::numeric_limits<float>::lowest();
@@ -351,7 +355,17 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
     max_3D = std::max(max_3D, err_3D);
     max_2D = std::max(max_2D, err_2D);
 
-      
+    // track local error for volume vis
+    nniSample nnis;
+    nnis.s_tex_off.u = err_3D;
+    nnis.s_tex_off.v = err_2D;
+    
+    nnis.s_pos.x = x;
+    nnis.s_pos.y = y;
+    nnis.s_pos.z = z;
+    
+    nnisamples_error_vol.push_back(nnis);
+
   }
 
   double mean3D, mean2D, sd3D, sd2D;
@@ -360,7 +374,92 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << "mean_error_3D: " << mean3D << " [" << sd3D << "] (" << max_3D << ") (in meter)" << std::endl;
   std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (" << max_2D << ") (in pixels)" << std::endl;
 
+  createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth);
+
 }
+
+void
+Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth){
+  // create volumes for world and texture coordinates
+  unsigned char* error_vol_3D = new unsigned char [width * height * depth];
+  memset(error_vol_3D, 0, width * height * depth);
+  
+  unsigned char* error_vol_2D = new unsigned char [width * height * depth];
+  memset(error_vol_2D, 0, width * height * depth);
+  
+  NearestNeighbourSearch nns(sps);
+
+  // boost threads here
+  const unsigned numthreads = 32;
+  std::cerr << "start interpolation of error visualization volumes using " << numthreads << " threads." << std::endl;
+  boost::thread_group threadGroup;
+  for (unsigned tid = 0; tid < numthreads; ++tid){
+    threadGroup.create_thread(boost::bind(&Calibrator::applyErrorVisPerThread, this, width, height, depth,  error_vol_3D, error_vol_2D, &nns, tid, numthreads));
+    //threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, cv_nni, nnip));
+  }
+  threadGroup.join_all();
+
+  // write error volumes to /tmp
+
+  FILE* f_error_vol_3D = fopen( (std::string("/tmp/0_viserror3D_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  fwrite(error_vol_3D, sizeof(unsigned char), (width * height * depth), f_error_vol_3D);
+  fclose(f_error_vol_3D);
+
+  FILE* f_error_vol_2D = fopen( (std::string("/tmp/0_viserror2D_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  fwrite(error_vol_2D, sizeof(unsigned char), (width * height * depth), f_error_vol_2D);
+  fclose(f_error_vol_2D);
+}
+
+
+void
+Calibrator::applyErrorVisPerThread(const unsigned width, const unsigned height, const unsigned depth,
+				   unsigned char* error_vol_3D, unsigned char* error_vol_2D,
+				   const NearestNeighbourSearch* nns, const unsigned tid, const unsigned numthreads){
+
+  const unsigned idwneighbours = 20;
+  const glm::vec3 diameter(width, height, depth);
+  const float max_influence_dist = glm::length(diameter);
+  const float max_error_3D_vol = 0.05; // 5cm
+  const float max_error_2D_vol = 5.0; // 5 pixel
+
+  for(unsigned z = tid; z < depth; z += numthreads){
+    //std::cerr << "tid: having " << ++having << " from " << cv_depth / numthreads <<  std::endl;
+    for(unsigned y = 0; y < height; ++y){
+      for(unsigned x = 0; x < width; ++x){
+	
+	const unsigned cv_index = (z * width * height) + (y * width) + x;
+	
+	nniSample ipolant;
+	ipolant.s_pos.x = x;
+	ipolant.s_pos.y = y;
+	ipolant.s_pos.z = z;
+	
+	ipolant.s_pos_off.x = 0.0;
+	ipolant.s_pos_off.y = 0.0;
+	ipolant.s_pos_off.z = 0.0;
+	
+	ipolant.s_tex_off.u = 0.0;
+	ipolant.s_tex_off.v = 0.0;
+	
+	std::vector<nniSample> neighbours = nns->search(ipolant,idwneighbours);
+	if(neighbours.empty()){
+	  std::cerr << "ERROR in Calibrator::applySamplesPerThread -> no neighbours found, skipping voxel at pos " << ipolant.s_pos << std::endl;
+	  continue;
+	}
+	idw_interpolate(neighbours, idwneighbours, ipolant, max_influence_dist);
+
+	// s_tex_off.u -> 3D error
+	error_vol_3D[cv_index] = (unsigned char) (std::max(0.0f, std::min(ipolant.s_tex_off.u, max_error_3D_vol)) * 255.0f/max_error_3D_vol);
+	// s_tex_off.v -> 2D error
+	error_vol_2D[cv_index] = (unsigned char) (std::max(0.0f, std::min(ipolant.s_tex_off.v, max_error_2D_vol)) * 255.0f/max_error_2D_vol);
+
+      }
+    }
+  }
+  
+}
+
+
 
 
 

@@ -30,6 +30,11 @@ private:
 
   void blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni);
 
+  void createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth);
+  void applyErrorVisPerThread(const unsigned width, const unsigned height, const unsigned depth,
+			      unsigned char* error_vol_3D, unsigned char* error_vol_2D,
+			      const NearestNeighbourSearch* nns, const unsigned tid, const unsigned numthreads);
+
   unsigned char* m_nni_possible;
 
 
