@@ -395,7 +395,6 @@ Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned wid
   boost::thread_group threadGroup;
   for (unsigned tid = 0; tid < numthreads; ++tid){
     threadGroup.create_thread(boost::bind(&Calibrator::applyErrorVisPerThread, this, width, height, depth,  error_vol_3D, error_vol_2D, &nns, tid, numthreads));
-    //threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, cv_nni, nnip));
   }
   threadGroup.join_all();
 
@@ -419,11 +418,10 @@ Calibrator::applyErrorVisPerThread(const unsigned width, const unsigned height, 
   const unsigned idwneighbours = 20;
   const glm::vec3 diameter(width, height, depth);
   const float max_influence_dist = glm::length(diameter);
-  const float max_error_3D_vol = 0.05; // 5cm
-  const float max_error_2D_vol = 5.0; // 5 pixel
+  const float max_error_3D_vol = 0.01; // 5cm
+  const float max_error_2D_vol = 2.0; // 5 pixel
 
   for(unsigned z = tid; z < depth; z += numthreads){
-    //std::cerr << "tid: having " << ++having << " from " << cv_depth / numthreads <<  std::endl;
     for(unsigned y = 0; y < height; ++y){
       for(unsigned x = 0; x < width; ++x){
 	
