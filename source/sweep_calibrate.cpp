@@ -438,6 +438,9 @@ int main(int argc, char* argv[]){
   SweepSampler ss(&cb, &cv_init, &cfg);
   ss.extractSamples(&cs_sweep, best_tracking_offset_time, color_offset_time);
 
+  std::string filename_samples(basefilename + "_samples");
+  ss.appendSamplesToFile(filename_samples.c_str());
+  
   const std::vector<samplePoint>& sps = ss.getSamplePoints();
   Calibrator   c;
   c.using_nni = using_nni;
