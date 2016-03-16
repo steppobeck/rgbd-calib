@@ -380,21 +380,39 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 
 void
 Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth){
+
   // create volumes for world and texture coordinates
   unsigned char* error_vol_3D = new unsigned char [width * height * depth];
   memset(error_vol_3D, 0, width * height * depth);
   
   unsigned char* error_vol_2D = new unsigned char [width * height * depth];
   memset(error_vol_2D, 0, width * height * depth);
+
+  unsigned char* error_vol_3D_nni = new unsigned char [width * height * depth];
+  memset(error_vol_3D_nni, 0, width * height * depth);
+  
+  unsigned char* error_vol_2D_nni = new unsigned char [width * height * depth];
+  memset(error_vol_2D_nni, 0, width * height * depth);
+
   
   NearestNeighbourSearch nns(sps);
+  std::vector<nniSample> sps_nni(sps);
+  std::shuffle(std::begin(sps_nni), std::end(sps_nni), std::default_random_engine());
+  NaturalNeighbourInterpolator nnip(sps_nni);
+
 
   // boost threads here
   const unsigned numthreads = 32;
   std::cerr << "start interpolation of error visualization volumes using " << numthreads << " threads." << std::endl;
   boost::thread_group threadGroup;
   for (unsigned tid = 0; tid < numthreads; ++tid){
-    threadGroup.create_thread(boost::bind(&Calibrator::applyErrorVisPerThread, this, width, height, depth,  error_vol_3D, error_vol_2D, &nns, tid, numthreads));
+    //threadGroup.create_thread(boost::bind(&Calibrator::applyErrorVisPerThread, this, width, height, depth,
+    //					  error_vol_3D, error_vol_2D, error_vol_3D_nni, error_vol_2D_nni, &nns, &nnip, tid, numthreads));
+    threadGroup.create_thread([width, height, depth,
+			       error_vol_3D, error_vol_2D, error_vol_3D_nni, error_vol_2D_nni, &nns, &nnip, tid, numthreads, this](){
+				this->applyErrorVisPerThread(width, height, depth,
+							     error_vol_3D, error_vol_2D, error_vol_3D_nni, error_vol_2D_nni, &nns, &nnip, tid, numthreads);
+			      });
   }
   threadGroup.join_all();
 
@@ -407,13 +425,25 @@ Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned wid
   FILE* f_error_vol_2D = fopen( (std::string("/tmp/0_viserror2D_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
   fwrite(error_vol_2D, sizeof(unsigned char), (width * height * depth), f_error_vol_2D);
   fclose(f_error_vol_2D);
+
+
+  FILE* f_error_vol_3Dnni = fopen( (std::string("/tmp/0_viserror3Dnni_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  fwrite(error_vol_3D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_3Dnni);
+  fclose(f_error_vol_3Dnni);
+
+  FILE* f_error_vol_2Dnni = fopen( (std::string("/tmp/0_viserror2Dnni_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  fwrite(error_vol_2D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_2Dnni);
+  fclose(f_error_vol_2Dnni);
+
 }
 
 
 void
 Calibrator::applyErrorVisPerThread(const unsigned width, const unsigned height, const unsigned depth,
 				   unsigned char* error_vol_3D, unsigned char* error_vol_2D,
-				   const NearestNeighbourSearch* nns, const unsigned tid, const unsigned numthreads){
+				   unsigned char* error_vol_3D_nni, unsigned char* error_vol_2D_nni,
+				   const NearestNeighbourSearch* nns, const NaturalNeighbourInterpolator* nnip,
+				   const unsigned tid, const unsigned numthreads){
 
   const unsigned idwneighbours = 20;
   const glm::vec3 diameter(width, height, depth);
@@ -447,9 +477,42 @@ Calibrator::applyErrorVisPerThread(const unsigned width, const unsigned height, 
 	idw_interpolate(neighbours, idwneighbours, ipolant, max_influence_dist);
 
 	// s_tex_off.u -> 3D error
-	error_vol_3D[cv_index] = (unsigned char) (std::max(0.0f, std::min(ipolant.s_tex_off.u, max_error_3D_vol)) * 255.0f/max_error_3D_vol);
+	error_vol_3D[cv_index] = (unsigned char) (std::max(0.0f,
+							   std::min(ipolant.s_tex_off.u, max_error_3D_vol))
+						  * 255.0f/max_error_3D_vol);
 	// s_tex_off.v -> 2D error
-	error_vol_2D[cv_index] = (unsigned char) (std::max(0.0f, std::min(ipolant.s_tex_off.v, max_error_2D_vol)) * 255.0f/max_error_2D_vol);
+	error_vol_2D[cv_index] = (unsigned char) (std::max(0.0f,
+							   std::min(ipolant.s_tex_off.v, max_error_2D_vol))
+						  * 255.0f/max_error_2D_vol);
+
+
+	{
+	  nniSample ipolant_nni;
+	  ipolant_nni.s_pos.x = x;
+	  ipolant_nni.s_pos.y = y;
+	  ipolant_nni.s_pos.z = z;
+	  
+	  ipolant_nni.s_pos_off.x = 0.0;
+	  ipolant_nni.s_pos_off.y = 0.0;
+	  ipolant_nni.s_pos_off.z = 0.0;
+	  
+	  ipolant_nni.s_tex_off.u = 0.0;
+	  ipolant_nni.s_tex_off.v = 0.0;
+
+	  bool nni_valid = nnip->interpolate(ipolant_nni);
+	  if(nni_valid){
+	    // s_tex_off.u -> 3D error
+	    error_vol_3D_nni[cv_index] = (unsigned char) (std::max(0.0f,
+								   std::min(ipolant_nni.s_tex_off.u, max_error_3D_vol))
+							  * 255.0f/max_error_3D_vol);
+	    // s_tex_off.v -> 2D error
+	    error_vol_2D_nni[cv_index] = (unsigned char) (std::max(0.0f,
+								   std::min(ipolant_nni.s_tex_off.v, max_error_2D_vol))
+							  * 255.0f/max_error_2D_vol);
+	  }
+
+	}
+
 
       }
     }
