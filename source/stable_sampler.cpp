@@ -18,7 +18,7 @@ int main(int argc, char* argv[]){
   unsigned artport = 5000;
   unsigned arttargetid = 6;
   unsigned num_locations_to_sample = 1;
-  CMDParser p("basefilename serverport");
+  CMDParser p("basefilename samplesfilename serverport");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("m",1,"max_shaking_speed", "use this maximum speed in meter/frame the checkerboard should have, default: 0.0005");
   p.addOpt("f",1,"min_num_frames_below_max_shaking", "use minimum number of frames the checkerboard should stay under max_shaking_speed, default: 30");
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]){
   RGBDConfig cfg;
   cfg.size_rgb = glm::uvec2(1280, 1080);
   cfg.size_d   = glm::uvec2(512, 424);
-  cfg.serverport = p.getArgs()[1];
+  cfg.serverport = p.getArgs()[2];
   RGBDSensor sensor(cfg);
 
   Checkerboard cb;
@@ -76,9 +76,7 @@ int main(int argc, char* argv[]){
     }
   }
 
-  //ChessboardSampling cs("/mnt/pitoti/tmp_steppo/23_sweep");
-  //cs.init(true);
-  //cs.dump();
+
 
   StableSampler ss(&sensor, &cv, artport, arttargetid, &cb);
 
@@ -99,7 +97,7 @@ int main(int argc, char* argv[]){
   }
 
   // ss.dumpSamplePoints();
-  std::string filename_samples(basefilename + "_samples");
+  std::string filename_samples(p.getArgs()[1]);
   ss.appendSamplesToFile(filename_samples.c_str());
   
 

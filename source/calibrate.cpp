@@ -13,10 +13,13 @@
 
 
 int main(int argc, char* argv[]){
+
+  // evaluationstride does make sense for evaluation of 3DUI-results
   unsigned evaluation_stride = 0;
   unsigned idwneighbours = 20;
   bool using_nni = false;
-  CMDParser p("basefilename");
+
+  CMDParser p("basefilename samplesfilename");
   p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
   p.addOpt("e",1,"evaluationstride", "the stride to use for evaluation, default: 0 (no evaluation performed)");
   p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
@@ -45,7 +48,7 @@ int main(int argc, char* argv[]){
   std::string basefilename = p.getArgs()[0];
   std::string filename_xyz(basefilename + "_xyz");
   std::string filename_uv(basefilename + "_uv");
-  std::string filename_samples(basefilename + "_samples");
+  std::string filename_samples(p.getArgs()[1]);
 
 
   // load samples from filename
