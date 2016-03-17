@@ -16,7 +16,7 @@
 int main(int argc, char* argv[]){
   bool using_nni = false;
   CMDParser p("calibvolumebasefilename groundtruthsamplesfile");
-  p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
+  p.addOpt("i",-1,"nni", "calibration was performed using natural neighbor interpolation, default: false");
   p.init(argc,argv);
 
 
