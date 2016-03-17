@@ -26,6 +26,10 @@ int main(int argc, char* argv[]){
 
   p.init(argc,argv);
 
+  if(p.getArgs().size() != 2)
+    p.showHelp();
+
+
   if(p.isOptSet("n")){
     idwneighbours = p.getOptsInt("n")[0];
     std::cout << "setting to numneighbours " << idwneighbours << std::endl;
@@ -95,10 +99,10 @@ int main(int argc, char* argv[]){
       c.using_nni = using_nni;
       std::cout << "--------------------------------------------------------------------" << std::endl;
       std::cout << "Calibration error before calibration at " << sps_eval.size() << " sample points" << std::endl;
-      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str());
+      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str(), using_nni);
       c.applySamples(&cv, sps_calib, cfg, idwneighbours, basefilename.c_str());
       std::cout << "Calibration error after calibration at " << sps_eval.size() << " sample points" << std::endl;
-      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str());
+      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str(), using_nni);
       std::cout << "--------------------------------------------------------------------" << std::endl;
   }
 

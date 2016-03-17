@@ -14,12 +14,19 @@
 
 
 int main(int argc, char* argv[]){
-
+  bool using_nni = false;
   CMDParser p("calibvolumebasefilename groundtruthsamplesfile");
-
+  p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
   p.init(argc,argv);
+
+
+
   if(p.getArgs().size() != 2)
     p.showHelp();
+
+  if(p.isOptSet("i")){
+    using_nni = true;
+  }
 
 
   RGBDConfig cfg;
@@ -60,7 +67,7 @@ int main(int argc, char* argv[]){
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
   Calibrator   c;
-  c.evaluateSamples(&cv, sps, cfg, basefilename.c_str());
+  c.evaluateSamples(&cv, sps, cfg, basefilename.c_str(), using_nni);
 
   return 0;
 }

@@ -30,6 +30,9 @@ int main(int argc, char* argv[]){
 
   p.init(argc,argv);
 
+  if(p.getArgs().size() != 3)
+    p.showHelp();
+
   if(p.isOptSet("p")){
     pose_offset_filename = p.getOptsString("p")[0];
     std::cout << "setting poseoffetfilename to " << pose_offset_filename << std::endl;

@@ -312,9 +312,17 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basef
 }
 
 void
-Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const char* basefilename){
+Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const char* basefilename, bool isnni){
 
-
+  unsigned char* cv_nnistats = 0;
+  unsigned nni_valids = 0;
+  if(isnni){
+    cv_nnistats = new unsigned char [cv->width * cv->height * cv->depth];
+    // load .cv_nnistats if nni has to be evaluated
+    FILE* f_nni_stats = fopen((std::string(basefilename) + "_nnistats").c_str(), "rb");
+    fread(cv_nnistats, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_stats);
+    fclose(f_nni_stats);
+  }
 
   std::vector<nniSample> nnisamples_error_vol;
 
@@ -322,7 +330,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::vector<float> errors_2D;
   float max_3D = std::numeric_limits<float>::lowest();
   float max_2D = std::numeric_limits<float>::lowest();
-
+  
   for(unsigned i = 0; i < sps.size(); ++i){
     const unsigned cv_width = cv->width;
     const unsigned cv_height = cv->height;
@@ -331,6 +339,32 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
     const float x = cv_width  *  ( sps[i].tex_depth.u) / cfg.size_d.x;
     const float y = cv_height *  ( sps[i].tex_depth.v)/ cfg.size_d.y;
     const float z = cv_depth  *  ( sps[i].depth - cv->min_d)/(cv->max_d - cv->min_d);
+
+
+    if(isnni){
+      const unsigned cv_index000 = (std::floor(z) * cv_width * cv_height) + (std::floor(y) * cv_width) + std::floor(x);
+      const unsigned cv_index001 = (std::floor(z) * cv_width * cv_height) + (std::floor(y) * cv_width) + std::ceil(x);
+      const unsigned cv_index010 = (std::floor(z) * cv_width * cv_height) + (std::ceil(y) * cv_width) + std::floor(x);
+      const unsigned cv_index011 = (std::floor(z) * cv_width * cv_height) + (std::ceil(y) * cv_width) + std::ceil(x);
+      const unsigned cv_index100 = (std::ceil(z) * cv_width * cv_height) + (std::floor(y) * cv_width) + std::floor(x);
+      const unsigned cv_index101 = (std::ceil(z) * cv_width * cv_height) + (std::floor(y) * cv_width) + std::ceil(x);
+      const unsigned cv_index110 = (std::ceil(z) * cv_width * cv_height) + (std::ceil(y) * cv_width) + std::floor(x);
+      const unsigned cv_index111 = (std::ceil(z) * cv_width * cv_height) + (std::ceil(y) * cv_width) + std::ceil(x);
+      bool nni_valid  = ( cv_nnistats[cv_index000]
+			  && cv_nnistats[cv_index001]
+			  && cv_nnistats[cv_index010]
+			  && cv_nnistats[cv_index011]
+			  && cv_nnistats[cv_index100]
+			  && cv_nnistats[cv_index101]
+			  && cv_nnistats[cv_index110]
+			  && cv_nnistats[cv_index111]);
+      if(!nni_valid){
+	continue;
+      }
+      else{
+	++nni_valids;
+      }
+    }
 
     xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
     uv  tex = getTrilinear(cv->cv_uv,  cv_width, cv_height, cv_depth, x , y , z );
@@ -372,7 +406,9 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   calcMeanSD(errors_2D, mean2D, sd2D);
   std::cout << "mean_error_3D: " << mean3D << " [" << sd3D << "] (" << max_3D << ") (in meter)" << std::endl;
   std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (" << max_2D << ") (in pixels)" << std::endl;
-
+  if(isnni){
+    std::cout << "could evaluate " << nni_valids << " samples from " << sps.size() << std::endl;
+  }
   createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth, basefilename);
 
 }
