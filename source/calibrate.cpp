@@ -95,17 +95,17 @@ int main(int argc, char* argv[]){
       c.using_nni = using_nni;
       std::cout << "--------------------------------------------------------------------" << std::endl;
       std::cout << "Calibration error before calibration at " << sps_eval.size() << " sample points" << std::endl;
-      c.evaluateSamples(&cv, sps_eval, cfg);
-      c.applySamples(&cv, sps_calib, cfg, idwneighbours);
+      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str());
+      c.applySamples(&cv, sps_calib, cfg, idwneighbours, basefilename.c_str());
       std::cout << "Calibration error after calibration at " << sps_eval.size() << " sample points" << std::endl;
-      c.evaluateSamples(&cv, sps_eval, cfg);
+      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str());
       std::cout << "--------------------------------------------------------------------" << std::endl;
   }
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
   Calibrator   c;
   c.using_nni = using_nni;
-  c.applySamples(&cv, sps, cfg, idwneighbours);
+  c.applySamples(&cv, sps, cfg, idwneighbours, basefilename.c_str());
   cv.save(filename_xyz.c_str(), filename_uv.c_str());
 
 

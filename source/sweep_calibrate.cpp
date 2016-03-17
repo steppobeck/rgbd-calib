@@ -21,7 +21,8 @@ double sampleQuality(const std::string& filename_xyz, const std::string& filenam
 		     const float color_offset_time,
 		     const unsigned optimization_stride,
 		     const unsigned idwneighbours,
-		     bool using_nni){
+		     bool using_nni,
+		     const std::string& basefilename){
     CalibVolume cv_sweep(filename_xyz.c_str(), filename_uv.c_str());
     cs_sweep.loadChessboards();
     SweepSampler ss(&cb, &cv_sweep, &cfg);
@@ -29,27 +30,28 @@ double sampleQuality(const std::string& filename_xyz, const std::string& filenam
     const std::vector<samplePoint>& sps = ss.getSamplePoints();
     Calibrator   c;
     c.using_nni = using_nni;
-    c.applySamples(&cv_sweep, sps, cfg, idwneighbours);
+    c.applySamples(&cv_sweep, sps, cfg, idwneighbours, basefilename.c_str());
     ++num_samples_taken;
     return c.evaluatePlanes(&cv_sweep, &cs_sweep, cfg, optimization_stride);
 }
 
 double sampleGradient(const std::string& filename_xyz, const std::string& filename_uv,
-		ChessboardSampling& cs_sweep,
-		const RGBDConfig& cfg,
-		const Checkerboard& cb,
-		const double left_tracking_offset_time,
-		const double right_tracking_offset_time,
-		const float color_offset_time,
-		const unsigned optimization_stride,
-		const unsigned idwneighbours,
-		bool using_nni){
+		      ChessboardSampling& cs_sweep,
+		      const RGBDConfig& cfg,
+		      const Checkerboard& cb,
+		      const double left_tracking_offset_time,
+		      const double right_tracking_offset_time,
+		      const float color_offset_time,
+		      const unsigned optimization_stride,
+		      const unsigned idwneighbours,
+		      bool using_nni,
+		      const std::string& basefilename){
 
   const double  y_left = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				       left_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
+				       left_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename);
 
   const double  y_right = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-					right_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
+					right_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename);
   
   return (y_right - y_left)/(right_tracking_offset_time - left_tracking_offset_time);
 
@@ -63,7 +65,8 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
 	     const float color_offset_time,
 	     const unsigned optimization_stride,
 	     const unsigned idwneighbours,
-	     bool using_nni){
+	     bool using_nni,
+	     const std::string& basefilename){
   
 
   const double min_gradient  = 0.000001;
@@ -80,7 +83,7 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
     double gradient = sampleGradient(filename_xyz, filename_uv, cs_sweep, cfg, cb,
 				     tracking_offset_time - 0.5 * gradient_step,
 				     tracking_offset_time + 0.5 * gradient_step,
-				     color_offset_time, optimization_stride, idwneighbours, using_nni);
+				     color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename);
     std::cout << rs << " refine: at " << std::setprecision(10)
 	      << tracking_offset_time << " gradient is " << gradient << std::endl;
     if(std::abs(gradient) > min_gradient){
@@ -106,7 +109,8 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
 			     const float color_offset_time,
 			     const unsigned optimization_stride,
 			     const unsigned idwneighbours,
-			     bool using_nni){
+			     bool using_nni,
+			     const std::string& basefilename){
 
   const double x1 = tracking_offset_time_min;
   const double x2 = 0.5f*(tracking_offset_time_min + tracking_offset_time_max);
@@ -115,13 +119,13 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
   const double d  = x2 - x1;
 
   const double  y1 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				   x1, color_offset_time, optimization_stride, idwneighbours, using_nni);
+				   x1, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename);
 
   const double  y2 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				   x2, color_offset_time, optimization_stride, idwneighbours, using_nni);
+				   x2, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename);
 
   const double  y3 = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-				   x3, color_offset_time, optimization_stride, idwneighbours, using_nni);
+				   x3, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename);
 
   const double xs = x2 + (0.5*d*(y3 - y1))/(2.0*y2 - y1 - y3);
   return float(xs);
@@ -140,7 +144,8 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
 			 const unsigned optimization_stride,
 			 const unsigned idwneighbours,
 			 const std::string& optimize_log,
-			 bool using_nni){
+			 bool using_nni,
+			 const std::string& basefilename){
 
   
   std::ofstream* logfile;
@@ -156,7 +161,7 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
       tracking_offset_time += tracking_offset_time_step){
     
     const double avg_quality = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-					     tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
+					     tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename);
 
 
     if(avg_quality > best_avg_quality){
@@ -370,7 +375,8 @@ int main(int argc, char* argv[]){
 						       color_offset_time,
 						       optimization_stride,
 						       idwneighbours,
-						       using_nni);
+						       using_nni,
+						       basefilename);
     break;
   case 1:
     std::cout << "INFO: performing optimization using brute force sampling." << std::endl;
@@ -385,7 +391,8 @@ int main(int argc, char* argv[]){
 						   optimization_stride,
 						   idwneighbours,
 						   optimize_log,
-						   using_nni);
+						   using_nni,
+						   basefilename);
     break;
   case 2:
     std::cout << "INFO: performing optimization using refine with gradient descent." << std::endl;
@@ -399,10 +406,12 @@ int main(int argc, char* argv[]){
 							    color_offset_time,
 							    optimization_stride,
 							    idwneighbours,
-							    using_nni);*/
+							    using_nni,
+							    basefilename);*/
       // not needed for release
       const float parabel_fit_value = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-						    parabel_fit_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
+						    parabel_fit_time, color_offset_time, optimization_stride, idwneighbours, using_nni,
+						    basefilename);
 
       best_tracking_offset_time = refine(filename_xyz, filename_uv,
 					 cs_sweep,
@@ -412,10 +421,12 @@ int main(int argc, char* argv[]){
 					 color_offset_time,
 					 optimization_stride,
 					 idwneighbours,
-					 using_nni);
+					 using_nni,
+					 basefilename);
       // not neded for release
       const float refined_value = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
-						best_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni);
+						best_tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni,
+						basefilename);
 
       std::cout << "num_samples_taken: " << num_samples_taken
 		<< " refine finished -> parabel_fit_time: " << std::setprecision(10)
@@ -444,7 +455,7 @@ int main(int argc, char* argv[]){
   const std::vector<samplePoint>& sps = ss.getSamplePoints();
   Calibrator   c;
   c.using_nni = using_nni;
-  c.applySamples(&cv_init, sps, cfg, idwneighbours);
+  c.applySamples(&cv_init, sps, cfg, idwneighbours, basefilename.c_str());
 
 
   cv_init.save(filename_xyz.c_str(), filename_uv.c_str());

@@ -101,7 +101,7 @@ Calibrator::~Calibrator(){
 
 
 void
-Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours){
+Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours, const char* basefilename){
 
   auto start_time = std::chrono::system_clock::now();
   //CGAL : build Tree, search 100 neighbors, try NNI of neighbourhood, fallback to IDW small neighborhood
@@ -185,7 +185,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
 
   
   if(using_nni){
-    blendIDW2NNI(cv, cv_nni);
+    blendIDW2NNI(cv, cv_nni, basefilename);
   }
 
   auto end_time = std::chrono::system_clock::now();
@@ -197,7 +197,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
 
 
 void
-Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
+Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basefilename){
 
 
   // print stats for nni_possible and write to volume file
@@ -294,16 +294,15 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
     }
   }
 
-  // 0_body_w256_h256_d256_c1_b8.raw
-  FILE* f_nni_stats = fopen( (std::string("/tmp/0_nnistats_w") + toString(cv->width) + "_h" + toString(cv->height) + "_d" + toString(cv->depth) + "_c1_b8.raw").c_str(), "wb");
+  FILE* f_nni_stats = fopen((std::string(basefilename) + "_nnistats").c_str(), "wb");
   fwrite(m_nni_possible, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_stats);
   fclose(f_nni_stats);
   
-  FILE* f_nni_border = fopen( (std::string("/tmp/0_nniborder_w") + toString(cv->width) + "_h" + toString(cv->height) + "_d" + toString(cv->depth) + "_c1_b8.raw").c_str(), "wb");
+  FILE* f_nni_border = fopen((std::string(basefilename) + "_nniborder").c_str(), "wb");
   fwrite(nni_border, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_border);
   fclose(f_nni_border);
   
-  FILE* f_nni_percentage = fopen( (std::string("/tmp/0_nnipercentage_w") + toString(cv->width) + "_h" + toString(cv->height) + "_d" + toString(cv->depth) + "_c1_b8.raw").c_str(), "wb");
+  FILE* f_nni_percentage = fopen((std::string(basefilename) + "_percentage").c_str(), "wb");
   fwrite(nni_percentage, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_percentage);
   fclose(f_nni_percentage);
 
@@ -313,7 +312,7 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni){
 }
 
 void
-Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg){
+Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const char* basefilename){
 
 
 
@@ -374,12 +373,12 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << "mean_error_3D: " << mean3D << " [" << sd3D << "] (" << max_3D << ") (in meter)" << std::endl;
   std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (" << max_2D << ") (in pixels)" << std::endl;
 
-  createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth);
+  createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth, basefilename);
 
 }
 
 void
-Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth){
+Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth, const char* basefilename){
 
   // create volumes for world and texture coordinates
   unsigned char* error_vol_3D = new unsigned char [width * height * depth];
@@ -418,20 +417,20 @@ Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned wid
 
   // write error volumes to /tmp
 
-  FILE* f_error_vol_3D = fopen( (std::string("/tmp/0_viserror3D_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  FILE* f_error_vol_3D = fopen((std::string(basefilename) + "_error3D_idw").c_str(), "wb");
   fwrite(error_vol_3D, sizeof(unsigned char), (width * height * depth), f_error_vol_3D);
   fclose(f_error_vol_3D);
 
-  FILE* f_error_vol_2D = fopen( (std::string("/tmp/0_viserror2D_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  FILE* f_error_vol_2D = fopen((std::string(basefilename) + "_error2D_idw").c_str(), "wb");
   fwrite(error_vol_2D, sizeof(unsigned char), (width * height * depth), f_error_vol_2D);
   fclose(f_error_vol_2D);
 
 
-  FILE* f_error_vol_3Dnni = fopen( (std::string("/tmp/0_viserror3Dnni_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  FILE* f_error_vol_3Dnni = fopen((std::string(basefilename) + "_error3D").c_str(), "wb");
   fwrite(error_vol_3D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_3Dnni);
   fclose(f_error_vol_3Dnni);
 
-  FILE* f_error_vol_2Dnni = fopen( (std::string("/tmp/0_viserror2Dnni_w") + toString(width) + "_h" + toString(height) + "_d" + toString(depth) + "_c1_b8.raw").c_str(), "wb");
+  FILE* f_error_vol_2Dnni = fopen((std::string(basefilename) + "_error2D").c_str(), "wb");
   fwrite(error_vol_2D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_2Dnni);
   fclose(f_error_vol_2Dnni);
 

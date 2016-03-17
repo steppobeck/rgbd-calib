@@ -60,7 +60,7 @@ int main(int argc, char* argv[]){
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
   Calibrator   c;
-  c.evaluateSamples(&cv, sps, cfg);
+  c.evaluateSamples(&cv, sps, cfg, basefilename.c_str());
 
   return 0;
 }
