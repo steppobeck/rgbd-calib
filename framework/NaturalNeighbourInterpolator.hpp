@@ -4,6 +4,7 @@
 #include <DataTypes.hpp>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+//#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/natural_neighbor_coordinates_3.h>
 
@@ -13,13 +14,14 @@
 
 
   struct nniSample{
+    glm::vec3 s_pos_cs;
     xyz s_pos;
     xyz s_pos_off;
     uv  s_tex_off;
     float quality;
   };
 
-	extern std::ostream& operator<< (std::ostream& o, const nniSample& s);
+  extern std::ostream& operator<< (std::ostream& o, const nniSample& s);
 	
   class NaturalNeighbourInterpolator{
 

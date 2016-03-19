@@ -83,6 +83,7 @@ SweepSampler::extractSamples(ChessboardSampling* cbs, const float pose_offset, c
     }
   }
 
+
   return m_sps.size();
 }
 
@@ -129,6 +130,8 @@ SweepSampler::addBoardSamples(const glm::mat4& cb_transform, const ChessboardVie
     sp.pos_offset.y = sp.pos_real[1] - pos.y;
     sp.pos_offset.z = sp.pos_real[2] - pos.z;
     
+   
+
     sp.tex_offset.u = sp.tex_color.u/m_cfg->size_rgb.x - tex.u;
     sp.tex_offset.v = sp.tex_color.v/m_cfg->size_rgb.y - tex.v;
     

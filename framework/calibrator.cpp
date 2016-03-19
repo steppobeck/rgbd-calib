@@ -4,6 +4,7 @@
 #include <NaturalNeighbourInterpolator.hpp>
 #include <ChessboardSampling.hpp>
 #include <PlaneFit.hpp>
+#include <resampler.hpp>
 
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
@@ -37,51 +38,6 @@ namespace{
     return (1.0f/(sigma*sqrt(2.0f * M_PI))) * exp( -0.5f * ((x-mean)/sigma) * ((x-mean)/sigma) );
   }
 
-  nniSample operator * (float q, const nniSample& s){
-    nniSample res;
-    res.s_pos     = q * s.s_pos;
-    res.s_pos_off = q * s.s_pos_off;
-    res.s_tex_off = q * s.s_tex_off;
-    res.quality   = q * s.quality;
-    
-    return res;
-  }
-
-  nniSample operator + (const nniSample& a, const nniSample& b){
-    nniSample res;
-    res.s_pos     = a.s_pos + b.s_pos;
-    res.s_pos_off = a.s_pos_off + b.s_pos_off;
-    res.s_tex_off = a.s_tex_off + b.s_tex_off;
-    res.quality   = a.quality + b.quality;
-    
-    return res;
-  }
-
-  nniSample qwa(const std::vector<nniSample>&smpls){
-    nniSample res;
-    res.s_pos.x = 0.0;
-    res.s_pos.y = 0.0;
-    res.s_pos.z = 0.0;
-
-    res.s_pos_off.x = 0.0;
-    res.s_pos_off.y = 0.0;
-    res.s_pos_off.z = 0.0;
-
-    res.s_tex_off.u = 0.0;
-    res.s_tex_off.v = 0.0;
-
-    res.quality = 0.0;
-
-    double weight = 0.0;
-    for(const auto& s : smpls){
-      weight += s.quality;
-      res = res + (s.quality * s);
-    }
-    res = (1.0f / weight) * res;
-   
-    return res;
-  }
-
 
 }
 
@@ -113,51 +69,36 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     
     nniSample nnis;
     nnis.quality = sps[s/*sample point*/].quality;
+    
     nnis.s_pos_off = sps[s/*sample point*/].pos_offset;
     nnis.s_tex_off  = sps[s/*sample point*/].tex_offset;
     // calculate distance from volume pos to sample pos
     
+
+    nnis.s_pos_cs  = sps[s/*sample point*/].pos_real;
+
     nnis.s_pos.x = cv->width *  ( sps[s].tex_depth.u)/ cfg.size_d.x;
     nnis.s_pos.y = cv->height *  ( sps[s].tex_depth.v)/ cfg.size_d.y;
     nnis.s_pos.z = cv->depth  *  (sps[s].depth - cv->min_d) / (cv->max_d - cv->min_d);
-    
+    if( !((sps[s].depth > cv->min_d) && (sps[s].depth < cv->max_d)) ){
+      std::cerr << "INFO: calibrator.cpp: skipping sample because invalid depth: " << sps[s] << std::endl;
+    }
     //std::cerr << s << " " << nnis << std::endl;
     nnisamples.push_back(nnis);
   }
 
+  // -----------Begin-Resampler-------------------------------------------
+  
+  Resampler rsa;
+  rsa.resampleGridBased(nnisamples, cv,	basefilename);
 
-  // build virtual grid
-  std::map<size_t, std::vector<nniSample>> grid;
-  for(const auto& s : nnisamples){
-    size_t grid_loc = ((std::round(s.s_pos.z) * cv->width * cv->height)
-		       + (std::round(s.s_pos.y) * cv->width) + std::round(s.s_pos.x));
-    grid[grid_loc].push_back(s);
-  }
-  nnisamples.clear();
-
-
-
-  std::vector<nniSample> nnisamples_nni;
-  std::cerr << "grid size: " << grid.size() << " of " << cv->width * cv->height * cv->depth << std::endl;
-  for(const auto& smpls : grid){
-    nniSample tmp = qwa(smpls.second);
-    if(! std::isnan(tmp.quality)){
-      nnisamples.push_back(tmp);
-      nnisamples_nni.push_back(tmp);
-    }
-    else{
-      std::cerr << "INFO QWA sample is not valid!...skipping" << std::endl;
-      for(const auto& s : smpls.second){
-	std::cerr << "QWA sample was " << s << std::endl;
-      }
-    }
-  }
-  std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! after quality weighted filterning applying "
-	    << nnisamples.size() << " for volume" << std::endl;
-
+  // -----------End-Resampler-------------------------------------------
 
   std::cerr << "initializing nearest neighbor search for " << nnisamples.size() << " samples." << std::endl;
-  NearestNeighbourSearch nns(nnisamples); // Be careful, nnisamples are just shared here!!!!
+  NearestNeighbourSearch nns(nnisamples);
+
+  //rsa.fillBorder(nnisamples, cv, &nns, idwneighbours, basefilename);
+  //exit(0);
 
   // init calib volume for natural neighbor interpolation
   NaturalNeighbourInterpolator* nnip = 0;
@@ -168,16 +109,14 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     }
     memset(m_nni_possible, 0, cv->width * cv->height * cv->depth);
     cv_nni = new CalibVolume(cv->width, cv->height, cv->depth, cv->min_d, cv->max_d);
-    std::cerr << "initializing natural neighbor interpolation for " << nnisamples_nni.size() << " samples." << std::endl;
-    std::shuffle(std::begin(nnisamples_nni), std::end(nnisamples_nni), std::default_random_engine());
-    nnip =   new NaturalNeighbourInterpolator(nnisamples_nni);
+    std::cerr << "initializing natural neighbor interpolation for " << nnisamples.size() << " samples." << std::endl;
+    std::shuffle(std::begin(nnisamples), std::end(nnisamples), std::default_random_engine());
+    nnip =   new NaturalNeighbourInterpolator(nnisamples);
   }
 
   const unsigned numthreads = 32;
   std::cerr << "start interpolation per thread for " << numthreads << " threads." << std::endl;
-
   boost::thread_group threadGroup;
-    
   for (unsigned tid = 0; tid < numthreads; ++tid){
     threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, cv_nni, nnip));
   }
@@ -205,7 +144,7 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basef
   for(size_t idx = 0; idx < (cv->width * cv->height * cv->depth); ++idx){
     possible += m_nni_possible[idx] > 0 ? 1 : 0;
   }
-  std::cout << "natural neighbor interpolation was possible for: "
+  std::cerr << "natural_neighbor_interpolation_was_possible for: "
 	    << possible << " out of: " << (cv->width * cv->height * cv->depth)
 	    << std::endl;
 
@@ -409,6 +348,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   if(isnni){
     std::cout << "could evaluate " << nni_valids << " samples from " << sps.size() << std::endl;
   }
+
   createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth, basefilename);
 
 }
@@ -431,9 +371,9 @@ Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned wid
 
   
   NearestNeighbourSearch nns(sps);
-  std::vector<nniSample> sps_nni(sps);
-  std::shuffle(std::begin(sps_nni), std::end(sps_nni), std::default_random_engine());
-  NaturalNeighbourInterpolator nnip(sps_nni);
+  std::vector<nniSample> sps_tmp(sps);
+  std::shuffle(std::begin(sps_tmp), std::end(sps_tmp), std::default_random_engine());
+  NaturalNeighbourInterpolator nnip(sps_tmp);
 
 
   // boost threads here
@@ -716,6 +656,13 @@ Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch*
 	      // STEPPO REMOVE
 	      //std::cerr << "IDW: " << ipolant << std::endl;
 	      //std::cerr << "NNI: " << ipolant_nni << std::endl;
+	      //glm::vec3 pos_glm(ipolant_nni.s_pos_off.x,ipolant_nni.s_pos_off.y,ipolant_nni.s_pos_off.z);
+	      //const float od = glm::length(pos_glm);
+	      //if(od > 0.1){
+	      //	std::cerr << tid << " ERROR: outside offset_too_large at " << ipolant_nni.s_pos_off << " -> " << od << std::endl;
+	      //}
+
+
 	    }
 	  }
 
@@ -727,8 +674,8 @@ Calibrator::applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch*
 }
 
 
-void
-Calibrator::idw_interpolate(const std::vector<nniSample>& neighbours, unsigned idw_neigbours, nniSample& ipolant, const float max_influence_dist){
+/*static*/ void
+Calibrator::idw_interpolate(const std::vector<nniSample>& neighbours, const unsigned idw_neigbours, nniSample& ipolant, const float max_influence_dist){
     
 
   const float sigma = max_influence_dist * 1.0/3.3;

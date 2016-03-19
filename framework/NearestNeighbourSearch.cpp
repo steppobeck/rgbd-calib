@@ -25,7 +25,7 @@ typedef K_neighbor_search::Distance                         Distance;
 
   
   NearestNeighbourSearch::NearestNeighbourSearch(const std::vector<nniSample>& spoints)
-    : shared_spoints(spoints),
+    : m_sps(spoints),
       m_tree()
   {
     
@@ -33,7 +33,7 @@ typedef K_neighbor_search::Distance                         Distance;
     std::vector<Point_3>  points;
     std::vector<size_t>   indices;
     size_t idx = 0;
-    for(const auto& sp : shared_spoints){
+    for(const auto& sp : m_sps){
       points.push_back(Point_3(sp.s_pos.x, sp.s_pos.y, sp.s_pos.z));
       indices.push_back(idx);
       ++idx;
@@ -60,7 +60,7 @@ typedef K_neighbor_search::Distance                         Distance;
     K_neighbor_search search(*(reinterpret_cast<Tree*>(m_tree)), query, num_neighbours);
 
     for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++){
-      result.push_back(shared_spoints[boost::get<1>(it->first)]);
+      result.push_back(m_sps[boost::get<1>(it->first)]);
     }
 
 

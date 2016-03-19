@@ -38,6 +38,8 @@
     std::vector< std::pair< Vertex_handle,NT> > coor_sibson;
     NT norm_coeff_sibson;
 
+
+
     sibson_natural_neighbor_coordinates_3(m_dt,ipos,
 					  std::back_inserter(coor_sibson),
 					  norm_coeff_sibson);
@@ -47,6 +49,8 @@
     if(0 == coor_sibson.size()){
       return false;
     }
+
+
 
     //std::cerr << "norm_coeff: " << norm_coeff_sibson << " num_neighbours "<< coor_sibson.size() << std::endl;
 
@@ -69,6 +73,15 @@
       }
 
       nniSample s = iter->second; //nniSample s = m_vd[it->first];
+
+#if 0
+      glm::vec3 pos_glm(s.s_pos_off.x,s.s_pos_off.y,s.s_pos_off.z);
+      const float od = glm::length(pos_glm);
+      if(od > 0.1){
+		std::cerr << "ERROR: offset_too_large at " << s.s_pos_off << " -> " << od << std::endl;
+      }
+#endif
+
       pos_off.x += contribution_i * s.s_pos_off.x;
       pos_off.y += contribution_i * s.s_pos_off.y;
       pos_off.z += contribution_i * s.s_pos_off.z;
@@ -91,6 +104,20 @@
 
     ipolant.s_tex_off.u = tex_off.u / norm_coeff_sibson;
     ipolant.s_tex_off.v = tex_off.v / norm_coeff_sibson;
+
+#if 0
+    glm::vec3 pos_glm(ipolant.s_pos_off.x,ipolant.s_pos_off.y,ipolant.s_pos_off.z);
+    const float od = glm::length(pos_glm);
+    if(od > 0.1){
+      std::cerr << "ERROR: offset_too_large at " << ipolant.s_pos_off << " -> " << od << " norm_coeff_sibson: " << norm_coeff_sibson << " cgal_correct?: " << (int) is_correct_natural_neighborhood(m_dt,ipos, coor_sibson.begin(), coor_sibson.end(), norm_coeff_sibson) << std::endl;
+      unsigned nnid = 0;
+      for(it = coor_sibson.begin() ; it != coor_sibson.end() ; ++it, ++c_idx){
+	double contribution_i = it->second;
+	std::cerr << "\t" << nnid << " contribution_i: " << contribution_i << std::endl;
+	++nnid;
+      }
+    }
+#endif
 
     return true;
     //return is_correct_natural_neighborhood(m_dt,ipos, coor_sibson.begin(), coor_sibson.end(), norm_coeff_sibson);

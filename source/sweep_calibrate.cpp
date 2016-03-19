@@ -216,7 +216,7 @@ int main(int argc, char* argv[]){
 
   p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
 
-  p.addOpt("o",1,"optimizationtype", "perform optimization using parabel fitting (0), brute force sampling (1), refine with gradient descent (2), default: 0");
+  p.addOpt("o",1,"optimizationtype", "perform optimization using parabel fitting (0), brute force sampling (1), refine with gradient descent (2), midtime is best time (3) , default: 0");
 
   p.addOpt("l",1,"log", "log the optimization process to given filename, default: no log ");
 
@@ -438,11 +438,18 @@ int main(int argc, char* argv[]){
 
     }
     break;
+  case 3:
+    best_tracking_offset_time = (tracking_offset_time_min + tracking_offset_time_max) * 0.5f;
+    break;
   default:
     std::cerr << "ERROR: invalid optimization_type: " << optimization_type << " -> exiting...!" << std::endl;
     return -1;
     break;
   }
+
+  std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+  std::cerr << "using best_tracking_offset_time: " << best_tracking_offset_time << std::endl;
+  std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
 
   // do the calibration based on the best_tracking_offset_time
   cs_sweep.loadChessboards();
@@ -463,6 +470,6 @@ int main(int argc, char* argv[]){
   filename_uv  += "_sweep";
   cv_init.save(filename_xyz.c_str(), filename_uv.c_str());
 
-  std::cout << "best_tracking_offset_time was: " << best_tracking_offset_time << std::endl;
+  
   return 0;
 }

@@ -24,9 +24,11 @@ public:
 
   double evaluateShapes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride = 1);
 
+  static void idw_interpolate(const std::vector<nniSample>& neighbours, const unsigned idw_neigbours, nniSample& ipolant, const float max_influence_dist);
+
 private:
   void applySamplesPerThread(CalibVolume* cv, const NearestNeighbourSearch* nns, unsigned tid, unsigned numthreads, unsigned idwneighbours, CalibVolume* cv_nni, const NaturalNeighbourInterpolator* nnip);
-  void idw_interpolate(const std::vector<nniSample>& neighbours, unsigned idw_neigbours, nniSample& ipolant, const float max_influence_dist);
+  
 
   void blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basefilename);
 
