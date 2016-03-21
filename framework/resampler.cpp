@@ -234,7 +234,7 @@ Resampler::fillBorder(std::vector<nniSample>& sps, const CalibVolume* cv, const 
   std::cerr << "sps bounding box: " << sps_min << " -> " << sps_max << std::endl;
   {
 
-#if 0    
+#if 1    
     const unsigned border   = 5;
     const unsigned cv_min_x = std::max(0, int(std::floor(sps_min[0]) - border));
     const unsigned cv_min_y = std::max(0, int(std::floor(sps_min[1]) - border));
@@ -257,7 +257,7 @@ Resampler::fillBorder(std::vector<nniSample>& sps, const CalibVolume* cv, const 
     std::cerr << "sps bounding box u: " << glm::vec3(cv_min_x, cv_min_y, cv_min_z) << " -> " << glm::vec3(cv_max_x, cv_max_y, cv_max_z) << std::endl;
     
     
-    Coin mycoin(0.02f);
+    Coin mycoin(0.1f);
     RandRange myrange(-1.0,1.0);
     
     const glm::vec3 diameter(cv_max_x - cv_min_x, cv_max_y - cv_min_y, cv_max_z - cv_min_z);

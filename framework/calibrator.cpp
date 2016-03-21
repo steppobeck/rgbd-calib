@@ -91,7 +91,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
   Resampler rsa;
   rsa.resampleGridBased(nnisamples, cv,	basefilename);
 
-#if 0
+#if 1
   std::cerr << "initializing nearest neighbor search for border fill " << nnisamples.size() << " samples." << std::endl;
   NearestNeighbourSearch nns_before_border_fill(nnisamples);
   rsa.fillBorder(nnisamples, cv, &nns_before_border_fill, idwneighbours, basefilename);
