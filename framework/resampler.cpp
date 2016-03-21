@@ -229,10 +229,12 @@ Resampler::fillBorder(std::vector<nniSample>& sps, const CalibVolume* cv, const 
     sps_max[1] = std::max(sps_max[1], s.s_pos.y);
     sps_max[2] = std::max(sps_max[2], s.s_pos.z);
   }
+  
 
   std::cerr << "sps bounding box: " << sps_min << " -> " << sps_max << std::endl;
   {
-    std::cerr << "resampling inner border" << std::endl;
+
+#if 0    
     const unsigned border   = 5;
     const unsigned cv_min_x = std::max(0, int(std::floor(sps_min[0]) - border));
     const unsigned cv_min_y = std::max(0, int(std::floor(sps_min[1]) - border));
@@ -241,10 +243,21 @@ Resampler::fillBorder(std::vector<nniSample>& sps, const CalibVolume* cv, const 
     const unsigned cv_max_x = std::min(unsigned(std::ceil(sps_max[0]) + border), cv_width);
     const unsigned cv_max_y = std::min(unsigned(std::ceil(sps_max[1]) + border), cv_height);
     const unsigned cv_max_z = std::min(unsigned(std::ceil(sps_max[2]) + border), cv_depth);
+#else
+    const unsigned cv_min_x = 5;
+    const unsigned cv_min_y = 5;
+    const unsigned cv_min_z = 5;
+    
+    const unsigned cv_max_x = cv_width  - 5;
+    const unsigned cv_max_y = cv_height - 5;
+    const unsigned cv_max_z = cv_depth  - 5;
+#endif
+    
+
     std::cerr << "sps bounding box u: " << glm::vec3(cv_min_x, cv_min_y, cv_min_z) << " -> " << glm::vec3(cv_max_x, cv_max_y, cv_max_z) << std::endl;
     
     
-    Coin mycoin(0.01f);
+    Coin mycoin(0.02f);
     RandRange myrange(-1.0,1.0);
     
     const glm::vec3 diameter(cv_max_x - cv_min_x, cv_max_y - cv_min_y, cv_max_z - cv_min_z);
@@ -301,82 +314,6 @@ Resampler::fillBorder(std::vector<nniSample>& sps, const CalibVolume* cv, const 
       }
     }
   }
-
-
-  {
-    std::cerr << "resampling outer border" << std::endl;
-    const unsigned border   = 15;
-    const unsigned cv_min_x = std::max(0, int(std::floor(sps_min[0]) - border));
-    const unsigned cv_min_y = std::max(0, int(std::floor(sps_min[1]) - border));
-    const unsigned cv_min_z = std::max(0, int(std::floor(sps_min[2]) - border));
-    
-    const unsigned cv_max_x = std::min(unsigned(std::ceil(sps_max[0]) + border), cv_width);
-    const unsigned cv_max_y = std::min(unsigned(std::ceil(sps_max[1]) + border), cv_height);
-    const unsigned cv_max_z = std::min(unsigned(std::ceil(sps_max[2]) + border), cv_depth);
-    std::cerr << "sps bounding box u: " << glm::vec3(cv_min_x, cv_min_y, cv_min_z) << " -> " << glm::vec3(cv_max_x, cv_max_y, cv_max_z) << std::endl;
-    
-    
-    Coin mycoin(0.01f);
-    RandRange myrange(-1.0,1.0);
-    
-    const glm::vec3 diameter(cv_max_x - cv_min_x, cv_max_y - cv_min_y, cv_max_z - cv_min_z);
-    const float max_influence_dist = glm::length(diameter);
-    
-    
-    for(unsigned z = cv_min_z; z < cv_max_z; ++z){
-      for(unsigned y = cv_min_y; y < cv_max_y; ++y){
-	for(unsigned x = cv_min_x; x < cv_max_x; ++x){
-	  
-	  // skip everything but border!
-	  if( !(
-		(z == cv_min_z || z == (cv_max_z - 1))  ||
-		(y == cv_min_y || y == (cv_max_y - 1)) ||
-		(x == cv_min_x || x == (cv_max_x - 1))
-		)
-	      ){
-	    continue;
-	  }
-	  
-	  if(!mycoin()){
-	    continue;
-	  }
-
-	
-
-	  nniSample support_sample;
-	  support_sample.s_pos.x = x + myrange();
-	  support_sample.s_pos.y = y + myrange();
-	  support_sample.s_pos.z = z + myrange();
-	  
-	  support_sample.s_pos_off.x = 0.0;
-	  support_sample.s_pos_off.y = 0.0;
-	  support_sample.s_pos_off.z = 0.0;
-	  
-	  support_sample.s_tex_off.u = 0.0;
-	  support_sample.s_tex_off.v = 0.0;
-	  
-	  std::vector<nniSample> neighbours = nns->search(support_sample,idwneighbours);
-	  if(neighbours.empty()){
-	    std::cerr << "ERROR in Resampler::fillBorder -> no neighbours found, skipping voxel at pos " << support_sample.s_pos << std::endl;
-	    continue;
-	  }
-	  Calibrator::idw_interpolate(neighbours, idwneighbours, support_sample, max_influence_dist);
-	  
-	  xyz s_pos_cs = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth,
-				      support_sample.s_pos.x, support_sample.s_pos.y, support_sample.s_pos.z) + support_sample.s_pos_off;
-	  support_sample.s_pos_cs = glm::vec3(s_pos_cs.x, s_pos_cs.y, s_pos_cs.z);
-	  support_sample.quality = 1.0; // ????
-	  
-	  sps.push_back(support_sample);
-	  
-	}
-      }
-    }
-  }
-
-
-
-
 
 
   if(0 != basefilename){
