@@ -87,18 +87,19 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     nnisamples.push_back(nnis);
   }
 
-  // -----------Begin-Resampler-------------------------------------------
   
   Resampler rsa;
   rsa.resampleGridBased(nnisamples, cv,	basefilename);
 
-  // -----------End-Resampler-------------------------------------------
-
-  std::cerr << "initializing nearest neighbor search for " << nnisamples.size() << " samples." << std::endl;
-  NearestNeighbourSearch nns(nnisamples);
-
-  //rsa.fillBorder(nnisamples, cv, &nns, idwneighbours, basefilename);
+#if 0
+  std::cerr << "initializing nearest neighbor search for border fill " << nnisamples.size() << " samples." << std::endl;
+  NearestNeighbourSearch nns_before_border_fill(nnisamples);
+  rsa.fillBorder(nnisamples, cv, &nns_before_border_fill, idwneighbours, basefilename);
   //exit(0);
+#endif
+
+  std::cerr << "initializing nearest neighbor search for interpolation of calibvolume using " << nnisamples.size() << " samples." << std::endl;
+  NearestNeighbourSearch nns(nnisamples);
 
   // init calib volume for natural neighbor interpolation
   NaturalNeighbourInterpolator* nnip = 0;
@@ -109,7 +110,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     }
     memset(m_nni_possible, 0, cv->width * cv->height * cv->depth);
     cv_nni = new CalibVolume(cv->width, cv->height, cv->depth, cv->min_d, cv->max_d);
-    std::cerr << "initializing natural neighbor interpolation for " << nnisamples.size() << " samples." << std::endl;
+    std::cerr << "initializing natural neighbor interpolation for interpolation of calibvolume using " << nnisamples.size() << " samples." << std::endl;
     std::shuffle(std::begin(nnisamples), std::end(nnisamples), std::default_random_engine());
     nnip =   new NaturalNeighbourInterpolator(nnisamples);
   }
@@ -305,6 +306,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
       }
     }
 
+
     xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
     uv  tex = getTrilinear(cv->cv_uv,  cv_width, cv_height, cv_depth, x , y , z );
 
@@ -402,11 +404,11 @@ Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned wid
   fclose(f_error_vol_2D);
 
 
-  FILE* f_error_vol_3Dnni = fopen((std::string(basefilename) + "_error3D").c_str(), "wb");
+  FILE* f_error_vol_3Dnni = fopen((std::string(basefilename) + "_error3D_nni").c_str(), "wb");
   fwrite(error_vol_3D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_3Dnni);
   fclose(f_error_vol_3Dnni);
 
-  FILE* f_error_vol_2Dnni = fopen((std::string(basefilename) + "_error2D").c_str(), "wb");
+  FILE* f_error_vol_2Dnni = fopen((std::string(basefilename) + "_error2D_nni").c_str(), "wb");
   fwrite(error_vol_2D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_2Dnni);
   fclose(f_error_vol_2Dnni);
 
@@ -446,7 +448,7 @@ Calibrator::applyErrorVisPerThread(const unsigned width, const unsigned height, 
 	
 	std::vector<nniSample> neighbours = nns->search(ipolant,idwneighbours);
 	if(neighbours.empty()){
-	  std::cerr << "ERROR in Calibrator::applySamplesPerThread -> no neighbours found, skipping voxel at pos " << ipolant.s_pos << std::endl;
+	  //std::cerr << "ERROR in Calibrator::applySamplesPerThread -> no neighbours found, skipping voxel at pos " << ipolant.s_pos << std::endl;
 	  continue;
 	}
 	idw_interpolate(neighbours, idwneighbours, ipolant, max_influence_dist);

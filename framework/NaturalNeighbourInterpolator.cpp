@@ -3,7 +3,8 @@
 
 
   extern std::ostream& operator<< (std::ostream& o, const nniSample& s){
-    o << "s_pos: (" << s.s_pos.x << "," << s.s_pos.y << "," << s.s_pos.z << ") "
+    o << "s_pos_cs: (" << s.s_pos_cs.x << "," << s.s_pos_cs.y << "," << s.s_pos_cs.z << ") "
+      << "s_pos: (" << s.s_pos.x << "," << s.s_pos.y << "," << s.s_pos.z << ") "
       << "s_pos_off: (" << s.s_pos_off.x << "," << s.s_pos_off.y << "," << s.s_pos_off.z << ") "
       << "s_tex_off: (" << s.s_tex_off.u << "," << s.s_tex_off.v << ")"
       << "s_quality: " << s.quality;
@@ -105,6 +106,17 @@
     ipolant.s_tex_off.u = tex_off.u / norm_coeff_sibson;
     ipolant.s_tex_off.v = tex_off.v / norm_coeff_sibson;
 
+    // check if nni is meaningful
+    if(!(norm_coeff_sibson > 0)){
+      return false;
+    }
+
+    for(it = coor_sibson.begin() ; it != coor_sibson.end() ; ++it, ++c_idx){
+      if(!(it->second > 0))
+	return false;
+    }
+
+
 #if 0
     glm::vec3 pos_glm(ipolant.s_pos_off.x,ipolant.s_pos_off.y,ipolant.s_pos_off.z);
     const float od = glm::length(pos_glm);
@@ -119,6 +131,7 @@
     }
 #endif
 
+    //return true;
     return true;
     //return is_correct_natural_neighborhood(m_dt,ipos, coor_sibson.begin(), coor_sibson.end(), norm_coeff_sibson);
   }
