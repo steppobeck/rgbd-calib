@@ -26,6 +26,11 @@ add_executable(stable_sampler stable_sampler.cpp)
 target_link_libraries(stable_sampler framework ${LIBRARIES})
 add_dependencies(stable_sampler glfw framework ${COPY_BINARY})
 
+add_executable(calibrate_intrinsic calibrate_intrinsic.cpp)
+target_link_libraries(calibrate_intrinsic framework ${LIBRARIES})
+add_dependencies(calibrate_intrinsic glfw framework ${COPY_BINARY})
+
+
 add_executable(sweep_sampler sweep_sampler.cpp)
 target_link_libraries(sweep_sampler framework ${LIBRARIES})
 add_dependencies(sweep_sampler glfw framework ${COPY_BINARY})
