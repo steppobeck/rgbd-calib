@@ -55,6 +55,18 @@ std::ostream& operator << (std::ostream& o, const shape_desc& sd){
 }
 
 
+
+std::ostream& operator << (std::ostream& o, const glm::uvec2& v){
+    o << "(" << v.x << "," << v.y << ")";
+    return o;
+  }
+
+std::ostream& operator << (std::ostream& o, const glm::vec2& v){
+    o << "(" << v.x << "," << v.y << ")";
+    return o;
+  }
+
+
 std::ostream& operator << (std::ostream& o, const glm::vec3& v){
     o << "(" << v.x << "," << v.y << "," << v.z << ")";
     return o;

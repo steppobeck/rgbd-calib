@@ -31,6 +31,15 @@ public:
 
   glm::mat4 eye_d_to_eye_rgb;
   std::string serverport;
+
+  float intrinsic_rgb[9];
+  float distortion_rgb[5];
+
+  float intrinsic_d[9];
+  float distortion_d[5];
+
+  bool read(const char* ymlfilename);
+  void dump();
 };
 
 

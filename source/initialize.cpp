@@ -41,38 +41,13 @@ int main(int argc, char* argv[]){
     cv_max_d = p.getOptsInt("d")[1];
   }
 
+  const std::string basefilename = p.getArgs()[0];
+  const std::string filename_yml(basefilename + "_yml");
 
   CalibVolume cv(cv_width, cv_height, cv_depth, cv_min_d, cv_max_d);
 
   RGBDConfig cfg;
-  cfg.size_rgb = glm::uvec2(1280, 1080);
-  cfg.size_d   = glm::uvec2(512, 424);
-
-  cfg.principal_rgb = glm::vec2(701.972473, 532.143066);
-  cfg.principal_d   = glm::vec2(257.009552, 209.077789);
-
-  cfg.focal_rgb = glm::vec2(1030.829834, 1030.497070);
-  cfg.focal_d   = glm::vec2(355.433716, 355.672363);
-
-  cfg.eye_d_to_eye_rgb[0][0] = 0.999950;
-  cfg.eye_d_to_eye_rgb[0][1] = -0.009198;
-  cfg.eye_d_to_eye_rgb[0][2] = -0.003908;
-  cfg.eye_d_to_eye_rgb[0][3] = 0.0;
-
-  cfg.eye_d_to_eye_rgb[1][0] = 0.009169;
-  cfg.eye_d_to_eye_rgb[1][1] = 0.999932;
-  cfg.eye_d_to_eye_rgb[1][2] = -0.007234;
-  cfg.eye_d_to_eye_rgb[1][3] = 0.0;
- 
-  cfg.eye_d_to_eye_rgb[2][0] = 0.003974;
-  cfg.eye_d_to_eye_rgb[2][1] = 0.007198;
-  cfg.eye_d_to_eye_rgb[2][2] = 0.999966;
-  cfg.eye_d_to_eye_rgb[2][3] = 0.0;
-
-  cfg.eye_d_to_eye_rgb[3][0] = -0.051237;
-  cfg.eye_d_to_eye_rgb[3][1] = 0.000667;
-  cfg.eye_d_to_eye_rgb[3][2] = 0.000195;
-  cfg.eye_d_to_eye_rgb[3][3] = 1.0;
+  cfg.read(filename_yml.c_str());
 
   RGBDSensor sensor(cfg);
 
@@ -120,8 +95,9 @@ int main(int argc, char* argv[]){
   }
 
 
-  std::string filename_xyz(p.getArgs()[0] + "_xyz");
-  std::string filename_uv(p.getArgs()[0] + "_uv");
+
+  const std::string filename_xyz(basefilename + "_xyz");
+  const std::string filename_uv(basefilename + "_uv");
   cv.save(filename_xyz.c_str(), filename_uv.c_str());
 
   return 0;

@@ -83,7 +83,7 @@ stereo_calibrate(const std::vector< std::vector<cv::Point2f> >& rgb_corners,
 
 
     cv::Mat E(3,3,CV_64F),F(3,3,CV_64F);
-
+#if 0
     double error = cv::stereoCalibrate(pattern_points,
 				       rgb_corners, depth_corners,
 				       rgb_intrinsics, rgb_distortion,
@@ -92,6 +92,17 @@ stereo_calibrate(const std::vector< std::vector<cv::Point2f> >& rgb_corners,
 				       R, T, E, F,
 				       cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, 1e-6),
 				       CV_CALIB_FIX_INTRINSIC);
+#endif
+
+    double error = cv::stereoCalibrate(pattern_points,
+				       depth_corners, rgb_corners,
+				       depth_intrinsics, depth_distortion,
+				       rgb_intrinsics, rgb_distortion,
+				       cv::Size(0,0),
+				       R, T, E, F,
+				       cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, 1e-6),
+				       CV_CALIB_FIX_INTRINSIC);
+
     return error;
 }
 
@@ -156,11 +167,8 @@ int main(int argc, char* argv[]){
 					  R, T);
   std::cout << "average pixel reprojection error: " << error_s << std::endl;
 
-#if 1
 
   // WRITE to .yml
-
-
 
   cv::FileStorage output_file(p.getArgs()[1].c_str(),  CV_STORAGE_WRITE);
   writeMatrix(output_file, "rgb_intrinsics", rgb_intrinsics);
@@ -182,76 +190,10 @@ int main(int argc, char* argv[]){
 
   output_file.release();
 
-  // READ from 23.cv_yml
-  {
-    
-#if 0
-    
-    cfg.read(p.getArgs()[1].c_str()); // if file exists, then read else apply defaults
-    
-    // defaults are:
-    size_rgb = glm::uvec2(1280, 1080);
-    size_d   = glm::uvec2(512, 424);
+  // READ again and dump
+  cfg.read(p.getArgs()[1].c_str()); // if file exists, then read else apply defaults
+  cfg.dump();
 
-    principal_rgb = glm::vec2(701.972473, 532.143066);
-    principal_d   = glm::vec2(257.009552, 209.077789);
-
-    focal_rgb = glm::vec2(1030.829834, 1030.497070);
-    focal_d   = glm::vec2(355.433716, 355.672363);
-
-    eye_d_to_eye_rgb[0][0] = 0.999950;
-    eye_d_to_eye_rgb[0][1] = -0.009198;
-    eye_d_to_eye_rgb[0][2] = -0.003908;
-    eye_d_to_eye_rgb[0][3] = 0.0;
-
-    eye_d_to_eye_rgb[1][0] = 0.009169;
-    eye_d_to_eye_rgb[1][1] = 0.999932;
-    eye_d_to_eye_rgb[1][2] = -0.007234;
-    eye_d_to_eye_rgb[1][3] = 0.0;
- 
-    eye_d_to_eye_rgb[2][0] = 0.003974;
-    eye_d_to_eye_rgb[2][1] = 0.007198;
-    eye_d_to_eye_rgb[2][2] = 0.999966;
-    eye_d_to_eye_rgb[2][3] = 0.0;
-
-    eye_d_to_eye_rgb[3][0] = -0.051237;
-    eye_d_to_eye_rgb[3][1] = 0.000667;
-    eye_d_to_eye_rgb[3][2] = 0.000195;
-    eye_d_to_eye_rgb[3][3] = 1.0;
-
-    // add distortions_rgb, distortions_d as in KinectCalibrationFile;
-    
-
-    cfg.dump();
-
-#endif
-
-
-    cv::Mat1d rgb_intrinsics;
-    cv::Mat1d rgb_distortion;
-
-    cv::Mat1d depth_intrinsics;
-    cv::Mat1d depth_distortion;
-
-    cv::Mat1d R;
-    cv::Mat1d T;
-
-    cv::FileStorage calibration_file(p.getArgs()[1].c_str(), CV_STORAGE_READ);
-    readMatrix(calibration_file, "rgb_intrinsics", rgb_intrinsics);
-    readMatrix(calibration_file, "rgb_distortion", rgb_distortion);
-    readMatrix(calibration_file, "depth_intrinsics", depth_intrinsics);
-    readMatrix(calibration_file, "depth_distortion", depth_distortion);
-    readMatrix(calibration_file, "R", R);
-    readMatrix(calibration_file, "T", T);
-    cv::Mat1i size_mat;
-    readMatrix(calibration_file, "rgb_size", size_mat);
-    // cv::Size(size_mat(0,0), size_mat(0,1));
-    std::cout << "rgb_size: " << size_mat(0,0) << " " << size_mat(0,1) << std::endl;
-    readMatrix(calibration_file, "depth_size", size_mat);
-    calibration_file.release();
-  }
-
-#endif
 
 
   return 0;

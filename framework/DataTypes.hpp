@@ -40,7 +40,8 @@ public:
 };
 
 
-
+extern std::ostream& operator << (std::ostream& o, const glm::uvec3& v);
+extern std::ostream& operator << (std::ostream& o, const glm::vec2& v);
 extern std::ostream& operator << (std::ostream& o, const glm::vec3& v);
 extern std::ostream& operator << (std::ostream& o, const glm::mat4& v);
 
