@@ -181,9 +181,9 @@ StableSampler::getSamplePoints(){
 
 
 void
-StableSampler::appendSamplesToFile(const char* filename){
+StableSampler::appendSamplesToFile(const char* filename, bool append_samples){
 
-  std::ofstream off(filename, std::ofstream::binary | std::ofstream::app | std::ofstream::out);
+  std::ofstream off(filename, append_samples ? std::ofstream::binary | std::ofstream::app | std::ofstream::out : std::ofstream::binary | std::ofstream::out);
   for(const auto& s : m_sps){
     off.write((const char*) &s.depth, sizeof(float));
     off.write((const char*) &s.tex_color, sizeof(uv));

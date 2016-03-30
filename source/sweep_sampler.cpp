@@ -14,11 +14,16 @@ int main(int argc, char* argv[]){
   std::string pose_offset_filename = "../../../source/poseoffset";
   float tracking_offset_time = 0.0; // in seconds
   float color_offset_time = 0.0;
-  CMDParser p("calibbasefilename sweepfilename");
+  bool append_samples = false;
+  CMDParser p("calibbasefilename sweepfilename samplesfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("t",1,"trackingoffset", "offset in seconds of the tracking system relative to depth frame of the sensor, e.g. 0.08, default: 0.0");
   p.addOpt("c",1,"coloroffset", "offset in seconds of the color frame relative to the depth frame of the sensor , e.g. -0.02, default: 0.0");
   p.init(argc,argv);
+
+  if(p.getArgs().size() != 3){
+    p.showHelp();
+  }
 
   if(p.isOptSet("p")){
     pose_offset_filename = p.getOptsString("p")[0];
@@ -57,9 +62,7 @@ int main(int argc, char* argv[]){
 
   SweepSampler ss(&cb, &cv, &cfg);
   const size_t numsamples = ss.extractSamples(&cs, tracking_offset_time, color_offset_time);
-  std::string filename_samples(basefilename + "_samples");
-  ss.appendSamplesToFile(filename_samples.c_str());
-  
+  ss.appendSamplesToFile(p.getArgs()[2].c_str(), append_samples);
 
 
   return 0;

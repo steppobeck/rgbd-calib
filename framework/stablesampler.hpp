@@ -18,7 +18,7 @@ public:
   void dumpSamplePoints();
   const std::vector<samplePoint>& getSamplePoints();
 
-  void appendSamplesToFile(const char* filename);
+  void appendSamplesToFile(const char* filename, bool append_samples);
 
 
 private:

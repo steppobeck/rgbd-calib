@@ -18,6 +18,7 @@ int main(int argc, char* argv[]){
   unsigned artport = 5000;
   unsigned arttargetid = 6;
   unsigned num_locations_to_sample = 1;
+  bool append_samples = false;
   CMDParser p("basefilename samplesfilename serverport");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("m",1,"max_shaking_speed", "use this maximum speed in meter/frame the checkerboard should have, default: 0.0005");
@@ -30,8 +31,9 @@ int main(int argc, char* argv[]){
 
   p.init(argc,argv);
 
-  if(p.getArgs().size() != 3)
+  if(p.getArgs().size() != 3){
     p.showHelp();
+  }
 
   if(p.isOptSet("p")){
     pose_offset_filename = p.getOptsString("p")[0];
@@ -101,7 +103,7 @@ int main(int argc, char* argv[]){
 
   // ss.dumpSamplePoints();
   std::string filename_samples(p.getArgs()[1]);
-  ss.appendSamplesToFile(filename_samples.c_str());
+  ss.appendSamplesToFile(filename_samples.c_str(), append_samples);
   
 
 

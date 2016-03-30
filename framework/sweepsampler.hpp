@@ -17,7 +17,7 @@ public:
   void dumpSamplePoints();
   const std::vector<samplePoint>& getSamplePoints();
 
-  void appendSamplesToFile(const char* filename);
+  void appendSamplesToFile(const char* filename, bool append_samples);
 
 
   size_t extractSamples(ChessboardSampling* cbs, const float pose_offset, const float color_offset, unsigned stride = 1);

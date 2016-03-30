@@ -206,7 +206,8 @@ int main(int argc, char* argv[]){
   bool using_nni = false;
   const unsigned optimization_stride = 1;
   unsigned optimization_type = 0;
-  CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep");
+  bool append_samples = false;
+  CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep samplesfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
   p.addOpt("d",2,"depthrange", "use this depth range: 0.5 4.5");
@@ -225,6 +226,10 @@ int main(int argc, char* argv[]){
 
 
   p.init(argc,argv);
+
+  if(p.getArgs().size() != 4){
+    p.showHelp();
+  }
 
   if(p.isOptSet("p")){
     pose_offset_filename = p.getOptsString("p")[0];
@@ -432,9 +437,7 @@ int main(int argc, char* argv[]){
   cs_sweep.loadChessboards();
   SweepSampler ss(&cb, &cv_init, &cfg);
   ss.extractSamples(&cs_sweep, best_tracking_offset_time, color_offset_time);
-
-  std::string filename_samples(basefilename + "_samples");
-  ss.appendSamplesToFile(filename_samples.c_str());
+  ss.appendSamplesToFile(p.getArgs()[3].c_str(), append_samples);
   
   const std::vector<samplePoint>& sps = ss.getSamplePoints();
   Calibrator   c;
