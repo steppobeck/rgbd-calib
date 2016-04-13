@@ -138,7 +138,7 @@ int main(int argc, char* argv[]){
     }
   }
 
-  ChessboardSampling cbs(p.getArgs()[0].c_str());
+  ChessboardSampling cbs(p.getArgs()[0].c_str(), cfg, false /*do not use undistortion of images here of course!*/);
   cbs.init();
   cbs.filterSamples(tracking_offset_time);
 

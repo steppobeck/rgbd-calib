@@ -1,8 +1,11 @@
 #include "DataTypes.hpp"
 
+#include <OpenCVHelper.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <algorithm>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #if 0
   cb.pose_offset[0][0] = 0.999970;
@@ -21,6 +24,192 @@
   cb.pose_offset[3][1] = 0.002038;
   cb.pose_offset[3][2] = 0.007816;
 #endif
+
+
+
+bool
+RGBDConfig::read(const char* ymlfilename){
+
+  // defaults are:
+  size_rgb = glm::uvec2(1280, 1080);
+  size_d   = glm::uvec2(512, 424);
+
+  principal_rgb = glm::vec2(701.972473, 532.143066);
+  principal_d   = glm::vec2(257.009552, 209.077789);
+  
+  focal_rgb = glm::vec2(1030.829834, 1030.497070);
+  focal_d   = glm::vec2(355.433716, 355.672363);
+
+  eye_d_to_eye_rgb[0][0] = 0.999950;
+  eye_d_to_eye_rgb[0][1] = -0.009198;
+  eye_d_to_eye_rgb[0][2] = -0.003908;
+  eye_d_to_eye_rgb[0][3] = 0.0;
+
+  eye_d_to_eye_rgb[1][0] = 0.009169;
+  eye_d_to_eye_rgb[1][1] = 0.999932;
+  eye_d_to_eye_rgb[1][2] = -0.007234;
+  eye_d_to_eye_rgb[1][3] = 0.0;
+  
+  eye_d_to_eye_rgb[2][0] = 0.003974;
+  eye_d_to_eye_rgb[2][1] = 0.007198;
+  eye_d_to_eye_rgb[2][2] = 0.999966;
+  eye_d_to_eye_rgb[2][3] = 0.0;
+
+  eye_d_to_eye_rgb[3][0] = -0.051237;
+  eye_d_to_eye_rgb[3][1] = 0.000667;
+  eye_d_to_eye_rgb[3][2] = 0.000195;
+  eye_d_to_eye_rgb[3][3] = 1.0;
+
+
+  intrinsic_rgb[0] = focal_rgb.x;
+  intrinsic_rgb[1] = 0.0f;
+  intrinsic_rgb[2] = principal_rgb.x;
+  intrinsic_rgb[3] = 0.0f;
+  intrinsic_rgb[4] = focal_rgb.y;
+  intrinsic_rgb[5] = principal_rgb.y;
+  intrinsic_rgb[6] = 0.0f;
+  intrinsic_rgb[7] = 0.0f;
+  intrinsic_rgb[8] = 1.0f;
+
+  intrinsic_d[0] = focal_d.x;
+  intrinsic_d[1] = 0.0f;
+  intrinsic_d[2] = principal_d.x;
+  intrinsic_d[3] = 0.0f;
+  intrinsic_d[4] = focal_d.y;
+  intrinsic_d[5] = principal_d.y;
+  intrinsic_d[6] = 0.0f;
+  intrinsic_d[7] = 0.0f;
+  intrinsic_d[8] = 1.0f;
+
+  // add distortions_rgb, distortions_d as in KinectCalibrationFile;
+  for(unsigned i = 0; i < 5; ++i){
+    distortion_rgb[i] = 0.0f;
+    distortion_d[i] = 0.0f;
+  }
+  // end defaults
+
+
+  struct stat buffer;   
+  if(stat(ymlfilename, &buffer) != 0){
+    std::cerr << "INFO: RGBDConfig::read file " << ymlfilename << " not found, using defaults" << std::endl;
+    return false; 
+  }
+  else{
+    std::cout << "INFO: RGBDConfig::read parsing file " << ymlfilename << std::endl;
+  }
+
+
+  cv::Mat1d rgb_intrinsics;
+  cv::Mat1d rgb_distortion;
+
+  cv::Mat1d depth_intrinsics;
+  cv::Mat1d depth_distortion;
+
+  cv::Mat1d R;
+  cv::Mat1d T;
+
+  cv::FileStorage calibration_file(ymlfilename, CV_STORAGE_READ);
+  readMatrix(calibration_file, "rgb_intrinsics", rgb_intrinsics);
+
+  focal_rgb.x = rgb_intrinsics(0,0);
+  focal_rgb.y = rgb_intrinsics(1,1);
+  principal_rgb.x = rgb_intrinsics(0,2);
+  principal_rgb.y = rgb_intrinsics(1,2);
+
+
+  readMatrix(calibration_file, "rgb_distortion", rgb_distortion);
+  distortion_rgb[0] = rgb_distortion(0,0);
+  distortion_rgb[1] = rgb_distortion(0,1);
+  distortion_rgb[2] = rgb_distortion(0,2);
+  distortion_rgb[3] = rgb_distortion(0,3);
+
+  readMatrix(calibration_file, "depth_intrinsics", depth_intrinsics);
+  focal_d.x = depth_intrinsics(0,0);
+  focal_d.y = depth_intrinsics(1,1);
+  principal_d.x = depth_intrinsics(0,2);
+  principal_d.y = depth_intrinsics(1,2);
+
+  readMatrix(calibration_file, "depth_distortion", depth_distortion);
+  distortion_d[0] = depth_distortion(0,0);
+  distortion_d[1] = depth_distortion(0,1);
+  distortion_d[2] = depth_distortion(0,2);
+  distortion_d[3] = depth_distortion(0,3);
+
+
+  //std::cout << "before eye_d_to_eye_rgb: " << eye_d_to_eye_rgb << std::endl;
+
+  readMatrix(calibration_file, "R", R);
+  eye_d_to_eye_rgb[0][0] = R(0,0);
+  eye_d_to_eye_rgb[0][1] = R(1,0);
+  eye_d_to_eye_rgb[0][2] = R(2,0);
+  eye_d_to_eye_rgb[0][3] = 0.0;
+
+  eye_d_to_eye_rgb[1][0] = R(0,1);
+  eye_d_to_eye_rgb[1][1] = R(1,1);
+  eye_d_to_eye_rgb[1][2] = R(2,1);
+  eye_d_to_eye_rgb[1][3] = 0.0;
+  
+  eye_d_to_eye_rgb[2][0] = R(0,2);
+  eye_d_to_eye_rgb[2][1] = R(1,2);
+  eye_d_to_eye_rgb[2][2] = R(2,2);
+  eye_d_to_eye_rgb[2][3] = 0.0;
+
+  readMatrix(calibration_file, "T", T);
+  eye_d_to_eye_rgb[3][0] = T(0,0);
+  eye_d_to_eye_rgb[3][1] = T(1,0);
+  eye_d_to_eye_rgb[3][2] = T(2,0);
+  eye_d_to_eye_rgb[3][3] = 1.0;
+
+  //std::cout << "after eye_d_to_eye_rgb: " << eye_d_to_eye_rgb << std::endl;
+
+
+
+  cv::Mat1i size_mat;
+  readMatrix(calibration_file, "rgb_size", size_mat);
+  size_rgb = glm::uvec2(size_mat(0,0), size_mat(0,1));
+  readMatrix(calibration_file, "depth_size", size_mat);
+  size_d   = glm::uvec2(size_mat(0,0), size_mat(0,1));
+
+  calibration_file.release();
+
+
+  intrinsic_rgb[0] = focal_rgb.x;
+  intrinsic_rgb[1] = 0.0f;
+  intrinsic_rgb[2] = principal_rgb.x;
+  intrinsic_rgb[3] = 0.0f;
+  intrinsic_rgb[4] = focal_rgb.y;
+  intrinsic_rgb[5] = principal_rgb.y;
+  intrinsic_rgb[6] = 0.0f;
+  intrinsic_rgb[7] = 0.0f;
+  intrinsic_rgb[8] = 1.0f;
+
+  intrinsic_d[0] = focal_d.x;
+  intrinsic_d[1] = 0.0f;
+  intrinsic_d[2] = principal_d.x;
+  intrinsic_d[3] = 0.0f;
+  intrinsic_d[4] = focal_d.y;
+  intrinsic_d[5] = principal_d.y;
+  intrinsic_d[6] = 0.0f;
+  intrinsic_d[7] = 0.0f;
+  intrinsic_d[8] = 1.0f;
+
+  return true;
+}
+
+
+void
+RGBDConfig::dump(){
+  std::cout << "RGBDConfig:" << std::endl;
+  std::cout << "size_rgb: " << size_rgb << std::endl
+	    << "size_d: " << size_d << std::endl
+	    << "focal_rgb: " << focal_rgb << std::endl
+	    << "principal_rgb: " << principal_rgb << std::endl
+	    << "focal_d: " << focal_d << std::endl
+	    << "principal_d: " << principal_d << std::endl
+	    << "eye_d_to_eye_rgb: " << eye_d_to_eye_rgb << std::endl
+	    << std::endl;
+}
+
 
 bool
 Checkerboard::save_pose_offset(const char* filename){

@@ -13,6 +13,31 @@
 #include <fstream>
 #include <vector>
 
+
+class RGBDConfig{
+public:
+  glm::uvec2 size_rgb;
+  glm::uvec2 size_d;
+
+  glm::vec2 principal_rgb;
+  glm::vec2 principal_d;
+
+  glm::vec2 focal_rgb;
+  glm::vec2 focal_d;
+
+  glm::mat4 eye_d_to_eye_rgb;
+  std::string serverport;
+
+  float intrinsic_rgb[9];
+  float distortion_rgb[5];
+
+  float intrinsic_d[9];
+  float distortion_d[5];
+
+  bool read(const char* ymlfilename);
+  void dump();
+};
+
 class shape_desc{
 public:
   shape_desc(unsigned a, unsigned b, unsigned c, unsigned d);

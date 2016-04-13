@@ -3,6 +3,7 @@
 
 #include <DataTypes.hpp>
 
+
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -65,13 +66,12 @@
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardPose& v);
 
-
   class OpenCVChessboardCornerDetector;
 
   class ChessboardSampling{
 
   public:
-    ChessboardSampling(const char* filenamebase);
+    ChessboardSampling(const char* filenamebase, const RGBDConfig& cfg, bool undist);
     virtual ~ChessboardSampling();
 
     void interactiveShow(unsigned start, unsigned end);
@@ -165,6 +165,8 @@
     std::vector<ChessboardViewRGB> m_cb_rgb;
     std::vector<ChessboardViewIR> m_cb_ir;
     std::vector<ChessboardRange> m_valid_ranges;
+    RGBDConfig m_cfg;
+    bool m_undist;
   };
 
 

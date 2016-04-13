@@ -16,12 +16,13 @@ int main(int argc, char* argv[]){
   unsigned cv_depth  = 256;
   float    cv_min_d  = 0.5;
   float    cv_max_d  = 4.5;
+  bool undistort = false;
 
   CMDParser p("calibvolumebasefilename checkerboardviewbasefilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
   p.addOpt("d",2,"depthrange", "use this depth range: 0.5 4.5");
-  
+  p.addOpt("u", -1, "undistort", "enable undistortion of images before chessboardsampling, default: false");
   p.init(argc,argv);
 
   if(p.isOptSet("p")){
@@ -40,6 +41,9 @@ int main(int argc, char* argv[]){
     cv_min_d = p.getOptsInt("d")[0];
     cv_max_d = p.getOptsInt("d")[1];
   }
+  if(p.isOptSet("u")){
+    undistort = true;
+  }
 
   const std::string basefilename = p.getArgs()[0];
   const std::string filename_yml(basefilename + "_yml");
@@ -56,7 +60,7 @@ int main(int argc, char* argv[]){
   cb.load_pose_offset(pose_offset_filename.c_str());
 
 
-  ChessboardSampling cbs(p.getArgs()[1].c_str());
+  ChessboardSampling cbs(p.getArgs()[1].c_str(), cfg, undistort);
   cbs.init();
 
   glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world_static(cbs, cb);

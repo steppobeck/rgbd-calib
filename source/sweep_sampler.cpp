@@ -15,10 +15,12 @@ int main(int argc, char* argv[]){
   float tracking_offset_time = 0.0; // in seconds
   float color_offset_time = 0.0;
   bool append_samples = false;
+  bool undistort = false;
   CMDParser p("calibbasefilename sweepfilename samplesfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("t",1,"trackingoffset", "offset in seconds of the tracking system relative to depth frame of the sensor, e.g. 0.08, default: 0.0");
   p.addOpt("c",1,"coloroffset", "offset in seconds of the color frame relative to the depth frame of the sensor , e.g. -0.02, default: 0.0");
+  p.addOpt("u", -1, "undistort", "enable undistortion of images before chessboardsampling, default: false");
   p.init(argc,argv);
 
   if(p.getArgs().size() != 3){
@@ -35,7 +37,9 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("c")){
     color_offset_time = p.getOptsFloat("c")[0];
   }
-
+  if(p.isOptSet("u")){
+    undistort = true;
+  }
 
   std::string basefilename = p.getArgs()[0];
   std::string filename_xyz(basefilename + "_xyz");
@@ -56,7 +60,7 @@ int main(int argc, char* argv[]){
     }
   }
 
-  ChessboardSampling cs(p.getArgs()[1].c_str());
+  ChessboardSampling cs(p.getArgs()[1].c_str(), cfg, undistort);
   cs.init();
   //cs.dump();
 

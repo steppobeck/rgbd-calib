@@ -3,7 +3,7 @@
 #include "ChessboardSampling.hpp"
 
 
-
+#include <OpenCVUndistortion.hpp>
 #include <OpenCVChessboardCornerDetector.hpp>
 #include <MatrixInterpolation.hpp>
 
@@ -334,12 +334,14 @@ ChessboardViewIR::calcShapeStats3D(){
   }
 
 
-  ChessboardSampling::ChessboardSampling(const char* filenamebase)
+  ChessboardSampling::ChessboardSampling(const char* filenamebase, const RGBDConfig& cfg, bool undist)
     : m_filenamebase(filenamebase),
       m_poses(),
       m_cb_rgb(),
       m_cb_ir(),
-      m_valid_ranges()
+      m_valid_ranges(),
+      m_cfg(cfg),
+      m_undist(undist)
   {}
 
 
@@ -595,14 +597,16 @@ ChessboardViewIR::calcShapeStats3D(){
 					8 /*bits per channel*/,
 					3 /*num channels*/,
 					CB_WIDTH, CB_HEIGHT,
-					true /*open window to show images*/);
+					true /*open window to show images*/,
+					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0);
 
     OpenCVChessboardCornerDetector cd_i(512,
 					424,
 					8 /*bits per channel*/,
 					1,
 					CB_WIDTH, CB_HEIGHT,
-					true /*open window to show images*/);
+					true /*open window to show images*/,
+					m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0);
 
 
 
@@ -622,6 +626,9 @@ ChessboardViewIR::calcShapeStats3D(){
       ChessboardViewIR cb_ir;
       cb_ir.valid = 1;
       infile_fr.read((char*) &cb_ir.time, sizeof(double));
+      if(m_undist){
+	std::cerr << "INFO: ChessboardSampling::showRecordingAndPoses need to implement depth undistortion" << std::endl;
+      }
       infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
       infile_fr.read((char*) ir, 512 * 424);
 
@@ -773,6 +780,14 @@ ChessboardViewIR::calcShapeStats3D(){
     }
   }
 
+
+#if 0
+undistort_rgb = new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb);
+undistort_d   = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 32 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d);
+undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d);
+#endif
+
+
   bool
   ChessboardSampling::loadRecording(){
 
@@ -803,18 +818,26 @@ ChessboardViewIR::calcShapeStats3D(){
 							 1080,
 							 8 /*bits per channel*/,
 							 3 /*num channels*/,
-							 CB_WIDTH, CB_HEIGHT, false));
+							 CB_WIDTH, CB_HEIGHT, false,
+							 m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0));
       cd_is.push_back(new OpenCVChessboardCornerDetector(512,
 							 424,
 							 8 /*bits per channel*/,
 							 1,
-							 CB_WIDTH, CB_HEIGHT, false));
+							 CB_WIDTH, CB_HEIGHT, false,
+							 m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0));
       valids.push_back(0);
     }
 
+
     size_t valid = 0;
     size_t frame_id = 0;
+
+    float* depth_in = m_undist ? new float [512 * 424] : 0;
+    OpenCVUndistortion* undistort_depth = m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y,
+									    32 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0;
     while(frame_id < num_frames){
+
 
       std::vector<size_t> targets;
       for(unsigned tid = 0; tid != num_threads; ++tid){
@@ -827,7 +850,13 @@ ChessboardViewIR::calcShapeStats3D(){
 
 	  m_cb_ir[frame_id].valid = 1;
 	  infile_fr.read((char*) &m_cb_ir[frame_id].time, sizeof(double));
-	  infile_fr.read((char*) depths[tid], 512 * 424 * sizeof(float));
+	  if(m_undist){
+	    infile_fr.read((char*) depth_in, 512 * 424 * sizeof(float));
+	    memcpy((char*) depths[tid], undistort_depth->process(depth_in), 512 * 424 * sizeof(float));
+	  }
+	  else{
+	    infile_fr.read((char*) depths[tid], 512 * 424 * sizeof(float));
+	  }
 	  infile_fr.read((char*) irs[tid], 512 * 424);
 
 	  targets.push_back(frame_id);
@@ -849,6 +878,10 @@ ChessboardViewIR::calcShapeStats3D(){
 
     }
 
+    if(m_undist){
+      delete [] depth_in;
+      delete undistort_depth;
+    }
 
     // free resources for threads
     for(unsigned tid = 0; tid != num_threads; ++tid){
@@ -887,17 +920,21 @@ ChessboardViewIR::calcShapeStats3D(){
 					8 /*bits per channel*/,
 					3 /*num channels*/,
 					CB_WIDTH, CB_HEIGHT,
-					true /*open window to show images*/);
+					true /*open window to show images*/,
+					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0);
 
     OpenCVChessboardCornerDetector cd_i(512,
 					424,
 					8 /*bits per channel*/,
 					1,
 					CB_WIDTH, CB_HEIGHT,
-					true /*open window to show images*/);
+					true /*open window to show images*/,
+					m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0);
 
 
-
+    float* depth_in = m_undist ? new float [512 * 424] : 0;
+    OpenCVUndistortion* undistort_depth = m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y,
+									    32 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0;
     unsigned valid = 0;
     std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
     const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
@@ -914,7 +951,14 @@ ChessboardViewIR::calcShapeStats3D(){
       ChessboardViewIR cb_ir;
       cb_ir.valid = 1;
       infile_fr.read((char*) &cb_ir.time, sizeof(double));
-      infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
+      if(m_undist){
+	infile_fr.read((char*) depth_in, 512 * 424 * sizeof(float));
+	memcpy((char*) depth, undistort_depth->process(depth_in), 512 * 424 * sizeof(float));
+      }
+      else{
+	infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
+      }
+      
       infile_fr.read((char*) ir, 512 * 424);
 
       // detect corners in color image
@@ -949,6 +993,11 @@ ChessboardViewIR::calcShapeStats3D(){
 
     std::cerr << "ChessboardSampling::loadRecordingSeq() loaded chessboard views: "
 	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
+
+    if(m_undist){
+      delete [] depth_in;
+      delete undistort_depth;
+    }
 
     delete [] rgb;
     delete [] depth;

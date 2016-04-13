@@ -207,6 +207,7 @@ int main(int argc, char* argv[]){
   const unsigned optimization_stride = 1;
   unsigned optimization_type = 0;
   bool append_samples = false;
+  bool undistort = false;
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep samplesfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
@@ -223,7 +224,7 @@ int main(int argc, char* argv[]){
 
   p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
 
-
+  p.addOpt("u", -1, "undistort", "enable undistortion of images before chessboardsampling, default: false");
 
   p.init(argc,argv);
 
@@ -272,7 +273,9 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("i")){
     using_nni = true;
   }
-
+  if(p.isOptSet("u")){
+    undistort = true;
+  }
 
 
   const std::string basefilename = p.getArgs()[0];
@@ -295,7 +298,7 @@ int main(int argc, char* argv[]){
     }
   }
 
-  ChessboardSampling cbs(p.getArgs()[1].c_str());
+  ChessboardSampling cbs(p.getArgs()[1].c_str(), cfg, undistort);
   cbs.init();
 
   glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world_static(cbs, cb);
@@ -339,7 +342,7 @@ int main(int argc, char* argv[]){
 
 
   // 2. load recording from sweepfilename
-  ChessboardSampling cs_sweep(p.getArgs()[2].c_str());
+  ChessboardSampling cs_sweep(p.getArgs()[2].c_str(), cfg, undistort);
   cs_sweep.init();
 
 

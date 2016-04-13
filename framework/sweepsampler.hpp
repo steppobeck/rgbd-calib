@@ -5,7 +5,7 @@
 #include <ChessboardSampling.hpp>
 
 class CalibVolume;
-class RGBDConfig;
+//class RGBDConfig;
 
 class SweepSampler{
 
