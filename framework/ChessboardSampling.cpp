@@ -594,13 +594,15 @@ ChessboardViewIR::calcShapeStats3D(){
 					1080,
 					8 /*bits per channel*/,
 					3 /*num channels*/,
-					CB_WIDTH, CB_HEIGHT);
+					CB_WIDTH, CB_HEIGHT,
+					true /*open window to show images*/);
 
     OpenCVChessboardCornerDetector cd_i(512,
 					424,
 					8 /*bits per channel*/,
 					1,
-					CB_WIDTH, CB_HEIGHT);
+					CB_WIDTH, CB_HEIGHT,
+					true /*open window to show images*/);
 
 
 
@@ -884,13 +886,15 @@ ChessboardViewIR::calcShapeStats3D(){
 					1080,
 					8 /*bits per channel*/,
 					3 /*num channels*/,
-					CB_WIDTH, CB_HEIGHT);
+					CB_WIDTH, CB_HEIGHT,
+					true /*open window to show images*/);
 
     OpenCVChessboardCornerDetector cd_i(512,
 					424,
 					8 /*bits per channel*/,
 					1,
-					CB_WIDTH, CB_HEIGHT);
+					CB_WIDTH, CB_HEIGHT,
+					true /*open window to show images*/);
 
 
 

@@ -65,6 +65,8 @@ OpenCVUndistortion::~OpenCVUndistortion(){
 void*
 OpenCVUndistortion::process(void* buffer, bool irkv1){
 
+  std::cerr << "INFO: OpenCVUndistortion::process" << std::endl;
+
 #if 0
   sensor::timevalue ts_start(sensor::clock::time());
 #endif    

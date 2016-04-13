@@ -27,14 +27,14 @@ StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_p
 					      m_sensor->config.size_rgb.y,
 					      8 /*bits per channel*/,
 					      3 /*num channels*/,
-					      CB_WIDTH, CB_HEIGHT);
+					      CB_WIDTH, CB_HEIGHT, true);
 
 
   m_cd_i = new OpenCVChessboardCornerDetector(m_sensor->config.size_d.x,
 					      m_sensor->config.size_d.y,
 					      8 /*bits per channel*/,
 					      1,
-					      CB_WIDTH, CB_HEIGHT);
+					      CB_WIDTH, CB_HEIGHT, true);
 }
 
 

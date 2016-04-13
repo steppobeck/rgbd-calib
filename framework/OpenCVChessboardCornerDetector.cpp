@@ -1,7 +1,8 @@
 #include "OpenCVChessboardCornerDetector.hpp"
 
-#include <iostream>
 
+
+#include <OpenCVUndistortion.hpp>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -9,12 +10,14 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 
+
+#include <iostream>
 #include <sstream> //for std::stringstream 
 #include <string>  //for std::string
 
 
 
-  OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages)
+OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages, OpenCVUndistortion* undist)
     : m_channels(channels),
       m_width(width),
       m_height(height),
@@ -28,7 +31,8 @@
       m_corners(new CvPoint2D32f[ board_w * board_h ]),
       m_board_w(board_w),
       m_board_h(board_h),
-      m_num_corners(board_w * board_h)
+      m_num_corners(board_w * board_h),
+      m_undist(undist)
   {
 
 
@@ -67,7 +71,13 @@
   }
 
   bool
-  OpenCVChessboardCornerDetector::process(const void* buffer, unsigned bytes, bool showimages){
+  OpenCVChessboardCornerDetector::process(void* buffer, unsigned bytes, bool showimages){
+
+    
+    if(m_undist){
+      buffer = m_undist->process(buffer, bytes);
+    }
+
 
     if(1 != m_channels){
       //std::cerr << this << " using color image " << std::endl;
@@ -90,7 +100,7 @@
       // without median filter
       memcpy(m_gray_image->imageData, buffer, bytes);
 #else
-      // with median filter
+      // with median filter which is used for Kinect V1 due to infrared pattern
       memcpy(m_tmp_image->imageData, buffer, bytes);
       cvResize(m_tmp_image, m_gray_image_f);
       cvSmooth(m_gray_image_f, m_gray_image, CV_MEDIAN, 5);

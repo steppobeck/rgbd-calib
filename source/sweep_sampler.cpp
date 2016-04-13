@@ -40,12 +40,12 @@ int main(int argc, char* argv[]){
   std::string basefilename = p.getArgs()[0];
   std::string filename_xyz(basefilename + "_xyz");
   std::string filename_uv(basefilename + "_uv");
+  const std::string filename_yml(basefilename + "_yml");
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
 
   RGBDConfig cfg;
-  cfg.size_rgb = glm::uvec2(1280, 1080);
-  cfg.size_d   = glm::uvec2(512, 424);
+  cfg.read(filename_yml.c_str());
 
   Checkerboard cb;
   cb.load_pose_offset(pose_offset_filename.c_str());

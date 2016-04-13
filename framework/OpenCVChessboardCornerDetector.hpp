@@ -6,13 +6,15 @@
 #include <opencv/cv.h>
 #include <vector>
 
+  class OpenCVUndistortion;
+
   class OpenCVChessboardCornerDetector{
 
   public:
-    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages = true);
+    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages, OpenCVUndistortion* undist = 0);
     ~OpenCVChessboardCornerDetector();
 
-    bool process(const void*, unsigned bytes, bool showimages = true);
+    bool process(void*, unsigned bytes, bool showimages = true);
 
 
   private:
@@ -30,7 +32,7 @@
     unsigned m_board_w;
     unsigned m_board_h;
     unsigned m_num_corners;
-
+    OpenCVUndistortion* m_undist;
 
   public:
     std::vector<uv> corners;
