@@ -6,37 +6,30 @@
 
 
 void
-extract_corners(ChessboardSampling* cbs,
+extract_corners(ChessboardSampling* cbs, const std::vector<unsigned>& cb_ids,
 		std::vector< std::vector<cv::Point2f> >& color_corners,
-		std::vector< std::vector<cv::Point2f> >& depth_corners,
-		const float color_offset_time,
-		const unsigned stride){
+		std::vector< std::vector<cv::Point2f> >& depth_corners){
 
-  const std::vector<ChessboardRange>& valid_ranges = cbs->getValidRanges();
+
+  std::cerr << "extracing corners from " << cb_ids.size() << " cb_ids" << std::endl;
+
   const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
-  for(const auto& r : valid_ranges){
-    for(unsigned i = r.start; i != r.end; ++i){
+  const std::vector<ChessboardViewRGB>& cb_rgbs = cbs->getRGBs();
+  for(const auto& i : cb_ids){
       
-      if((i % stride) == 0){
-	const double time = cb_irs[i].time;
-	// interpolate color_chessboard 
-	bool valid_rgb = false;
-	ChessboardViewRGB cb_rgb_i = cbs->interpolateRGB(time + color_offset_time, valid_rgb);
-	if(valid_rgb){
-	  // add 35 corners to stereo_corners of cb_rgb_i
-	  std::vector<cv::Point2f> corners_rgb;
-	  std::vector<cv::Point2f> corners_d;
-	  for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
-	    corners_rgb.push_back(cv::Point2f(cb_rgb_i.corners[idx].u,cb_rgb_i.corners[idx].v));
-	    corners_d.push_back(cv::Point2f(cb_irs[i].corners[idx].x,cb_irs[i].corners[idx].y));
-	  }
-	  color_corners.push_back(corners_rgb);
-	  depth_corners.push_back(corners_d);
-	}
-      }
+    // add 35 corners to stereo_corners of cb_rgb_i
+    std::vector<cv::Point2f> corners_rgb;
+    std::vector<cv::Point2f> corners_d;
+    for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
+      corners_rgb.push_back(cv::Point2f(cb_rgbs[i].corners[idx].u,cb_rgbs[i].corners[idx].v));
+      corners_d.push_back(cv::Point2f(cb_irs[i].corners[idx].x,cb_irs[i].corners[idx].y));
     }
+    color_corners.push_back(corners_rgb);
+    depth_corners.push_back(corners_d);
+    
   }
 
+  std::cerr << "resulting in " << color_corners.size() << " depth and color corners" << std::endl;
 }
 
 double
@@ -83,17 +76,6 @@ stereo_calibrate(const std::vector< std::vector<cv::Point2f> >& rgb_corners,
 
 
     cv::Mat E(3,3,CV_64F),F(3,3,CV_64F);
-#if 0
-    double error = cv::stereoCalibrate(pattern_points,
-				       rgb_corners, depth_corners,
-				       rgb_intrinsics, rgb_distortion,
-				       depth_intrinsics, depth_distortion,
-				       cv::Size(0,0),
-				       R, T, E, F,
-				       cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 50, 1e-6),
-				       CV_CALIB_FIX_INTRINSIC);
-#endif
-
     double error = cv::stereoCalibrate(pattern_points,
 				       depth_corners, rgb_corners,
 				       depth_intrinsics, depth_distortion,
@@ -110,11 +92,12 @@ stereo_calibrate(const std::vector< std::vector<cv::Point2f> >& rgb_corners,
 int main(int argc, char* argv[]){
 
   bool compute_distortions = false;
-  unsigned stride = 30;
   float tracking_offset_time = 0.0;
-  float color_offset_time = -0.01;
+  glm::uvec3 grid_size(16,16,16);
   CMDParser p("sweepfilename outputymlfile");
   p.addOpt("d",-1,"distortions", "compute distortion parameters: default false");
+  p.addOpt("i",-1,"interactiveshow", "show chessboards that are used for intrinsic calibration and exit without further computations");
+  p.addOpt("g",3,"gridsize", "use this grid dimensions to extract chessboard locations: default 16 16 16");
   p.init(argc,argv);
 
 
@@ -126,6 +109,14 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("d")){
     compute_distortions = true;
   }
+
+  if(p.isOptSet("g")){
+    grid_size.x = p.getOptsInt("g")[0];
+    grid_size.y = p.getOptsInt("g")[1];
+    grid_size.z = p.getOptsInt("g")[2];
+  }
+
+
 
   RGBDConfig cfg;
   cfg.size_rgb = glm::uvec2(1280, 1080);
@@ -141,12 +132,21 @@ int main(int argc, char* argv[]){
   ChessboardSampling cbs(p.getArgs()[0].c_str(), cfg, false /*do not use undistortion of images here of course!*/);
   cbs.init();
   cbs.filterSamples(tracking_offset_time);
+  const std::vector<unsigned> cbs_for_intrinsics = cbs.extractBoardsForIntrinsicsFromValidRanges(grid_size.x,grid_size.y,grid_size.z);
 
+  if(p.isOptSet("i")){
+    for(const auto& cb_id : cbs_for_intrinsics){
+      std::cerr << "cbs.interactiveShow: " << cb_id << std::endl;
+      cbs.interactiveShow(cb_id, cb_id);
+    }
+    return 0;
+  }
+  
   
   std::vector< std::vector<cv::Point2f> > rgb_stereo_corners;
   std::vector< std::vector<cv::Point2f> > depth_stereo_corners;
 
-  extract_corners(&cbs, rgb_stereo_corners, depth_stereo_corners, color_offset_time, stride);
+  extract_corners(&cbs, cbs_for_intrinsics, rgb_stereo_corners, depth_stereo_corners);
 
 
   cv::Mat1d rgb_intrinsics;

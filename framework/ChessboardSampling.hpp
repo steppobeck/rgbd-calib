@@ -90,6 +90,9 @@
       return m_cb_ir;
     }
 
+    const std::vector<ChessboardViewRGB>& getRGBs() const{
+      return m_cb_rgb;
+    }
 
     const std::vector<ChessboardPose>& getPoses() const{
       return m_poses;
@@ -109,6 +112,10 @@
     bool saveChessboards();
 
     double searchStartIR() const;
+
+    std::vector<unsigned> extractBoardsForIntrinsicsFromValidRanges(const unsigned grid_w,
+								    const unsigned grid_h,
+								    const unsigned grid_d);
 
   private:
 
@@ -147,6 +154,9 @@
 
     void invalidateAt(unsigned cb_id, unsigned window_size);
 
+    double computeCombinedBoardQuality(const unsigned cb_id);
+
+    xyz computeAverageCornerIR(const unsigned cb_id);
 
     void processPerThread(unsigned char* rgb,
 			  float* depth,

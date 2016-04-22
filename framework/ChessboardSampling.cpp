@@ -1371,16 +1371,108 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 
   }
 
+  std::vector<unsigned>
+  ChessboardSampling::extractBoardsForIntrinsicsFromValidRanges(const unsigned grid_w,
+								const unsigned grid_h,
+								const unsigned grid_d){
+
+    std::map<size_t, std::vector<unsigned>> grid;
+    for(const auto& r : m_valid_ranges){
+      for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+
+	
+	const xyz cb_avg_corner = computeAverageCornerIR(cb_id);
+	
+	// check if cb_avg_corner is out of range
+	if(cb_avg_corner.x < 0.0 || cb_avg_corner.x > 512){
+	  std::cerr << "ERROR in ChessboardSampling::extractBoardsForIntrinsicsFromValidRanges, cb_avg_corner.x out of range" << std::endl;
+	  exit(0);
+	}
+	if(cb_avg_corner.y < 0.0 || cb_avg_corner.y > 424){
+	  std::cerr << "ERROR in ChessboardSampling::extractBoardsForIntrinsicsFromValidRanges, cb_avg_corner.y out of range" << std::endl;
+	  exit(0);
+	}
+	if(cb_avg_corner.z < 0.5 || cb_avg_corner.z > 4.5){
+	  std::cerr << "ERROR in ChessboardSampling::extractBoardsForIntrinsicsFromValidRanges, cb_avg_corner.z out of range" << std::endl;
+	  exit(0);
+	}
+
+
+	// compute grid location of cb_avg_corner in [512.0][424.0][4.0]
+	const unsigned gid_x = std::round(cb_avg_corner.x/(512/grid_w));
+	const unsigned gid_y = std::round(cb_avg_corner.y/(424/grid_h));
+	const unsigned gid_z = std::round((cb_avg_corner.z - 0.5/*cv_min_d*/)/(4.0/grid_h));
+#if 0
+	std::cout << cb_id
+		  << " -> " << cb_avg_corner
+		  << " -> grid loc: " << gid_x << ", " << gid_y << ", " << gid_z
+		  << std::endl; 
+#endif
+	const size_t grid_loc = (gid_z * grid_w * grid_h) + (gid_y * grid_w) + (gid_x);
+	grid[grid_loc].push_back(cb_id);
+      }
+    }
+
+    
+    std::vector<unsigned> res;
+    for(const auto& cb_cand : grid){
+      double quality = 0.0;
+      unsigned best_cb_id = 0;
+      for(const auto& cb_id : cb_cand.second){
+	const double quality_curr = computeCombinedBoardQuality(cb_id);
+	if(quality_curr > quality){
+	  best_cb_id = cb_id;
+	  quality = quality_curr;
+	}
+      }
+      if(quality > 0.0){
+	res.push_back(best_cb_id);
+      }
+    }
+    std::cout << "extractBoardsForIntrinsicsFromValidRanges(): resulting "
+	      << res.size() << " cb_ids! from potentially " << grid.size() << std::endl;
+    return res;
+  }
+
+  double
+  ChessboardSampling::computeCombinedBoardQuality(const unsigned cb_id){
+    double qIR = 0.0;
+    double qRGB = 0.0;
+    for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
+      if(m_cb_ir[cb_id].quality[c] == 0.0 ||
+	 m_cb_rgb[cb_id].quality[c] == 0.0){
+	return 0.0;
+      }
+      qIR += m_cb_ir[cb_id].quality[c];
+      qRGB += m_cb_rgb[cb_id].quality[c];
+    }
+    return (qIR + qRGB)/(2 * CB_WIDTH * CB_HEIGHT);
+  }
+
+  xyz
+  ChessboardSampling::computeAverageCornerIR(const unsigned cb_id){
+    xyz res;
+    res.x = 0.0;
+    res.y = 0.0;
+    res.z = 0.0;
+
+    for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
+      res = res + m_cb_ir[cb_id].corners[c];
+    }
+    res.x /= CB_WIDTH * CB_HEIGHT;
+    res.y /= CB_WIDTH * CB_HEIGHT;
+    res.z /= CB_WIDTH * CB_HEIGHT;
+
+    return res;
+  }
 
   void
   ChessboardSampling::computeCornerQualityInRanges(){
     for(const auto& r : m_valid_ranges){
 
       m_cb_ir[r.start].valid = 0;
-      //m_cb_ir[r.end].valid = 0;
 
       m_cb_rgb[r.start].valid = 0;
-      //m_cb_rgb[r.end].valid = 0;
 
 
       for(unsigned cb_id = (r.start + 1); cb_id < r.end; ++cb_id){
