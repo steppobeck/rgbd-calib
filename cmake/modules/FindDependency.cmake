@@ -32,8 +32,9 @@ SET(${DEP}_LIBRARY_SEARCH_DIRS
   "/usr/lib/x86_64-linux-gnu/"
 )
 ##############################################################################
-# feedback to provide user-defined paths to search for ${DEP}
+# macros
 ##############################################################################
+# feedback to provide user-defined paths to search for ${DEP}
 MACRO (request_dep_search_directories)
 
   IF ( NOT ${DEP}_INCLUDE_DIRS )
@@ -52,6 +53,14 @@ MACRO (request_dep_search_directories)
 
 ENDMACRO (request_dep_search_directories)
 
+# get library extension depending on platform
+MACRO(add_lib_extension FILENAME FULL_FILENAME)
+  IF(UNIX)
+    SET(${FULL_FILENAME} "${FILENAME}.so")
+  ELSEIF(WIN32)
+    SET(${FULL_FILENAME} "${FILENAME}.lib")
+  ENDIF(UNIX)
+ENDMACRO(add_lib_extension)
 ##############################################################################
 # search
 ##############################################################################
@@ -81,12 +90,9 @@ IF (NOT ${DEP}_INCLUDE_DIRS)
 
 ENDIF (NOT ${DEP}_INCLUDE_DIRS)
 
-IF(UNIX)
-  SET(${DEP}_LIB_FILENAME "${DEP_LIB}.so")
-ELSEIF(WIN32)
-  SET(${DEP}_LIB_FILENAME "${DEP_LIB}.lib")
-ENDIF(UNIX)
+
 # search for library dirs
+add_lib_extension(${DEP_LIB} ${DEP}_LIB_FILENAME)
 IF ( NOT ${DEP}_LIBRARY_DIRS )
 
   SET(_${DEP}_FOUND_LIB_DIR "")
@@ -113,13 +119,14 @@ IF ( NOT ${DEP}_LIBRARY_DIRS )
     SET(${DEP}_LIBRARY_DIRS ${_${DEP}_FOUND_LIB_DIR} CACHE INTERNAL PATH "The ${DEP} library directory")
   ENDIF (NOT _${DEP}_FOUND_LIB_DIR)
 
-  # accumulate library list
+  # begin list of libraries with search library
   LIST(APPEND _${DEP}_LIBRARIES "${_${DEP}_FOUND_LIB_DIR}/${${DEP}_LIB_FILENAME}")
   # Cannot use ARGN directly with list() command.
-  # Copy to a variable first.
   SET(extra_macro_args ${ARGN})
+  # accumulate library list
   FOREACH(EXTRA_LIB ${extra_macro_args})
-    LIST(APPEND _${DEP}_LIBRARIES "${_${DEP}_FOUND_LIB_DIR}/${EXTRA_LIB}")
+    add_lib_extension(${EXTRA_LIB} EXTRA_LIB_FULL)
+    LIST(APPEND _${DEP}_LIBRARIES "${_${DEP}_FOUND_LIB_DIR}/${EXTRA_LIB_FULL}")
   ENDFOREACH(EXTRA_LIB ${extra_macro_args})
   # set library cache variable
   IF (_${DEP}_FOUND_LIB_DIR)

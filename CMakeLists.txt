@@ -22,11 +22,9 @@ find_dependency(ZMQ "zmq.h" "libzmq")
 list(APPEND INCLUDE_DIRS ${ZMQ_INCLUDE_DIRS})
 ################################
 # OpenCV
-set(OCV_INCLUDE_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/include")
-set(OCV_LIBRARY_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/lib")
-find_dependency(OCV "cv.h" "libopencv_core" "libopencv_imgproc" "libopencv_highgui" "libopencv_ml" "libopencv_video" "libopencv_features2d" "libopencv_calib3d" "libopencv_objdetect" "libopencv_legacy" "libopencv_flann")
-# include(FindOpenCV)
-# link_directories(${OPENCV_LIBRARY_DIRS})
+set(OPENCV_INCLUDE_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/include")
+set(OPENCV_LIBRARY_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/lib")
+find_dependency(OPENCV "cv.h" "libopencv_core" "libopencv_imgproc" "libopencv_highgui" "libopencv_calib3d")
 list(APPEND INCLUDE_DIRS ${OPENCV_INCLUDE_DIRS})
 ################################
 # boost
@@ -77,7 +75,7 @@ list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY}
 
 ################################
 # set link libraries
-set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
+set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 # include directories, dont display warnings
 include_directories(SYSTEM ${INCLUDE_DIRS})
 
