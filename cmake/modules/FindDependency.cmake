@@ -1,16 +1,20 @@
-#general script to search for dependency libraries and  headers 
+#general script to search for dependency libraries and headers 
 ##############################################################################
 #input variables
-#DEP
-#DEP_HEADER
-#DEP_LIB
-#custom paths
-#DEP_INCLUDE_SEARCH_DIR}
-#DEP_LIBRARY_SEARCH_DIR}
+# DEP - dependency id
+# DEP_HEADER - header file to search for
+# DEP_LIBRARY - library file to search for
+# ARGN - additional library names to put int DEP_LIBRARIES
+##############################################################################
+#path hints
+#DEP_INCLUDE_SEARCH_DIR
+#DEP_LIBRARY_SEARCH_DIR
 ##############################################################################
 #output variables
 #DEP_INCLUDE_DIRS
-#DEP_LIBRARY
+#DEP_LIBRARIES
+#DEP_LIBRARY_DIRS
+##############################################################################
 MACRO(find_dependency DEP DEP_HEADER DEP_LIB)
 ##############################################################################
 # search paths

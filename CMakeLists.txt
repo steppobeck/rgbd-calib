@@ -19,39 +19,39 @@ include(FindDependency)
 set(ZMQ_INCLUDE_SEARCH_DIR "/opt/zmq/current/include")
 set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
 find_dependency(ZMQ "zmq.h" "libzmq")
-list(APPEND INCLUDE_DIRS ${ZMQ_INCLUDE_DIRS})
+include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 ################################
 # OpenCV
 set(OPENCV_INCLUDE_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/include")
 set(OPENCV_LIBRARY_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/lib")
 find_dependency(OPENCV "cv.h" "libopencv_core" "libopencv_imgproc" "libopencv_highgui" "libopencv_calib3d")
-list(APPEND INCLUDE_DIRS ${OPENCV_INCLUDE_DIRS})
+include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 ################################
 # boost
-# include(FindBoost)
-find_package(Boost 1.36.0 REQUIRED COMPONENTS boost_thread boost_system)
-link_directories(${BOOST_LIBRARY_DIRS})
-list(APPEND INCLUDE_DIRS ${BOOST_INCLUDE_DIRS})
-set(BOOST_INCLUDE_DIRS ${BOOST_INCLUDE_DIRS} CACHE PATH "boost include dirs")
-set(BOOST_LIBRARIES ${BOOST_LIBRARIES} CACHE PATH "boost libraries")
+set(BOOST_INCLUDEDIR "/opt/boost/boost_1_55_0/include")
+set(BOOST_LIBRARYDIR "/opt/boost/boost_1_55_0/lib")
+find_package(Boost 1.54.0 REQUIRED COMPONENTS thread system)
+set(BOOST_INCLUDE_DIRS ${Boost_INCLUDE_DIRS} CACHE PATH "boost include dir")
+set(BOOST_LIBRARIES ${Boost_LIBRARIES} CACHE PATH "boost libraries")
+include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 ################################
 #CGAL
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
 set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
 find_dependency(CGAL "CGAL/basic.h" "libCGAL")
-list(APPEND INCLUDE_DIRS ${CGAL_INCLUDE_DIRS})
+include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 ################################
 #gmp
 set(GMP_INCLUDE_SEARCH_DIR "/opt/gmp/include")
 set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
 find_dependency(GMP "gmp.h" "libgmp")
-list(APPEND INCLUDE_DIRS ${GMP_INCLUDE_DIRS})
+include_directories(SYSTEM ${GMP_INCLUDE_DIRS})
 ################################
 #mpfr
 set(MPFR_INCLUDE_SEARCH_DIR "/opt/mpfr/include")
 set(MPFR_LIBRARY_SEARCH_DIR "/opt/mpfr/lib")
 find_dependency(MPFR "mpfr.h" "libmpfr")
-list(APPEND INCLUDE_DIRS ${MPFR_INCLUDE_DIRS})
+include_directories(SYSTEM ${MPFR_INCLUDE_DIRS})
 ################################
 # glfw
 set(GLFW_DIRECTORY glfw-3.0.3)
@@ -59,27 +59,26 @@ set(GLFW_INSTALL OFF CACHE STRING "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE STRING "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE STRING "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY})
-list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY}/include)
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY}/include)
 ################################
 # glm
 set(GLM_DIRECTORY glm-0.9.5.3)
-list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
 ################################
 # squish
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
-list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
 ################################
 # catch
 set(CATCH_DIRECTORY catch-1.1)
-list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
 
 ################################
 # set link libraries
 set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
-# include directories, dont display warnings
-include_directories(SYSTEM ${INCLUDE_DIRS})
 
 add_definitions(-DGLEW_STATIC)
+add_definitions(-frounding-math)
 
 ################################
 # activate C++ 11
