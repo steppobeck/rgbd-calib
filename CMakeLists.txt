@@ -24,7 +24,7 @@ include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 # OpenCV
 set(OPENCV_INCLUDE_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/include")
 set(OPENCV_LIBRARY_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/lib")
-find_dependency(OPENCV "cv.h" "libopencv_core" "libopencv_imgproc" "libopencv_highgui" "libopencv_calib3d")
+find_dependency(OPENCV "opencv/cv.h" "libopencv_core" "libopencv_imgproc" "libopencv_highgui" "libopencv_calib3d")
 include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 ################################
 # boost

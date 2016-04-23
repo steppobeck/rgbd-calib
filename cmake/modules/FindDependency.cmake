@@ -78,11 +78,14 @@ IF (NOT ${DEP}_INCLUDE_DIRS)
       NAMES ${DEP_HEADER}
         PATHS ${_SEARCH_DIR}
         NO_DEFAULT_PATH)
+    # stop search once dir is found
     IF (_CUR_SEARCH)
       LIST(APPEND _${DEP}_FOUND_INC_DIRS ${_CUR_SEARCH})
+      BREAK()
     ENDIF(_CUR_SEARCH)
-    SET(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
   ENDFOREACH(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
+  # reset search status for next search
+  SET(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
 
   IF (NOT _${DEP}_FOUND_INC_DIRS)
     request_dep_search_directories()
@@ -113,8 +116,9 @@ IF ( NOT ${DEP}_LIBRARY_DIRS )
       LIST(APPEND _${DEP}_FOUND_LIB_DIR ${_SEARCH_DIR})
       BREAK()
     ENDIF(_CUR_SEARCH)
-    SET(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
   ENDFOREACH(_SEARCH_DIR ${${DEP}_LIBRARY_SEARCH_DIRS})
+  # reset search status for next search
+  SET(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
 
   # react to search result
   IF (NOT _${DEP}_FOUND_LIB_DIR)
