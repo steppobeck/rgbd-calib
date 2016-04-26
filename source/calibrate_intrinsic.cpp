@@ -93,11 +93,9 @@ int main(int argc, char* argv[]){
 
   bool compute_distortions = false;
   float tracking_offset_time = 0.0;
-  glm::uvec3 grid_size(16,16,16);
   CMDParser p("sweepfilename outputymlfile");
   p.addOpt("d",-1,"distortions", "compute distortion parameters: default false");
   p.addOpt("i",-1,"interactiveshow", "show chessboards that are used for intrinsic calibration and exit without further computations");
-  p.addOpt("g",3,"gridsize", "use this grid dimensions to extract chessboard locations: default 16 16 16");
   p.init(argc,argv);
 
 
@@ -109,14 +107,6 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("d")){
     compute_distortions = true;
   }
-
-  if(p.isOptSet("g")){
-    grid_size.x = p.getOptsInt("g")[0];
-    grid_size.y = p.getOptsInt("g")[1];
-    grid_size.z = p.getOptsInt("g")[2];
-  }
-
-
 
   RGBDConfig cfg;
   cfg.size_rgb = glm::uvec2(1280, 1080);
@@ -131,8 +121,8 @@ int main(int argc, char* argv[]){
 
   ChessboardSampling cbs(p.getArgs()[0].c_str(), cfg, false /*do not use undistortion of images here of course!*/);
   cbs.init();
-  cbs.filterSamples(tracking_offset_time);
-  const std::vector<unsigned> cbs_for_intrinsics = cbs.extractBoardsForIntrinsicsFromValidRanges(grid_size.x,grid_size.y,grid_size.z);
+  
+  const std::vector<unsigned> cbs_for_intrinsics = cbs.getChessboardIDs();
 
   if(p.isOptSet("i")){
     for(const auto& cb_id : cbs_for_intrinsics){

@@ -3,6 +3,8 @@
 
 #include <DataTypes.hpp>
 
+
+
 class OpenCVChessboardCornerDetector;
 class CalibVolume;
 class ARTListener;
@@ -13,7 +15,7 @@ public:
 
   StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_port, unsigned art_target_id, Checkerboard* cb, bool undistort);
 
-  void sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_below_max_shaking, unsigned num_frames_to_filter);
+  void sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_below_max_shaking, unsigned num_frames_to_filter, std::ofstream* frames_file = 0);
 
   void dumpSamplePoints();
   const std::vector<samplePoint>& getSamplePoints();

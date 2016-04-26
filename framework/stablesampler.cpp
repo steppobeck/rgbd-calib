@@ -7,7 +7,7 @@
 
 #include <PoseTracker.hpp>
 #include <SampleFilter.hpp>
-
+#include <ChronoMeter.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <fstream>
@@ -42,14 +42,14 @@ StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_p
 
 
 void
-StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_below_max_shaking, unsigned num_frames_to_filter){
+StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_frames_below_max_shaking, unsigned num_frames_to_filter, std::ofstream* frames_file){
 
 
   const unsigned pixelcountc = m_sensor->config.size_rgb.x * m_sensor->config.size_rgb.y;
   const unsigned pixelcount = m_sensor->config.size_d.x * m_sensor->config.size_d.y;
   const unsigned colorsize = pixelcountc * 3 * sizeof(unsigned char);
   const unsigned irsize = pixelcount * sizeof(unsigned char);
-
+  const unsigned depthsize = pixelcount * sizeof(float);
 
   unsigned num_frames_token = 0;
   SampleFilter sfilt(CB_WIDTH * CB_HEIGHT);
@@ -161,6 +161,16 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
       
   }
 
+
+  if(0 != frames_file){
+    static ChronoMeter cmeter;
+    double tick = cmeter.getTick();
+    frames_file->write((const char*) &tick, sizeof(double));
+    frames_file->write((const char*) m_sensor->frame_rgb, colorsize);
+    frames_file->write((const char*) &tick, sizeof(double));
+    frames_file->write((const char*) m_sensor->frame_d, depthsize);
+    frames_file->write((const char*) m_sensor->frame_ir, irsize);
+  }
 
 
 }

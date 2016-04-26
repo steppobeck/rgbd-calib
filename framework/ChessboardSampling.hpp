@@ -116,6 +116,9 @@
     std::vector<unsigned> extractBoardsForIntrinsicsFromValidRanges(const unsigned grid_w,
 								    const unsigned grid_h,
 								    const unsigned grid_d);
+    std::vector<unsigned> getChessboardIDs();
+
+
 
   private:
 

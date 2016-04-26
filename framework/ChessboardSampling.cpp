@@ -1434,6 +1434,24 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     return res;
   }
 
+
+
+  std::vector<unsigned>
+  ChessboardSampling::getChessboardIDs(){
+    gatherValidRanges();
+    std::vector<unsigned> res;
+    for(auto& r : m_valid_ranges){
+      std::cout << r << std::endl;
+      for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
+	res.push_back(cb_id);
+      }
+    }
+    std::cout << "getChessboardIDs(): resulting in "
+	      << res.size() << " cb_ids" << std::endl;
+    return res;
+  }
+
+
   double
   ChessboardSampling::computeCombinedBoardQuality(const unsigned cb_id){
     double qIR = 0.0;
