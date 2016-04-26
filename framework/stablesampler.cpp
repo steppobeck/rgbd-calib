@@ -3,6 +3,7 @@
 #include <calibvolume.hpp>
 #include <ARTListener.hpp>
 #include <OpenCVChessboardCornerDetector.hpp>
+#include <OpenCVUndistortion.hpp>
 
 #include <PoseTracker.hpp>
 #include <SampleFilter.hpp>
@@ -12,7 +13,7 @@
 #include <fstream>
 
 
-StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_port, unsigned art_target_id, Checkerboard* cb)
+StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_port, unsigned art_target_id, Checkerboard* cb, bool undistort)
   : m_sensor(sensor),
     m_cv(cv),
     m_artl(new ARTListener),
@@ -27,14 +28,16 @@ StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_p
 					      m_sensor->config.size_rgb.y,
 					      8 /*bits per channel*/,
 					      3 /*num channels*/,
-					      CB_WIDTH, CB_HEIGHT, true);
+					      CB_WIDTH, CB_HEIGHT, true,
+					      undistort ? new OpenCVUndistortion(m_sensor->config.size_rgb.x, m_sensor->config.size_rgb.y, 8 /*bits per channel*/, 3, m_sensor->config.intrinsic_rgb, m_sensor->config.distortion_rgb) : 0);
 
 
   m_cd_i = new OpenCVChessboardCornerDetector(m_sensor->config.size_d.x,
 					      m_sensor->config.size_d.y,
 					      8 /*bits per channel*/,
 					      1,
-					      CB_WIDTH, CB_HEIGHT, true);
+					      CB_WIDTH, CB_HEIGHT, true,
+					      undistort ? new OpenCVUndistortion(m_sensor->config.size_d.x, m_sensor->config.size_d.y, 8 /*bits per channel*/, 1, m_sensor->config.intrinsic_d, m_sensor->config.distortion_d) : 0);
 }
 
 

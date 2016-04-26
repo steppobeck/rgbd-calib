@@ -19,6 +19,7 @@ int main(int argc, char* argv[]){
   unsigned arttargetid = 6;
   unsigned num_locations_to_sample = 1;
   bool append_samples = false;
+  bool undistort = false;
   CMDParser p("basefilename samplesfilename serverport");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("m",1,"max_shaking_speed", "use this maximum speed in meter/frame the checkerboard should have, default: 0.0005");
@@ -28,7 +29,7 @@ int main(int argc, char* argv[]){
   p.addOpt("i",1,"id", "the A.R.T target id of the checkerboard transform, default: 6");
 
   p.addOpt("s",1,"num_locations_to_sample", "specify how many board locations should be sampled, default: 1");
-
+  p.addOpt("u", -1, "undistort", "enable undistortion of images before chessboardsampling, default: false");
   p.init(argc,argv);
 
   if(p.getArgs().size() != 3){
@@ -59,6 +60,10 @@ int main(int argc, char* argv[]){
     num_locations_to_sample = p.getOptsInt("s")[0];
   }
 
+  if(p.isOptSet("u")){
+    undistort = true;
+  }
+
   std::string basefilename = p.getArgs()[0];
   std::string filename_xyz(basefilename + "_xyz");
   std::string filename_uv(basefilename + "_uv");
@@ -83,7 +88,7 @@ int main(int argc, char* argv[]){
 
 
 
-  StableSampler ss(&sensor, &cv, artport, arttargetid, &cb);
+  StableSampler ss(&sensor, &cv, artport, arttargetid, &cb, undistort);
 
   // sample board locations
   while(num_locations_to_sample > 0){
