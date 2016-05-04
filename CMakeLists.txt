@@ -77,7 +77,9 @@ include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTOR
 # set link libraries
 set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 
+################################
 add_definitions(-DGLEW_STATIC)
+# to prevent CGAL assertion fail 
 add_definitions(-frounding-math)
 
 ################################
@@ -110,6 +112,8 @@ else()
   SET(LIBRARY_OUTPUT_PATH  ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 endif()
 
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # framework
 add_subdirectory(framework)
 # applications
@@ -123,3 +127,10 @@ mark_as_advanced(GLFW_BUILD_DOCS GLFW_BUILD_TESTS GLFW_INSTALL GLFW_BUILD_EXAMPL
 #squish
 mark_as_advanced(BUILD_SQUISH_WITH_SSE2 BUILD_SQUISH_WITH_ALTIVEC
  BUILD_SHARED_LIBS BUILD_SQUISH_EXTRA)
+
+################################
+#if user didnt set install dir, override it and write it to the cache -> Type and description necessary,
+#overwrite variable, not just write it to cache
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install" CACHE STRING "Install path prefix, prepended onto install directories." FORCE)
+endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
