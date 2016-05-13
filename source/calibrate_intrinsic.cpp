@@ -93,7 +93,7 @@ int main(int argc, char* argv[]){
 
   bool compute_distortions = false;
   float tracking_offset_time = 0.0;
-  CMDParser p("sweepfilename outputymlfile");
+  CMDParser p("intrinsic_stream_filename outputymlfile");
   p.addOpt("d",-1,"distortions", "compute distortion parameters: default false");
   p.addOpt("i",-1,"interactiveshow", "show chessboards that are used for intrinsic calibration and exit without further computations");
   p.init(argc,argv);
