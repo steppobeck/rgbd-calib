@@ -1,0 +1,5 @@
+libopencv-calib3d-dev
+libzmq-dev
+libcgal10-dev
+libmpfr-dev
+libgmp-dev
