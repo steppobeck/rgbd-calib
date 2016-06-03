@@ -382,7 +382,8 @@ ChessboardViewIR::calcShapeStats3D(){
   void
   ChessboardSampling::interactiveShow(unsigned start, unsigned end){
     bool res = false;
-    res = loadPoses();
+    //res = loadPoses();
+    std::cerr << "ALARM: not loading chessboard poses. howver, this should not be a problem here" << std::endl;
     res = showRecordingAndPoses(start, end);
   }
 
