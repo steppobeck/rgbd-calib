@@ -120,7 +120,7 @@ int main(int argc, char* argv[]){
   }
 
   ChessboardSampling cbs(p.getArgs()[0].c_str(), cfg, false /*do not use undistortion of images here of course!*/);
-  cbs.init();
+  cbs.init(false /*do not load poses because they are not available here*/);
   
   const std::vector<unsigned> cbs_for_intrinsics = cbs.getChessboardIDs();
 

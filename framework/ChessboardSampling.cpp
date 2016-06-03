@@ -364,7 +364,7 @@ ChessboardViewIR::calcShapeStats3D(){
   }
 
   bool
-  ChessboardSampling::init(){
+  ChessboardSampling::init(bool load_poses){
     bool res = false;
     if(needToReload()){
       res = loadRecording();
@@ -373,7 +373,9 @@ ChessboardViewIR::calcShapeStats3D(){
     else{
       res = loadChessboards();
     }
-    res = loadPoses();
+    if(load_poses){
+      res = loadPoses();
+    }
     return res;
   }
 

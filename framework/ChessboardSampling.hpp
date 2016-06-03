@@ -76,7 +76,7 @@
 
     void interactiveShow(unsigned start, unsigned end);
 
-    bool init();
+    bool init(bool load_poses = true);
 
     void dump();
 

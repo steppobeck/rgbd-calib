@@ -8,7 +8,7 @@
 
 int main(int argc, char* argv[]){
 
-  std::string pose_offset_filename = "../../../source/poseoffset";
+  std::string pose_offset_filename = "./poseoffset";
   unsigned art_port = 5000;
   unsigned target_id = 6;
   unsigned correction_id = 8;

@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[]){
 
-  const std::string pose_offset_filename = "../../../source/poseoffset";
+  const std::string pose_offset_filename = "./poseoffset";
   float    max_shaking_speed = 0.0005; // speed in meter/frames
   unsigned min_num_frames_below_max_shaking = 30;
   unsigned num_frames_to_filter = 30;

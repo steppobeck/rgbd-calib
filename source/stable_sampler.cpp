@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[]){
 
-  std::string pose_offset_filename = "../../../source/poseoffset";
+  std::string pose_offset_filename = "./poseoffset";
   float    max_shaking_speed = 0.0005; // speed in meter/frames
   unsigned min_num_frames_below_max_shaking = 30;
   unsigned num_frames_to_filter = 30;
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]){
   bool append_samples = false;
   bool undistort = false;
   CMDParser p("basefilename samplesfilename serverport");
-  p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
+  p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("m",1,"max_shaking_speed", "use this maximum speed in meter/frame the checkerboard should have, default: 0.0005");
   p.addOpt("f",1,"min_num_frames_below_max_shaking", "use minimum number of frames the checkerboard should stay under max_shaking_speed, default: 30");
   p.addOpt("x",1,"num_frames_to_filter", "filter number of frames, default: 30");

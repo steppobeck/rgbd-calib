@@ -10,7 +10,7 @@
 
 int main(int argc, char* argv[]){
 
-  std::string pose_offset_filename = "../../../source/poseoffset";
+  std::string pose_offset_filename = "./poseoffset";
   unsigned cv_width  = 128;
   unsigned cv_height = 128;
   unsigned cv_depth  = 256;
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]){
   bool undistort = false;
 
   CMDParser p("calibvolumebasefilename checkerboardviewinitfilename");
-  p.addOpt("p",1,"poseoffetfilename", "specify the filename where to store the poseoffset on disk, default: " + pose_offset_filename);
+  p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
   p.addOpt("d",2,"depthrange", "use this depth range: 0.5 4.5");
   p.addOpt("u", -1, "undistort", "enable undistortion of images before chessboardsampling, default: false");

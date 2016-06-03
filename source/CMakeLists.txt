@@ -73,3 +73,6 @@ install(TARGETS play_sweep DESTINATION bin)
 add_executable(convert_recording_to_point_cloud convert_recording_to_point_cloud.cpp)
 target_link_libraries(convert_recording_to_point_cloud framework)
 install(TARGETS convert_recording_to_point_cloud DESTINATION bin)
+
+install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "poseoffset")
+
