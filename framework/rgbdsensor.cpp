@@ -61,8 +61,14 @@ RGBDSensor::RGBDSensor(const RGBDConfig& cfg, unsigned num_of_slaves)
 
   if(config.serverport != ""){
     m_socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+
+#if ZMQ_VERSION_MAJOR < 3
     uint64_t hwm = 1;
     m_socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
+#else
+    uint32_t hwm = 1;
+    m_socket.setsockopt(ZMQ_RCVHWM,&hwm, sizeof(hwm));
+#endif
     std::string endpoint("tcp://" + cfg.serverport);
     //std::cout << "opening socket connection to: " << endpoint << std::endl;
     m_socket.connect(endpoint.c_str());

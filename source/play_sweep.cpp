@@ -34,9 +34,14 @@ int main(int argc, char* argv[]){
 
 
   zmq::context_t ctx(1); // means single threaded
-  zmq::socket_t  socket(ctx, ZMQ_PUB); // means a subscriber
-  uint64_t hwm = 1; 
+  zmq::socket_t  socket(ctx, ZMQ_PUB); // means a publisher
+#if ZMQ_VERSION_MAJOR < 3
+  uint64_t hwm = 1;
   socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
+#else
+  uint32_t hwm = 1;
+  socket.setsockopt(ZMQ_SNDHWM,&hwm, sizeof(hwm));
+#endif 
   std::string endpoint("tcp://" + p.getArgs()[1]);
   socket.bind(endpoint.c_str());
 
