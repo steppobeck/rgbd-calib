@@ -24,6 +24,12 @@ public:
 
   double evaluateShapes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride = 1);
 
+  double evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, Checkerboard* cb, const RGBDConfig& cfg, float delta_t_pose, unsigned stride = 1);
+
+  double evaluate2DError(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, float delta_t_color, unsigned stride = 1);
+
+
+
   static void idw_interpolate(const std::vector<nniSample>& neighbours, const unsigned idw_neigbours, nniSample& ipolant, const float max_influence_dist);
 
 private:

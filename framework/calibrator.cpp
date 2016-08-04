@@ -593,6 +593,142 @@ Calibrator::evaluateShapes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDC
   return mean;
 }
 
+double
+Calibrator::evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, Checkerboard* cb, const RGBDConfig& cfg, float delta_t_pose, unsigned stride){
+
+  const unsigned cv_width = cv->width;
+  const unsigned cv_height = cv->height;
+  const unsigned cv_depth = cv->depth;
+
+
+  std::vector<double> errors_3D;
+  const std::vector<ChessboardRange>& valid_ranges = cbs->getValidRanges();
+  const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
+
+  for(const auto& r : valid_ranges){
+    for(unsigned cb_id = r.start; cb_id != r.end; ++cb_id){
+
+      if((cb_id % stride) == 0){
+
+	const double time = cb_irs[cb_id].time;
+	// retrieve chessboards_pose
+	bool valid_pose = false;
+	glm::mat4 cb_transform = cbs->interpolatePose(time + delta_t_pose, valid_pose);
+	if(!valid_pose){
+	  continue;
+	}
+
+
+	std::vector<double> cb_errors_3D;
+	for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
+
+	  // calculate calibrated position
+	  const xyz corner = cb_irs[cb_id].corners[idx];
+	  const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
+	  const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
+	  const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
+	  xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
+	  glm::vec3 pos_calib(pos.x,pos.y,pos.z);
+	  // calculate ground truth position
+	  glm::vec4 pos_realH = (cb->pose_offset * cb_transform) * glm::vec4(cb->points_local[idx].x,
+									     cb->points_local[idx].y,
+									     cb->points_local[idx].z, 1.0f);
+	  glm::vec3 pos_gt = glm::vec3(pos_realH.x, pos_realH.y, pos_realH.z);
+
+	  cb_errors_3D.push_back(glm::length(pos_calib - pos_gt));
+
+	}
+
+	double cb_mean;
+	double cb_sd;
+	calcMeanSD(cb_errors_3D, cb_mean, cb_sd);
+	errors_3D.push_back(cb_mean);
+      }
+
+    }
+  }
+
+
+  double mean;
+  double sd;
+  calcMeanSD(errors_3D, mean, sd);
+
+  return mean;
+
+}
+
+
+double
+Calibrator::evaluate2DError(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, float delta_t_color, unsigned stride){
+
+
+  const unsigned cv_width = cv->width;
+  const unsigned cv_height = cv->height;
+  const unsigned cv_depth = cv->depth;
+
+
+  std::vector<double> errors_2D;
+  const std::vector<ChessboardRange>& valid_ranges = cbs->getValidRanges();
+  const std::vector<ChessboardViewIR>& cb_irs = cbs->getIRs();
+
+  for(const auto& r : valid_ranges){
+    for(unsigned cb_id = r.start; cb_id != r.end; ++cb_id){
+
+      if((cb_id % stride) == 0){
+
+	const double time = cb_irs[cb_id].time;
+	// retrieve color chessboard view
+	bool valid_color = false;
+	ChessboardViewRGB cb_rgb_i = cbs->interpolateRGB(time + delta_t_color, valid_color);
+	if(!valid_color){
+	  continue;
+	}
+
+
+	std::vector<double> cb_errors_2D;
+	for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
+
+	  // look up calibrated color coordinate
+	  const xyz corner = cb_irs[cb_id].corners[idx];
+	  const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
+	  const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
+	  const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
+
+	  // normalized
+	  uv  cc_calib = getTrilinear(cv->cv_uv, cv_width, cv_height, cv_depth, x , y , z );
+	  // renormalize
+	  glm::vec2 cc_calib_pixel(cc_calib.u * cfg.size_rgb.x, cc_calib.v * cfg.size_rgb.y);
+
+	  // retrieve ground truth color coordinate, already in pixels
+	  uv  cc_gt(cb_rgb_i.corners[idx]);
+	  glm::vec2 cc_gt_pixel(cc_gt.u, cc_gt.v);
+
+	  std::cerr << "cb_id: " << cb_id << " corner idx: " << idx
+		    << " cc_calib_pixel -> cc_gt_pixel: "
+		    << cc_calib_pixel[0] << ", " << cc_calib_pixel[1] << " -> "
+		    << cc_gt_pixel[0] << ", " << cc_gt_pixel[1] << std::endl;
+
+	  cb_errors_2D.push_back(glm::length(cc_calib_pixel - cc_gt_pixel));
+
+	}
+
+	double cb_mean;
+	double cb_sd;
+	calcMeanSD(cb_errors_2D, cb_mean, cb_sd);
+	errors_2D.push_back(cb_mean);
+      }
+
+    }
+  }
+
+
+  double mean;
+  double sd;
+  calcMeanSD(errors_2D, mean, sd);
+
+  return mean;
+
+}
 
 
 void
