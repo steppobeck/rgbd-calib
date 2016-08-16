@@ -15,13 +15,13 @@
 
 int main(int argc, char* argv[]){
   bool using_nni = false;
-  CMDParser p("calibvolumebasefilename groundtruthsamplesfile");
+  CMDParser p("calibvolume_xyz calibvolume_uv  groundtruthsamplesfile");
   p.addOpt("i",-1,"nni", "calibration was performed using natural neighbor interpolation, default: false");
   p.init(argc,argv);
 
 
 
-  if(p.getArgs().size() != 2)
+  if(p.getArgs().size() != 3)
     p.showHelp();
 
   if(p.isOptSet("i")){
@@ -34,15 +34,14 @@ int main(int argc, char* argv[]){
   cfg.size_d   = glm::uvec2(512, 424);
 
 
-  std::string basefilename = p.getArgs()[0];
-  std::string filename_xyz(basefilename + "_xyz");
-  std::string filename_uv(basefilename + "_uv");
+  std::string filename_xyz(p.getArgs()[0]);
+  std::string filename_uv(p.getArgs()[1]);
 
 
   // load samples from filename
   std::vector<samplePoint> sps;
 
-  std::ifstream iff(p.getArgs()[1].c_str(), std::ifstream::binary);
+  std::ifstream iff(p.getArgs()[2].c_str(), std::ifstream::binary);
   const unsigned num_samples_in_file = calcNumFrames(iff,
 						     sizeof(float) +
 						     sizeof(uv) +
@@ -67,7 +66,7 @@ int main(int argc, char* argv[]){
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
   Calibrator   c;
-  c.evaluateSamples(&cv, sps, cfg, basefilename.c_str(), using_nni);
+  c.evaluateSamples(&cv, sps, cfg, p.getArgs()[0].c_str() , using_nni);
 
   return 0;
 }

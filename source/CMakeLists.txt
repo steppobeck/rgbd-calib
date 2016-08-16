@@ -58,6 +58,10 @@ add_executable(evaluate evaluate.cpp)
 target_link_libraries(evaluate framework)
 install(TARGETS evaluate DESTINATION bin)
 
+add_executable(split_samples split_samples.cpp)
+target_link_libraries(split_samples framework)
+install(TARGETS split_samples DESTINATION bin)
+
 add_executable(record record.cpp)
 target_link_libraries(record framework)
 install(TARGETS record DESTINATION bin)

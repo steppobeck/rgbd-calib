@@ -57,11 +57,12 @@ Calibrator::~Calibrator(){
 
 
 void
-Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours, const char* basefilename){
+Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours, const char* basefilename, RGBDSensor* sensor, const glm::mat4* eye_d_to_world){
 
   auto start_time = std::chrono::system_clock::now();
   //CGAL : build Tree, search 100 neighbors, try NNI of neighbourhood, fallback to IDW small neighborhood
-  std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! applying " << sps.size() << " for volume" << std::endl;
+  std::cout << "INFO: Calibrator::applySamples applying " << sps.size()
+	    << " for volume using on-the-fly initial calibration: " << (sensor != 0 ? "yes" : "no") << std::endl;
 
   std::vector<nniSample> nnisamples;
 
@@ -69,11 +70,6 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     
     nniSample nnis;
     nnis.quality = sps[s/*sample point*/].quality;
-    
-    nnis.s_pos_off = sps[s/*sample point*/].pos_offset;
-    nnis.s_tex_off  = sps[s/*sample point*/].tex_offset;
-    // calculate distance from volume pos to sample pos
-    
 
     nnis.s_pos_cs  = sps[s/*sample point*/].pos_real;
 
@@ -81,8 +77,66 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     nnis.s_pos.y = cv->height *  ( sps[s].tex_depth.v)/ cfg.size_d.y;
     nnis.s_pos.z = cv->depth  *  (sps[s].depth - cv->min_d) / (cv->max_d - cv->min_d);
     if( !((sps[s].depth > cv->min_d) && (sps[s].depth < cv->max_d)) ){
-      std::cerr << "INFO: calibrator.cpp: skipping sample because invalid depth: " << sps[s] << std::endl;
+      std::cerr << "ERROR: calibrator.cpp: skipping sample because invalid depth: " << sps[s] << std::endl;
+      continue;
     }
+
+
+    // here we will introduce a small error because we have a tri-linear interpolation already in the first stage
+    nnis.s_pos_off = sps[s/*sample point*/].pos_offset; // in world coordinates (metric) 
+    nnis.s_tex_off = sps[s/*sample point*/].tex_offset; // normalized between 0...1
+
+    if(0 && sensor && eye_d_to_world /*use on the fly offset computation from initial calibration to avoid above error*/){
+
+      const float depth = sps[s].depth;
+      const float xd = sps[s].tex_depth.u;
+      const float yd = sps[s].tex_depth.v;
+
+      glm::vec3 pos3D_local = sensor->calc_pos_d(xd, yd, depth);
+      glm::vec2 pos2D_rgb   = sensor->calc_pos_rgb(pos3D_local);
+      pos2D_rgb.x /= sensor->config.size_rgb.x;
+      pos2D_rgb.y /= sensor->config.size_rgb.y;
+
+      glm::vec4 pos3D_world = (*eye_d_to_world) * glm::vec4(pos3D_local.x, pos3D_local.y, pos3D_local.z, 1.0);
+
+      xyz pos3D;
+      pos3D.x = pos3D_world.x;
+      pos3D.y = pos3D_world.y;
+      pos3D.z = pos3D_world.z;
+      
+      
+      uv posUV;
+      posUV.u = pos2D_rgb.x;
+      posUV.v = pos2D_rgb.y;
+      //std::cout << "INFO: s_pos_off before: " << nnis.s_pos_off << std::endl;
+#if 0
+      xyz pos_tmp;
+      xyz pos_tmp_tri = getTrilinear(cv->cv_xyz, cv->width, cv->height, cv->depth,
+				     nnis.s_pos.x ,nnis.s_pos.y , nnis.s_pos.z );
+      pos_tmp.x = sps[s/*sample point*/].pos_real[0] - pos_tmp_tri.x;
+      pos_tmp.y = sps[s/*sample point*/].pos_real[1] - pos_tmp_tri.y;
+      pos_tmp.z = sps[s/*sample point*/].pos_real[2] - pos_tmp_tri.z;
+#endif
+      //std::cout << "INFO: s_pos_off with Trilinear: " << pos_tmp << std::endl;
+      //std::cout << "INFO: pos_tmp_tri: " << pos_tmp_tri << std::endl;
+      //std::cout << "INFO: pos3D_onthefly: " << pos3D << std::endl;
+      
+      nnis.s_pos_off.x = sps[s/*sample point*/].pos_real[0] - pos3D.x;
+      nnis.s_pos_off.y = sps[s/*sample point*/].pos_real[1] - pos3D.y;
+      nnis.s_pos_off.z = sps[s/*sample point*/].pos_real[2] - pos3D.z;
+      //std::cout << "INFO: s_pos_off after: " << nnis.s_pos_off << std::endl;
+      uv sps_tex_color_norm = sps[s/*sample point*/].tex_color;
+      sps_tex_color_norm.u /= sensor->config.size_rgb.x;
+      sps_tex_color_norm.v /= sensor->config.size_rgb.y;
+      //std::cout << "INFO: s_tex_off before: " << nnis.s_tex_off << std::endl;
+      nnis.s_tex_off = sps_tex_color_norm - posUV;
+      //std::cout << "INFO: s_tex_off after: " << nnis.s_tex_off << std::endl;
+    }
+
+    
+    
+
+
     //std::cerr << s << " " << nnis << std::endl;
     nnisamples.push_back(nnis);
   }
@@ -594,7 +648,7 @@ Calibrator::evaluateShapes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDC
 }
 
 double
-Calibrator::evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, Checkerboard* cb, const RGBDConfig& cfg, float delta_t_pose, unsigned stride){
+Calibrator::evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, const Checkerboard* cb, const RGBDConfig& cfg, float delta_t_pose, unsigned stride){
 
   const unsigned cv_width = cv->width;
   const unsigned cv_height = cv->height;

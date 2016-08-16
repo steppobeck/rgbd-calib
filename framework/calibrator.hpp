@@ -16,7 +16,8 @@ public:
   Calibrator();
   ~Calibrator();
 
-  void applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours, const char* basefilename);
+  void applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours, const char* basefilename,
+		    RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0);
   void evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const char* basefilename, bool isnni);
 
 
@@ -24,7 +25,7 @@ public:
 
   double evaluateShapes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride = 1);
 
-  double evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, Checkerboard* cb, const RGBDConfig& cfg, float delta_t_pose, unsigned stride = 1);
+  double evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, const Checkerboard* cb, const RGBDConfig& cfg, float delta_t_pose, unsigned stride = 1);
 
   double evaluate2DError(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, float delta_t_color, unsigned stride = 1);
 
