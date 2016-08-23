@@ -108,7 +108,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
       uv posUV;
       posUV.u = pos2D_rgb.x;
       posUV.v = pos2D_rgb.y;
-      //std::cout << "INFO: s_pos_off before: " << nnis.s_pos_off << std::endl;
+      std::cout << "INFO: s_pos_off before: " << nnis.s_pos_off << std::endl;
 #if 0
       xyz pos_tmp;
       xyz pos_tmp_tri = getTrilinear(cv->cv_xyz, cv->width, cv->height, cv->depth,
@@ -124,13 +124,13 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
       nnis.s_pos_off.x = sps[s/*sample point*/].pos_real[0] - pos3D.x;
       nnis.s_pos_off.y = sps[s/*sample point*/].pos_real[1] - pos3D.y;
       nnis.s_pos_off.z = sps[s/*sample point*/].pos_real[2] - pos3D.z;
-      //std::cout << "INFO: s_pos_off after: " << nnis.s_pos_off << std::endl;
+      std::cout << "INFO: s_pos_off after: " << nnis.s_pos_off << std::endl;
       uv sps_tex_color_norm = sps[s/*sample point*/].tex_color;
       sps_tex_color_norm.u /= sensor->config.size_rgb.x;
       sps_tex_color_norm.v /= sensor->config.size_rgb.y;
-      //std::cout << "INFO: s_tex_off before: " << nnis.s_tex_off << std::endl;
+      std::cout << "INFO: s_tex_off before: " << nnis.s_tex_off << std::endl;
       nnis.s_tex_off = sps_tex_color_norm - posUV;
-      //std::cout << "INFO: s_tex_off after: " << nnis.s_tex_off << std::endl;
+      std::cout << "INFO: s_tex_off after: " << nnis.s_tex_off << std::endl;
     }
 
     

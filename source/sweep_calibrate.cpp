@@ -374,6 +374,7 @@ int main(int argc, char* argv[]){
   unsigned optimization_type_pose_offset = 0;
   bool append_samples = false;
   bool undistort = false;
+  bool without_initial = false;
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep samplesfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
@@ -392,6 +393,8 @@ int main(int argc, char* argv[]){
   p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
 
   p.addOpt("u", -1, "undistort", "enable undistortion of images before chessboardsampling, default: false");
+
+  p.addOpt("w", -1, "without", "do not use initial calibration, default: false");
 
   p.init(argc,argv);
 
@@ -445,7 +448,9 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("u")){
     undistort = true;
   }
-
+  if(p.isOptSet("w")){
+    without_initial = true;
+  }
 
   const std::string basefilename = p.getArgs()[0];
   std::string filename_xyz(basefilename + "_xyz");
@@ -495,11 +500,20 @@ int main(int argc, char* argv[]){
 	pos3D.x = pos3D_world.x;
 	pos3D.y = pos3D_world.y;
 	pos3D.z = pos3D_world.z;
+	if(without_initial){
+	  pos3D.x = 0.0;
+	  pos3D.y = 0.0;
+	  pos3D.z = 0.0;
+	}
 	cv_init.cv_xyz[cv_index] = pos3D;
 
 	uv posUV;
 	posUV.u = pos2D_rgb.x;
 	posUV.v = pos2D_rgb.y;
+	if(without_initial){
+	  posUV.u = 0.0;
+	  posUV.v = 0.0;
+	}
 	cv_init.cv_uv[cv_index] = posUV;
       }
     }
