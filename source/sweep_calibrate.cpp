@@ -119,18 +119,29 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
 	     const float color_offset_time,
 	     const unsigned optimization_stride,
 	     const unsigned idwneighbours,
+	     std::ofstream* logfile,
 	     bool using_nni,
 	     const std::string& basefilename,
 	     RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
   
+  if(logfile != 0){
+    *logfile << "refine" << std::endl;
+    *logfile << "tracking_offset_time;avg_quality;best_tracking_offset_time;best_avg_quality" << std::endl;
+  }
 
   const double min_gradient  = 0.000001;
   const double gradient_step = 0.03;
   const double step = 1.0;
   float tracking_offset_time = best_tracking_offset_time;
+  float avg_quality = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+				    tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename,
+				    sensor, eye_d_to_world);
 
-  std::cout << "refine: starting refinement at "
-	    << std::setprecision(10) << tracking_offset_time << std::endl;
+  std::cout << "refine: starting refinement at " << std::setprecision(10) << tracking_offset_time << std::endl;
+
+  if(logfile != 0){
+    *logfile << tracking_offset_time << ";" << (avg_quality-0.999)*1000.0 << ";" << 0.0 << ";" << 0.0 << std::endl;
+  }
 
   for(unsigned rs = 0; rs < 15; ++rs){
     std::cout << "refine: refining at "
@@ -142,6 +153,14 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
 				     sensor, eye_d_to_world);
     std::cout << rs << " refine: at " << std::setprecision(10)
 	      << tracking_offset_time << " gradient is " << gradient << std::endl;
+
+    avg_quality = sampleQuality(filename_xyz, filename_uv, cs_sweep, cfg, cb,
+				tracking_offset_time, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename,
+				sensor, eye_d_to_world);
+    if(logfile != 0){
+      *logfile << tracking_offset_time << ";" << (avg_quality-0.999)*1000.0 << ";" << 0.0 << ";" << 0.0 << std::endl;
+    }
+
     if(std::abs(gradient) > min_gradient){
       tracking_offset_time = tracking_offset_time + step * gradient;
     }
@@ -209,10 +228,10 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
 				   x3, color_offset_time, optimization_stride, idwneighbours, using_nni, basefilename,
 				   sensor, eye_d_to_world);
 
-  if(logfile != 0){
+  if(logfile != 0){ // (avg_quality - 0.999)*1000.0
     printParabolaToLog(x1, x2, 0.001,
 		       x1, x2, x3,
-		       y1, y2, y3,
+		       (y1 - 0.999)*1000.0, (y2-0.999)*1000.0, (y3-0.999)*1000.0,
 		       logfile);
   }
 
@@ -262,8 +281,8 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
       best_tracking_offset_time = tracking_offset_time;
     }
 
-    if(logfile != 0){
-      *logfile << tracking_offset_time << ";" << std::setprecision(10) << avg_quality << ";" << best_tracking_offset_time << ";" << std::setprecision(10) << best_avg_quality << std::endl;
+    if(logfile != 0){ // (avg_quality - 0.999)*1000.0
+      *logfile << tracking_offset_time << ";" << std::setprecision(10) << (avg_quality - 0.999)*1000.0 << ";" << best_tracking_offset_time << ";" << std::setprecision(10) << (best_avg_quality - 0.999)*1000.0 << std::endl;
     }
 
   }
@@ -704,6 +723,7 @@ int main(int argc, char* argv[]){
 				       best_color_offset_time,
 				       optimization_stride,
 				       idwneighbours,
+				       logfile,
 				       using_nni,
 				       basefilename,
 				       &sensor, &eye_d_to_world);
