@@ -193,6 +193,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
 void
 Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basefilename){
 
+  std::cerr << "USING NNI therefore blending IDW into NNI" << std::endl;
 
   // print stats for nni_possible and write to volume file
   size_t possible = 0;
@@ -288,14 +289,18 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basef
     }
   }
 
+
+  std::cerr << "writing " << (std::string(basefilename) + "_nnistats").c_str() << std::endl;
   FILE* f_nni_stats = fopen((std::string(basefilename) + "_nnistats").c_str(), "wb");
   fwrite(m_nni_possible, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_stats);
   fclose(f_nni_stats);
-  
+
+  std::cerr << "writing " << (std::string(basefilename) + "_nniborder").c_str() << std::endl;
   FILE* f_nni_border = fopen((std::string(basefilename) + "_nniborder").c_str(), "wb");
   fwrite(nni_border, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_border);
   fclose(f_nni_border);
   
+  std::cerr << "writing " << (std::string(basefilename) + "_percentage").c_str() << std::endl;
   FILE* f_nni_percentage = fopen((std::string(basefilename) + "_percentage").c_str(), "wb");
   fwrite(nni_percentage, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_percentage);
   fclose(f_nni_percentage);

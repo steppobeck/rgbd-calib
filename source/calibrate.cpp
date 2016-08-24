@@ -14,14 +14,12 @@
 
 int main(int argc, char* argv[]){
 
-  // evaluationstride does make sense for evaluation of 3DUI-results
-  unsigned evaluation_stride = 0;
   unsigned idwneighbours = 20;
   bool using_nni = false;
 
   CMDParser p("basefilename samplesfilename");
   p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
-  p.addOpt("e",1,"evaluationstride", "the stride to use for evaluation, default: 0 (no evaluation performed)");
+
   p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
 
   p.init(argc,argv);
@@ -35,10 +33,6 @@ int main(int argc, char* argv[]){
     std::cout << "setting to numneighbours " << idwneighbours << std::endl;
   }
 
-  if(p.isOptSet("e")){
-    evaluation_stride = p.getOptsInt("e")[0];
-    std::cout << "setting evaluationstride to " << evaluation_stride << std::endl;
-  }
 
   if(p.isOptSet("i")){
     using_nni = true;
@@ -79,32 +73,6 @@ int main(int argc, char* argv[]){
     sps.push_back(s);
   }
   iff.close();  
-
-  if(evaluation_stride){
-    std::vector<samplePoint> sps_calib;
-    std::vector<samplePoint> sps_eval;
-    unsigned sid = 0;
-    bool to_calib = false;
-    for(const auto& s : sps){
-      if(sid % evaluation_stride == 0){
-	to_calib = !to_calib;
-      }
-      
-      to_calib ? sps_calib.push_back(s) : sps_eval.push_back(s);
-
-      ++sid;
-    }
-      CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
-      Calibrator   c;
-      c.using_nni = using_nni;
-      std::cout << "--------------------------------------------------------------------" << std::endl;
-      std::cout << "Calibration error before calibration at " << sps_eval.size() << " sample points" << std::endl;
-      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str(), using_nni);
-      c.applySamples(&cv, sps_calib, cfg, idwneighbours, basefilename.c_str());
-      std::cout << "Calibration error after calibration at " << sps_eval.size() << " sample points" << std::endl;
-      c.evaluateSamples(&cv, sps_eval, cfg, basefilename.c_str(), using_nni);
-      std::cout << "--------------------------------------------------------------------" << std::endl;
-  }
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
   Calibrator   c;

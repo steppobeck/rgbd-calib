@@ -1830,7 +1830,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 	}
 	{
 	  glm::vec2 a(cb_ir.corners[CB_WIDTH - 1].x - cb_ir.corners[0].x, cb_ir.corners[CB_WIDTH - 1].y - cb_ir.corners[0].y);
-	  glm::vec2 b(cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].x - cb_ir.corners[0].y, cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].y - cb_ir.corners[0].y);
+	  glm::vec2 b(cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].x - cb_ir.corners[0].y /*x?????*/ , cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].y - cb_ir.corners[0].y);
 	  ir_orientation = a.x > 0.0 && b.y > 0.0;
 	}
 

@@ -116,6 +116,32 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
       continue;
     }
 
+
+    // detectFlips here!
+    bool rgb_orientation;
+    bool ir_orientation;
+    {
+      const std::vector<uv>& corners_color = m_cd_c->corners;
+      glm::vec2 a(corners_color[CB_WIDTH - 1].u - corners_color[0].u, corners_color[CB_WIDTH - 1].v - corners_color[0].v);
+      glm::vec2 b(corners_color[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - corners_color[0].u, corners_color[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - corners_color[0].v);
+      rgb_orientation = a.x > 0.0 && b.y > 0.0;
+    }
+    {
+      const std::vector<uv>& corners_depth = m_cd_i->corners;
+      glm::vec2 a(corners_depth[CB_WIDTH - 1].u - corners_depth[0].u, corners_depth[CB_WIDTH - 1].v - corners_depth[0].v);
+      glm::vec2 b(corners_depth[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - corners_depth[0].v/*u*/, corners_depth[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - corners_depth[0].v);
+      ir_orientation = a.x > 0.0 && b.y > 0.0;
+    }
+    
+    if( !(rgb_orientation && ir_orientation) ){
+      std::cerr << "detected FLIPPED corners not adding to filter" << std::endl;
+      num_frames_token = 0;
+      sfilt.clear();
+      continue;
+    }
+
+
+
     sfilt.addSamples(sps_tmp);
     ++num_frames_token;
     std::cerr << "remaining frames to filter: " << num_frames_to_filter -  num_frames_token << std::endl;    
