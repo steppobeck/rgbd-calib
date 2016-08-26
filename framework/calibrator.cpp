@@ -146,13 +146,13 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
   rsa.resampleGridBased(nnisamples, cv,	basefilename);
 
 #if 0
-  std::cerr << "initializing nearest neighbor search for border fill " << nnisamples.size() << " samples." << std::endl;
+  std::cout << "INFO: initializing nearest neighbor search for border fill " << nnisamples.size() << " samples." << std::endl;
   NearestNeighbourSearch nns_before_border_fill(nnisamples);
   rsa.fillBorder(nnisamples, cv, &nns_before_border_fill, idwneighbours, basefilename);
   //exit(0);
 #endif
 
-  std::cerr << "initializing nearest neighbor search for interpolation of calibvolume using " << nnisamples.size() << " samples." << std::endl;
+  std::cout << "INFO: initializing nearest neighbor search for interpolation of calibvolume using " << nnisamples.size() << " samples." << std::endl;
   NearestNeighbourSearch nns(nnisamples);
 
   // init calib volume for natural neighbor interpolation
@@ -164,13 +164,13 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
     }
     memset(m_nni_possible, 0, cv->width * cv->height * cv->depth);
     cv_nni = new CalibVolume(cv->width, cv->height, cv->depth, cv->min_d, cv->max_d);
-    std::cerr << "initializing natural neighbor interpolation for interpolation of calibvolume using " << nnisamples.size() << " samples." << std::endl;
+    std::cout << "INFO: initializing natural neighbor interpolation for interpolation of calibvolume using " << nnisamples.size() << " samples." << std::endl;
     std::shuffle(std::begin(nnisamples), std::end(nnisamples), std::default_random_engine());
     nnip =   new NaturalNeighbourInterpolator(nnisamples);
   }
 
   const unsigned numthreads = 32;
-  std::cerr << "start interpolation per thread for " << numthreads << " threads." << std::endl;
+  std::cout << "INFO: start interpolation per thread for " << numthreads << " threads." << std::endl;
   boost::thread_group threadGroup;
   for (unsigned tid = 0; tid < numthreads; ++tid){
     threadGroup.create_thread(boost::bind(&Calibrator::applySamplesPerThread, this, cv, &nns, tid, numthreads, idwneighbours, cv_nni, nnip));
@@ -183,7 +183,7 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
   }
 
   auto end_time = std::chrono::system_clock::now();
-  std::cerr << "finished interpolation in "
+  std::cout << "INFO: finished interpolation in "
 	    <<  std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count()
 	    << " seconds" << std::endl;
 
@@ -761,12 +761,12 @@ Calibrator::evaluate2DError(CalibVolume* cv, ChessboardSampling* cbs, const RGBD
 	  // retrieve ground truth color coordinate, already in pixels
 	  uv  cc_gt(cb_rgb_i.corners[idx]);
 	  glm::vec2 cc_gt_pixel(cc_gt.u, cc_gt.v);
-
+#if 0
 	  std::cerr << "cb_id: " << cb_id << " corner idx: " << idx
 		    << " cc_calib_pixel -> cc_gt_pixel: "
 		    << cc_calib_pixel[0] << ", " << cc_calib_pixel[1] << " -> "
 		    << cc_gt_pixel[0] << ", " << cc_gt_pixel[1] << std::endl;
-
+#endif
 	  cb_errors_2D.push_back(glm::length(cc_calib_pixel - cc_gt_pixel));
 
 	}

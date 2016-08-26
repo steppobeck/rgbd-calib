@@ -383,7 +383,7 @@ ChessboardViewIR::calcShapeStats3D(){
   ChessboardSampling::interactiveShow(unsigned start, unsigned end){
     bool res = false;
     //res = loadPoses();
-    std::cerr << "ALARM: not loading chessboard poses. howver, this should not be a problem here" << std::endl;
+    std::cout << "ALARM: not loading chessboard poses. however, this should not be a problem here" << std::endl;
     res = showRecordingAndPoses(start, end);
   }
 
@@ -427,7 +427,7 @@ ChessboardViewIR::calcShapeStats3D(){
       }
     }
     if(a == b){
-      std::cerr << "ERROR in ChessboardSampling::interpolatePose -> could not find for time "
+      std::cout << "INFO: ERROR in ChessboardSampling::interpolatePose -> could not find for time "
 		<< time << std::endl;
       valid = false;
       return glm::mat4();
@@ -451,7 +451,7 @@ ChessboardViewIR::calcShapeStats3D(){
       }
     }
     if(a == b){
-      std::cerr << "ERROR in ChessboardSampling::getPoseSpeed -> could not find for time "
+      std::cout << "INFO: ERROR in ChessboardSampling::getPoseSpeed -> could not find for time "
 		<< time << std::endl;
       valid = false;
       return std::numeric_limits<double>::max();
@@ -483,7 +483,7 @@ ChessboardViewIR::calcShapeStats3D(){
       }
     }
     if(a == b){
-      std::cerr << "ERROR in ChessboardSampling::interpolateRGB -> could not find for time "
+      std::cout << "INFO: ERROR in ChessboardSampling::interpolateRGB -> could not find for time "
 		<< time << std::endl;
       valid = false;
       return ChessboardViewRGB();
@@ -509,7 +509,7 @@ ChessboardViewIR::calcShapeStats3D(){
       }
     }
     if(a == b){
-      std::cerr << "ERROR in ChessboardSampling::interpolateIR -> could not find for time "
+      std::cout << "INFO: ERROR in ChessboardSampling::interpolateIR -> could not find for time "
 		<< time << std::endl;
       valid = false;
       return ChessboardViewIR();
@@ -567,7 +567,7 @@ ChessboardViewIR::calcShapeStats3D(){
     m_poses.clear();
     // load e.g. 23_sweep.pose
     std::string filename_poses(m_filenamebase + ".poses");
-    std::cerr << "loading poses from file " << filename_poses << std::endl;
+    std::cout << "loading poses from file " << filename_poses << std::endl;
     std::ifstream infile(filename_poses.c_str(), std::ifstream::binary);
     const size_t num_poses = calcNumFrames(infile, sizeof(double) + sizeof(glm::mat4));
     for(size_t i = 0; i != num_poses; ++i){
@@ -579,7 +579,7 @@ ChessboardViewIR::calcShapeStats3D(){
       //std::cerr << m_poses[i].time << std::endl;
       //std::cerr << m_poses[i].mat << std::endl;
     }
-    std::cerr << "ChessboardSampling::loadPoses() loaded poses: " << m_poses.size() << std::endl;
+    std::cout << "ChessboardSampling::loadPoses() loaded poses: " << m_poses.size() << std::endl;
     return true;
   }
 
@@ -630,7 +630,7 @@ ChessboardViewIR::calcShapeStats3D(){
       cb_ir.valid = 1;
       infile_fr.read((char*) &cb_ir.time, sizeof(double));
       if(m_undist){
-	std::cerr << "INFO: ChessboardSampling::showRecordingAndPoses need to implement depth undistortion" << std::endl;
+	std::cout << "INFO: ChessboardSampling::showRecordingAndPoses need to implement depth undistortion" << std::endl;
       }
       infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
       infile_fr.read((char*) ir, 512 * 424);
@@ -896,7 +896,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     }
     
 
-    std::cerr << "ChessboardSampling::loadRecording() loaded chessboard views: "
+    std::cout << "ChessboardSampling::loadRecording() loaded chessboard views: "
 	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
 
     infile_fr.close();
@@ -994,7 +994,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 
     }
 
-    std::cerr << "ChessboardSampling::loadRecordingSeq() loaded chessboard views: "
+    std::cout << "ChessboardSampling::loadRecordingSeq() loaded chessboard views: "
 	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
 
     if(m_undist){
@@ -1044,7 +1044,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     f2.read((char*) &m_cb_ir.front(), num_ir * sizeof(ChessboardViewIR));
     f2.close();
     
-    std::cerr << "ChessboardSampling::loadChessboards() loaded chessboard views: "
+    std::cout << "ChessboardSampling::loadChessboards() loaded chessboard views: "
 	      << m_cb_rgb.size() << " " << m_cb_ir.size() << std::endl;
     return true;
   }
@@ -1063,7 +1063,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     }
 
     for(const auto& cb_id : to_invalidate){
-      std::cout << "detectTimeJumps: invalidating between: " << cb_id - 10 << " and " << cb_id + 10 << " (where ranges are still valid)" << std::endl;
+      std::cout << "detectTimeJumps: invalidating between: " << ((int) cb_id) - 10 << " and " << cb_id + 10 << " (where ranges are still valid) frametime: " << m_cb_ir[cb_id].time  << std::endl;
       invalidateAt(cb_id, 10);
     }
 
@@ -1726,7 +1726,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 
   void
   ChessboardSampling::filterSamples(const float pose_offset){
-    std::cerr << "ChessboardSampling::filterSamples -> begin" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> begin" << std::endl;
 
     // 0. location where no corners where detected are already invalid
 
@@ -1737,7 +1737,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
     }
-    std::cerr << "ChessboardSampling::filterSamples -> detectFlips" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> detectFlips" << std::endl;
     detectFlips(); // better, more generic detectFlipsInRanges!
 
     // 1.2 detect shape errors based on local area ratios of corner quads
@@ -1746,7 +1746,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
     }
-    std::cerr << "ChessboardSampling::filterSamples -> detectShapeFaults" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> detectShapeFaults" << std::endl;
     detectShapeFaultsInRanges();
 
     // 1.5 detectCorruptedDepthInRanges
@@ -1755,7 +1755,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
     }
-    std::cerr << "ChessboardSampling::filterSamples -> detectCorruptedDepth" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> detectCorruptedDepth" << std::endl;
     detectCorruptedDepthInRanges();
 
 
@@ -1765,7 +1765,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
     }
-    std::cerr << "ChessboardSampling::filterSamples -> detectTimeJumps" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> detectTimeJumps" << std::endl;
     detectTimeJumpsInRanges();
 
    
@@ -1785,13 +1785,13 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 
 
     // 4. compute quality based on speed on range
-    std::cerr << "ChessboardSampling::filterSamples -> computeCornerQualityFromSpeed" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> computeCornerQualityFromSpeed" << std::endl;
     computeQualityFromSpeedIRInRanges(pose_offset);
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
     }
     // 5. compute und update individual corner quality based on local knowledge
-    std::cerr << "ChessboardSampling::filterSamples -> computeCornerQualityOutliers" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> computeCornerQualityOutliers" << std::endl;
     computeCornerQualityInRanges();
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
@@ -1803,7 +1803,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
       std::cout << r << std::endl;
     }
 
-    std::cerr << "ChessboardSampling::filterSamples -> end" << std::endl;
+    std::cout << "ChessboardSampling::filterSamples -> end" << std::endl;
     
   }
 
