@@ -14,7 +14,7 @@
 
 int main(int argc, char* argv[]){
 
-  unsigned idwneighbours = 20;
+  unsigned idwneighbours = 10;
   bool using_nni = false;
 
   CMDParser p("basefilename samplesfilename");

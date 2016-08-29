@@ -329,6 +329,30 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::vector<float> errors_2D;
   float max_3D = std::numeric_limits<float>::lowest();
   float max_2D = std::numeric_limits<float>::lowest();
+
+
+  // ranges in depth 0.5-1.75 1.75-3.0 3-4.5
+  const float range_A_start = 0.5;
+  const float range_A_end   = 1.5;
+  float range_A_max_3D = std::numeric_limits<float>::lowest();
+  float range_A_max_2D = std::numeric_limits<float>::lowest();
+  std::vector<float> range_A_errors_3D;
+  std::vector<float> range_A_errors_2D;
+
+  const float range_B_start = 1.5;
+  const float range_B_end   = 2.5;
+  float range_B_max_3D = std::numeric_limits<float>::lowest();
+  float range_B_max_2D = std::numeric_limits<float>::lowest();
+  std::vector<float> range_B_errors_3D;
+  std::vector<float> range_B_errors_2D;
+
+  const float range_C_start = 2.5;
+  const float range_C_end   = 4.5;
+  float range_C_max_3D = std::numeric_limits<float>::lowest();
+  float range_C_max_2D = std::numeric_limits<float>::lowest();
+  std::vector<float> range_C_errors_3D;
+  std::vector<float> range_C_errors_2D;
+
   
   for(unsigned i = 0; i < sps.size(); ++i){
     const unsigned cv_width = cv->width;
@@ -399,23 +423,82 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
     
     nnisamples_error_vol.push_back(nnis);
 
+
+    if(range_A_start < sps[i].depth &&
+       range_A_end >=  sps[i].depth){
+      range_A_errors_3D.push_back(err_3D);
+      range_A_errors_2D.push_back(err_2D);
+      range_A_max_3D = std::max(range_A_max_3D, err_3D);
+      range_A_max_2D = std::max(range_A_max_2D, err_2D);
+    }
+    else if(range_B_start < sps[i].depth &&
+       range_B_end >=  sps[i].depth){
+      range_B_errors_3D.push_back(err_3D);
+      range_B_errors_2D.push_back(err_2D);
+      range_B_max_3D = std::max(range_B_max_3D, err_3D);
+      range_B_max_2D = std::max(range_B_max_2D, err_2D);
+    }
+    else if(range_C_start < sps[i].depth &&
+       range_C_end >=  sps[i].depth){
+      range_C_errors_3D.push_back(err_3D);
+      range_C_errors_2D.push_back(err_2D);
+      range_C_max_3D = std::max(range_C_max_3D, err_3D);
+      range_C_max_2D = std::max(range_C_max_2D, err_2D);
+    }
+    else{
+      std::cout << "ERROR: not in range: " << sps[i].depth << std::endl;
+    }
+
   }
 
   double mean3D, mean2D, sd3D, sd2D;
   calcMeanSD(errors_3D, mean3D, sd3D);
   calcMeanSD(errors_2D, mean2D, sd2D);
-  std::cout << "mean_error_3D: " << mean3D << " [" << sd3D << "] (" << max_3D << ") (in meter)" << std::endl;
-  std::cout << "mean_error_2D: " << mean2D << " [" << sd2D << "] (" << max_2D << ") (in pixels)" << std::endl;
+  std::cout << "---------------------------------------------------------" << std::endl;
+  std::cout << "Evalation of ground truth samples: " << errors_3D.size() << std::endl;
+  std::cout << "mean_error_3D: " << mean3D * 1000 << " (" << sd3D * 1000 << ") [" << max_3D * 1000 << "] (in millimeter)" << std::endl;
+  std::cout << "mean_error_2D: " << mean2D << " (" << sd2D << ") [" << max_2D << "] (in pixels)" << std::endl;
   if(isnni){
     std::cout << "could evaluate " << nni_valids << " samples from " << sps.size() << std::endl;
   }
 
-  createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth, basefilename);
+  createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth, basefilename, isnni);
+
+
+  double range_A_mean3D, range_A_mean2D, range_A_sd3D, range_A_sd2D;
+  calcMeanSD(range_A_errors_3D, range_A_mean3D, range_A_sd3D);
+  calcMeanSD(range_A_errors_2D, range_A_mean2D, range_A_sd2D);
+  std::cout << "---------------------------------------------------------" << std::endl;
+  std::cout << "(" << range_A_start << "m, " << range_A_end << "m]" << std::endl;
+  std::cout << "Evalation of ground truth samples range_A: " << range_A_errors_3D.size() << std::endl;
+  std::cout << "range_A_mean_error_3D: " << range_A_mean3D * 1000 << " (" << range_A_sd3D * 1000 << ") [" << range_A_max_3D * 1000 << "] (in millimeter)" << std::endl;
+  std::cout << "range_A_mean_error_2D: " << range_A_mean2D << " (" << range_A_sd2D << ") [" << range_A_max_2D << "] (in pixels)" << std::endl;
+
+  double range_B_mean3D, range_B_mean2D, range_B_sd3D, range_B_sd2D;
+  calcMeanSD(range_B_errors_3D, range_B_mean3D, range_B_sd3D);
+  calcMeanSD(range_B_errors_2D, range_B_mean2D, range_B_sd2D);
+  std::cout << "---------------------------------------------------------" << std::endl;
+  std::cout << "(" << range_B_start << "m, " << range_B_end << "m]" << std::endl;
+  std::cout << "Evalation of ground truth samples range_B: " << range_B_errors_3D.size() << std::endl;
+  std::cout << "range_B_mean_error_3D: " << range_B_mean3D * 1000 << " (" << range_B_sd3D * 1000 << ") [" << range_B_max_3D * 1000 << "] (in millimeter)" << std::endl;
+  std::cout << "range_B_mean_error_2D: " << range_B_mean2D << " (" << range_B_sd2D << ") [" << range_B_max_2D << "] (in pixels)" << std::endl;
+
+  double range_C_mean3D, range_C_mean2D, range_C_sd3D, range_C_sd2D;
+  calcMeanSD(range_C_errors_3D, range_C_mean3D, range_C_sd3D);
+  calcMeanSD(range_C_errors_2D, range_C_mean2D, range_C_sd2D);
+  std::cout << "---------------------------------------------------------" << std::endl;
+  std::cout << "(" << range_C_start << "m, " << range_C_end << "m]" << std::endl;
+  std::cout << "Evalation of ground truth samples range_C: " << range_C_errors_3D.size() << std::endl;
+  std::cout << "range_C_mean_error_3D: " << range_C_mean3D * 1000 << " (" << range_C_sd3D * 1000 << ") [" << range_C_max_3D * 1000 << "] (in millimeter)" << std::endl;
+  std::cout << "range_C_mean_error_2D: " << range_C_mean2D << " (" << range_C_sd2D << ") [" << range_C_max_2D << "] (in pixels)" << std::endl;
+
+  std::cout << "---------------------------------------------------------" << std::endl;
+
 
 }
 
 void
-Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth, const char* basefilename){
+Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth, const char* basefilename, bool isnni){
 
   // create volumes for world and texture coordinates
   unsigned char* error_vol_3D = new unsigned char [width * height * depth];
@@ -439,7 +522,7 @@ Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned wid
 
   // boost threads here
   const unsigned numthreads = 32;
-  std::cerr << "start interpolation of error visualization volumes using " << numthreads << " threads." << std::endl;
+  //std::cerr << "start interpolation of error visualization volumes using " << numthreads << " threads." << std::endl;
   boost::thread_group threadGroup;
   for (unsigned tid = 0; tid < numthreads; ++tid){
     //threadGroup.create_thread(boost::bind(&Calibrator::applyErrorVisPerThread, this, width, height, depth,
@@ -452,25 +535,28 @@ Calibrator::createErrorVis(const std::vector<nniSample>& sps, const unsigned wid
   }
   threadGroup.join_all();
 
-  // write error volumes to /tmp
-
+  
+  std::cout << "INFO: writing " << (std::string(basefilename) + "_error3D_idw").c_str()<< std::endl;
   FILE* f_error_vol_3D = fopen((std::string(basefilename) + "_error3D_idw").c_str(), "wb");
   fwrite(error_vol_3D, sizeof(unsigned char), (width * height * depth), f_error_vol_3D);
   fclose(f_error_vol_3D);
 
+  std::cout << "INFO: writing " << (std::string(basefilename) + "_error2D_idw").c_str()<< std::endl;
   FILE* f_error_vol_2D = fopen((std::string(basefilename) + "_error2D_idw").c_str(), "wb");
   fwrite(error_vol_2D, sizeof(unsigned char), (width * height * depth), f_error_vol_2D);
   fclose(f_error_vol_2D);
 
+  if(isnni){
+    std::cout << "INFO: writing " << (std::string(basefilename) + "_error3D_nni").c_str()<< std::endl;
+    FILE* f_error_vol_3Dnni = fopen((std::string(basefilename) + "_error3D_nni").c_str(), "wb");
+    fwrite(error_vol_3D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_3Dnni);
+    fclose(f_error_vol_3Dnni);
 
-  FILE* f_error_vol_3Dnni = fopen((std::string(basefilename) + "_error3D_nni").c_str(), "wb");
-  fwrite(error_vol_3D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_3Dnni);
-  fclose(f_error_vol_3Dnni);
-
-  FILE* f_error_vol_2Dnni = fopen((std::string(basefilename) + "_error2D_nni").c_str(), "wb");
-  fwrite(error_vol_2D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_2Dnni);
-  fclose(f_error_vol_2Dnni);
-
+    std::cout << "INFO: writing " << (std::string(basefilename) + "_error2D_nni").c_str()<< std::endl;
+    FILE* f_error_vol_2Dnni = fopen((std::string(basefilename) + "_error2D_nni").c_str(), "wb");
+    fwrite(error_vol_2D_nni, sizeof(unsigned char), (width * height * depth), f_error_vol_2Dnni);
+    fclose(f_error_vol_2Dnni);
+  }
 }
 
 

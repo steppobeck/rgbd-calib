@@ -39,7 +39,7 @@ private:
 
   void blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basefilename);
 
-  void createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth, const char* basefilename);
+  void createErrorVis(const std::vector<nniSample>& sps, const unsigned width, const unsigned height, const unsigned depth, const char* basefilename, bool isnni);
   void applyErrorVisPerThread(const unsigned width, const unsigned height, const unsigned depth,
 			      unsigned char* error_vol_3D, unsigned char* error_vol_2D,
 			      unsigned char* error_vol_3D_nni, unsigned char* error_vol_2D_nni,

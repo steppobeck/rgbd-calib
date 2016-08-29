@@ -219,6 +219,7 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
   std::cout << "INFO: refine: finishing refinement at " << std::setprecision(10) << tracking_offset_time << std::endl;
 
   if(logfile != 0){
+    *logfile << tracking_offset_time * 1000 << ", 0.0" << std::endl;
     *logfile << "end refine tracking_offset_time by gradient descent: " << tracking_offset_time << std::endl;
   }
 
@@ -285,6 +286,7 @@ float refine3D(const std::string& filename_xyz, const std::string& filename_uv,
   std::cout << "INFO: refine3D: finishing refinement at " << std::setprecision(10) << tracking_offset_time << std::endl;
 
   if(logfile != 0){
+    *logfile << tracking_offset_time * 1000 << ", 0.0" << std::endl;
     *logfile << "end refine3D tracking_offset_time by gradient descent: " << tracking_offset_time << std::endl;
   }
 
@@ -336,7 +338,7 @@ float refine2D(const std::string& filename_xyz, const std::string& filename_uv,
 
 
     if(logfile != 0){
-      *logfile << color_offset_time << ", " << avg_2D_error << std::endl;
+      *logfile << color_offset_time * 1000 << ", " << avg_2D_error << std::endl;
     }
 
     if(std::abs(gradient) > min_gradient){
@@ -350,6 +352,7 @@ float refine2D(const std::string& filename_xyz, const std::string& filename_uv,
   std::cout << "INFO: refine2D: finishing refinement at " << std::setprecision(10) << color_offset_time << std::endl;
 
   if(logfile != 0){
+    *logfile << color_offset_time * 1000 << ", 0.0" << std::endl;
     *logfile << "end refine2D color_offset_time by gradient descent: " << color_offset_time << std::endl;
   }
 
@@ -422,6 +425,7 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
   const double xs = x2 + (0.5*d*(y3 - y1))/(2.0*y2 - y1 - y3);
 
   if(logfile != 0){
+    *logfile << xs * 1000 << ", 0.0" << std::endl;
     *logfile << "end tracking_offset_time by optimizeParabelFitting: " << xs << std::endl;
   }
 
@@ -478,6 +482,7 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
   }
 
   if(logfile != 0){
+    *logfile << best_tracking_offset_time * 1000 << ", 0.0" << std::endl;
     *logfile << "end tracking_offset_time by optimizeBruteForce: " << best_tracking_offset_time << std::endl;
   }
 
@@ -528,6 +533,7 @@ float optimizeBruteForce3D(const std::string& filename_xyz, const std::string& f
   }
 
   if(logfile != 0){
+    *logfile << best_tracking_offset_time * 1000 << ", 0.0" << std::endl;
     *logfile << "end tracking_offset_time by optimizeBruteForce3D: " << best_tracking_offset_time << std::endl;
   }
 
@@ -581,6 +587,7 @@ float optimizeBruteForce2D(const std::string& filename_xyz, const std::string& f
   }
 
   if(logfile != 0){
+    *logfile << best_color_offset_time * 1000 << ", 0.0" << std::endl;
     *logfile << "end color_offset_time by optimizeBruteForce2D: " << best_color_offset_time << std::endl;
   }
 
@@ -635,6 +642,7 @@ float optimizeParabelFitting3D(const std::string& filename_xyz, const std::strin
   const double xs = x2 + (0.5*d*(y3 - y1))/(2.0*y2 - y1 - y3);
 
   if(logfile != 0){
+    *logfile << xs * 1000 << ", 0.0" << std::endl;
     *logfile << "end tracking_offset_time by optimizeParabelFitting3D: " << xs << std::endl;
   }
 
@@ -690,6 +698,7 @@ float optimizeParabelFitting2D(const std::string& filename_xyz, const std::strin
   const double xs = x2 + (0.5*d*(y3 - y1))/(2.0*y2 - y1 - y3);
 
   if(logfile != 0){
+    *logfile << xs * 1000 << ", 0.0" << std::endl;
     *logfile << "end color_offset_time by optimizeParabelFitting2D: " << xs << std::endl;
   }
 
@@ -718,7 +727,7 @@ int main(int argc, char* argv[]){
   float color_offset_time_min = 0.0; // in seconds
   float color_offset_time_max = 0.02; // in seconds
 
-  unsigned idwneighbours = 20;
+  unsigned idwneighbours = 10;
   std::ofstream* logfile = 0;
   
   bool using_nni = false;
