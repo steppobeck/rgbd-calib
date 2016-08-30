@@ -18,7 +18,7 @@ int main(int argc, char* argv[]){
   bool using_nni = false;
 
   CMDParser p("basefilename samplesfilename");
-  p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
+  p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 10");
 
   p.addOpt("i",-1,"nni", "do use natural neighbor interpolation if possible, default: false");
 

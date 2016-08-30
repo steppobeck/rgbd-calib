@@ -295,6 +295,7 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basef
   fwrite(m_nni_possible, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_stats);
   fclose(f_nni_stats);
 
+
   std::cerr << "writing " << (std::string(basefilename) + "_nniborder").c_str() << std::endl;
   FILE* f_nni_border = fopen((std::string(basefilename) + "_nniborder").c_str(), "wb");
   fwrite(nni_border, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_border);
@@ -304,6 +305,7 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basef
   FILE* f_nni_percentage = fopen((std::string(basefilename) + "_percentage").c_str(), "wb");
   fwrite(nni_percentage, sizeof(unsigned char), (cv->width * cv->height * cv->depth), f_nni_percentage);
   fclose(f_nni_percentage);
+
 
   delete [] nni_border;
   delete [] nni_percentage;

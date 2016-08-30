@@ -177,10 +177,7 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
 	     RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
 
-  if(logfile != 0){
-    *logfile << "begin refine tracking_offset_time by gradient descent" << std::endl;
-    *logfile << "tracking_offset_time, avg_quality" << std::endl;
-  }
+
 
 
   const double min_gradient  = 0.000005;
@@ -220,7 +217,6 @@ float refine(const std::string& filename_xyz, const std::string& filename_uv,
 
   if(logfile != 0){
     *logfile << tracking_offset_time * 1000 << ", 0.0" << std::endl;
-    *logfile << "end refine tracking_offset_time by gradient descent: " << tracking_offset_time << std::endl;
   }
 
   return tracking_offset_time;
@@ -241,10 +237,7 @@ float refine3D(const std::string& filename_xyz, const std::string& filename_uv,
 	       RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
 
-  if(logfile != 0){
-    *logfile << "begin refine3D tracking_offset_time by gradient descent" << std::endl;
-    *logfile << "tracking_offset_time, avg_3D_error" << std::endl;
-  }
+
 
 
   const double min_gradient  = 0.000001;
@@ -287,7 +280,6 @@ float refine3D(const std::string& filename_xyz, const std::string& filename_uv,
 
   if(logfile != 0){
     *logfile << tracking_offset_time * 1000 << ", 0.0" << std::endl;
-    *logfile << "end refine3D tracking_offset_time by gradient descent: " << tracking_offset_time << std::endl;
   }
 
   return tracking_offset_time;
@@ -307,10 +299,7 @@ float refine2D(const std::string& filename_xyz, const std::string& filename_uv,
 	       RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
 
-  if(logfile != 0){
-    *logfile << "begin refine2D color_offset_time by gradient descent" << std::endl;
-    *logfile << "color_offset_time, avg_2D_error" << std::endl;
-  }
+
 
 
   const double min_gradient  = 0.001;
@@ -353,7 +342,6 @@ float refine2D(const std::string& filename_xyz, const std::string& filename_uv,
 
   if(logfile != 0){
     *logfile << color_offset_time * 1000 << ", 0.0" << std::endl;
-    *logfile << "end refine2D color_offset_time by gradient descent: " << color_offset_time << std::endl;
   }
 
   return color_offset_time;
@@ -392,10 +380,7 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
 			     const std::string& basefilename,
 			     RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
-  if(logfile != 0){
-    *logfile << "begin tracking_offset_time by optimizeParabelFitting" << std::endl;
-    *logfile << "tracking_offset_time, avg_quality" << std::endl;
-  }
+
 
   const double x1 = tracking_offset_time_min;
   const double x2 = 0.5f*(tracking_offset_time_min + tracking_offset_time_max);
@@ -426,7 +411,6 @@ float optimizeParabelFitting(const std::string& filename_xyz, const std::string&
 
   if(logfile != 0){
     *logfile << xs * 1000 << ", 0.0" << std::endl;
-    *logfile << "end tracking_offset_time by optimizeParabelFitting: " << xs << std::endl;
   }
 
 
@@ -452,10 +436,7 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
 
   
 
-  if(logfile != 0){
-    *logfile << "begin tracking_offset_time by optimizeBruteForce" << std::endl;
-    *logfile << "tracking_offset_time, avg_quality" << std::endl;
-  }
+
 
   float best_tracking_offset_time = (tracking_offset_time_max + tracking_offset_time_min) * 0.5f;
   double best_avg_quality = 0.0f;
@@ -483,7 +464,6 @@ float optimizeBruteForce(const std::string& filename_xyz, const std::string& fil
 
   if(logfile != 0){
     *logfile << best_tracking_offset_time * 1000 << ", 0.0" << std::endl;
-    *logfile << "end tracking_offset_time by optimizeBruteForce: " << best_tracking_offset_time << std::endl;
   }
 
   return best_tracking_offset_time;
@@ -505,10 +485,7 @@ float optimizeBruteForce3D(const std::string& filename_xyz, const std::string& f
 			   RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
   
-  if(logfile != 0){
-    *logfile << "begin tracking_offset_time by optimizeBruteForce3D" << std::endl;
-    *logfile << "tracking_offset_time, avg_3D_error" << std::endl;
-  }
+
 
   float best_tracking_offset_time = (tracking_offset_time_max + tracking_offset_time_min) * 0.5f;
   double best_avg_3D_error = std::numeric_limits<double>::max();
@@ -534,7 +511,6 @@ float optimizeBruteForce3D(const std::string& filename_xyz, const std::string& f
 
   if(logfile != 0){
     *logfile << best_tracking_offset_time * 1000 << ", 0.0" << std::endl;
-    *logfile << "end tracking_offset_time by optimizeBruteForce3D: " << best_tracking_offset_time << std::endl;
   }
 
   return best_tracking_offset_time;
@@ -558,10 +534,7 @@ float optimizeBruteForce2D(const std::string& filename_xyz, const std::string& f
 			   RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
   
-  if(logfile != 0){
-    *logfile << "begin color_offset_time by optimizeBruteForce2D" << std::endl;
-    *logfile << "color_offset_time, avg_2D_error" << std::endl;
-  }
+
 
   float best_color_offset_time = (color_offset_time_max + color_offset_time_min) * 0.5f;
   double best_avg_2D_error = std::numeric_limits<double>::max();
@@ -588,7 +561,6 @@ float optimizeBruteForce2D(const std::string& filename_xyz, const std::string& f
 
   if(logfile != 0){
     *logfile << best_color_offset_time * 1000 << ", 0.0" << std::endl;
-    *logfile << "end color_offset_time by optimizeBruteForce2D: " << best_color_offset_time << std::endl;
   }
 
   return best_color_offset_time;
@@ -609,10 +581,7 @@ float optimizeParabelFitting3D(const std::string& filename_xyz, const std::strin
 			       const std::string& basefilename,
 			       RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
-  if(logfile != 0){
-    *logfile << "begin tracking_offset_time by optimizeParabelFitting3D" << std::endl;
-    *logfile << "tracking_offset_time, avg_quality" << std::endl;
-  }
+
 
   const double x1 = tracking_offset_time_min;
   const double x2 = 0.5f*(tracking_offset_time_min + tracking_offset_time_max);
@@ -643,7 +612,6 @@ float optimizeParabelFitting3D(const std::string& filename_xyz, const std::strin
 
   if(logfile != 0){
     *logfile << xs * 1000 << ", 0.0" << std::endl;
-    *logfile << "end tracking_offset_time by optimizeParabelFitting3D: " << xs << std::endl;
   }
 
   return float(xs);
@@ -665,10 +633,7 @@ float optimizeParabelFitting2D(const std::string& filename_xyz, const std::strin
 			       const std::string& basefilename,
 			       RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0){
 
-  if(logfile != 0){
-    *logfile << "begin color_offset_time by optimizeParabelFitting2D" << std::endl;
-    *logfile << "color_offset_time, avg_2D_error" << std::endl;
-  }
+
 
   const double x1 = color_offset_time_min;
   const double x2 = 0.5f*(color_offset_time_min + color_offset_time_max);
@@ -699,7 +664,6 @@ float optimizeParabelFitting2D(const std::string& filename_xyz, const std::strin
 
   if(logfile != 0){
     *logfile << xs * 1000 << ", 0.0" << std::endl;
-    *logfile << "end color_offset_time by optimizeParabelFitting2D: " << xs << std::endl;
   }
 
   return float(xs);
@@ -728,7 +692,7 @@ int main(int argc, char* argv[]){
   float color_offset_time_max = 0.02; // in seconds
 
   unsigned idwneighbours = 10;
-  std::ofstream* logfile = 0;
+  std::string logfilename = "";
   
   bool using_nni = false;
   const unsigned optimization_stride = 1;
@@ -745,16 +709,17 @@ int main(int argc, char* argv[]){
   p.addOpt("t",2,"trackingoffsetrange", "min and max offset in seconds of the tracking system relative to depth frame of the sensor, e.g. -0.05 0.03, default: -0.5 0.0");
   p.addOpt("c",2,"coloroffsetrange", "min and max offset in seconds of the color frame relative to depth frame of the sensor, e.g. -0.05 0.0, default: -0.2 0.0");
 
-  p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 20");
+  p.addOpt("n",1,"numneighbours", "the number of neighbours that should be used for IDW inverse distance weighting, default: 10");
 
   p.addOpt("o",1,"optimizationtype",
-	   "(0): C.C. perform optimization using parabel fitting,\
- (1): C.C. brute force sampling,				 \
- (2): C.C. refine with gradient descent,			 \
- (4): 3D and 2D error is minimized using brute force sampling,	 \
- (5): 3D and 2D error is minimized using parabel fitting,	 \
- (6): 3D and 2D error refine with gradient descent,		 \
- default: 0");
+	   "(0): C.C. perform optimization using parabel fitting,\n\
+ \t\t(1): C.C. brute force sampling,				 \n\
+ \t\t(2): C.C. refine with gradient descent,			 \n\
+ \t\t(4): 3D and 2D error is minimized using brute force sampling,	 \n\
+ \t\t(5): 3D and 2D error is minimized using parabel fitting,	 \n\
+ \t\t(6): 3D and 2D error refine with gradient descent,		 \n\
+ \t\t(7): mid times are used,		 \n\
+ \t\tdefault: 0");
 
 
   p.addOpt("l",1,"logfile", "log the optimization process to given filename, default: no logfile is used ");
@@ -810,7 +775,7 @@ int main(int argc, char* argv[]){
   }
 
   if(p.isOptSet("l")){
-    logfile = new std::ofstream(p.getOptsString("l")[0].c_str());
+    logfilename = p.getOptsString("l")[0];
   }
 
   if(p.isOptSet("i")){
@@ -904,13 +869,17 @@ int main(int argc, char* argv[]){
   cs_sweep.init();
 
 
-
+  // compute midtimes
   float best_tracking_offset_time = (tracking_offset_time_min + tracking_offset_time_max) * 0.5f;
   float best_color_offset_time    = (color_offset_time_min + color_offset_time_max) * 0.5f;
 
+  std::ofstream* logfile = 0;
   switch(optimization_type){
   case 0:
     std::cout << "INFO: performing optimization using parabel fitting." << std::endl;
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_CP_CF.csv").c_str());
+    }
     best_tracking_offset_time = optimizeParabelFitting(filename_xyz, filename_uv,
 						       cs_sweep,
 						       cfg,
@@ -921,14 +890,21 @@ int main(int argc, char* argv[]){
 						       optimization_stride,
 						       idwneighbours,
 						       logfile,
-						       using_nni,
+						       false/*using_nni*/,
 						       basefilename,
 						       &sensor, &eye_d_to_world);
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }  
     if(!full_optimization_evaluation){
       break;
     }
   case 1:
     std::cout << "INFO: performing optimization using brute force sampling." << std::endl;
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_CP_BF.csv").c_str());
+    }
     best_tracking_offset_time = optimizeBruteForce(filename_xyz, filename_uv,
 						   cs_sweep,
 						   cfg,
@@ -940,14 +916,22 @@ int main(int argc, char* argv[]){
 						   optimization_stride,
 						   idwneighbours,
 						   logfile,
-						   using_nni,
+						   false/*using_nni*/,
 						   basefilename,
 						   &sensor, &eye_d_to_world);
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
+
     if(!full_optimization_evaluation){
       break;
     }
   case 2:
     std::cout << "INFO: performing optimization using refine with gradient descent." << std::endl;
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_CP_GD.csv").c_str());
+    }
     best_tracking_offset_time = refine(filename_xyz, filename_uv,
 				       cs_sweep,
 				       cfg,
@@ -957,14 +941,22 @@ int main(int argc, char* argv[]){
 				       optimization_stride,
 				       idwneighbours,
 				       logfile,
-				       using_nni,
+				       false/*using_nni*/,
 				       basefilename,
 				       &sensor, &eye_d_to_world);
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
+
     if(!full_optimization_evaluation){
       break;
     }
   case 4:
     std::cout << "INFO: performing optimization of 2D and 3D error using brute force sampling." << std::endl;
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_3D_BF.csv").c_str());
+    }
     best_tracking_offset_time = optimizeBruteForce3D(filename_xyz, filename_uv,
 						     cs_sweep,
 						     cfg,
@@ -976,10 +968,16 @@ int main(int argc, char* argv[]){
 						     optimization_stride,
 						     idwneighbours,
 						     logfile,
-						     using_nni,
+						     false/*using_nni*/,
 						     basefilename,
 						     &sensor, &eye_d_to_world);
-
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_2D_BF.csv").c_str());
+    }
     best_color_offset_time = optimizeBruteForce2D(filename_xyz, filename_uv,
 						  cs_sweep,
 						  cfg,
@@ -991,14 +989,21 @@ int main(int argc, char* argv[]){
 						  optimization_stride,
 						  idwneighbours,
 						  logfile,
-						  using_nni,
+						  false/*using_nni*/,
 						  basefilename,
 						  &sensor, &eye_d_to_world);
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
     if(!full_optimization_evaluation){
       break;
     }
   case 5:
     std::cout << "INFO: performing optimization of 2D and 3D error using parabel fitting." << std::endl;
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_3D_CF.csv").c_str());
+    }
     best_tracking_offset_time = optimizeParabelFitting3D(filename_xyz, filename_uv,
 							 cs_sweep,
 							 cfg,
@@ -1009,10 +1014,16 @@ int main(int argc, char* argv[]){
 							 optimization_stride,
 							 idwneighbours,
 							 logfile,
-							 using_nni,
+							 false/*using_nni*/,
 							 basefilename,
 							 &sensor, &eye_d_to_world);
-
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_2D_CF.csv").c_str());
+    }
     best_color_offset_time = optimizeParabelFitting2D(filename_xyz, filename_uv,
 						      cs_sweep,
 						      cfg,
@@ -1023,15 +1034,21 @@ int main(int argc, char* argv[]){
 						      optimization_stride,
 						      idwneighbours,
 						      logfile,
-						      using_nni,
+						      false/*using_nni*/,
 						      basefilename,
 						      &sensor, &eye_d_to_world);
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
     if(!full_optimization_evaluation){
       break;
     }
   case 6:
     std::cout << "INFO: performing optimization using refine3D and refine2D with gradient descent." << std::endl;
-
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_3D_GD.csv").c_str());
+    }
     best_tracking_offset_time = refine3D(filename_xyz, filename_uv,
 					 cs_sweep,
 					 cfg,
@@ -1041,10 +1058,16 @@ int main(int argc, char* argv[]){
 					 optimization_stride,
 					 idwneighbours,
 					 logfile,
-					 using_nni,
+					 false/*using_nni*/,
 					 basefilename,
 					 &sensor, &eye_d_to_world);
-
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
+    if(logfilename != ""){
+      logfile = new std::ofstream(std::string(logfilename + "_2D_GD.csv").c_str());
+    }
     best_color_offset_time = refine2D(filename_xyz, filename_uv,
 				      cs_sweep,
 				      cfg,
@@ -1054,9 +1077,18 @@ int main(int argc, char* argv[]){
 				      optimization_stride,
 				      idwneighbours,
 				      logfile,
-				      using_nni,
+				      false/*using_nni*/,
 				      basefilename,
 				      &sensor, &eye_d_to_world);
+    if(logfilename != ""){
+      logfile->close();
+      delete logfile;
+    }
+    if(!full_optimization_evaluation){
+      break;
+    }
+  case 7:
+    std::cout << "INFO: performing no optimization, midtimes are used instead." << std::endl;
     if(!full_optimization_evaluation){
       break;
     }
@@ -1069,10 +1101,6 @@ int main(int argc, char* argv[]){
     break;
   }
 
-
-  if(logfile != 0){
-    logfile->close();
-  }
 
   if(full_optimization_evaluation){
     return 0;
