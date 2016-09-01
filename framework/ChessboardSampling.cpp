@@ -584,6 +584,28 @@ ChessboardViewIR::calcShapeStats3D(){
   }
 
 
+namespace{
+
+  unsigned char* convertTo8Bit(float* in, unsigned w, unsigned h){
+    static unsigned char* b = new unsigned char [w*h];
+
+    float max_v = 0.0;
+    for(unsigned idx = 0; idx != w*h; ++idx){
+      max_v = std::max(in[idx],max_v);
+    }
+    if(max_v != 0.0){
+      for(unsigned idx = 0; idx != w*h; ++idx){
+	const float n = in[idx]/max_v;
+	unsigned char v = (unsigned char) (255.0 * n);
+	b[idx] = v;
+      }
+    }
+
+    return b;
+  }
+
+}
+
   bool
   ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end){
 
@@ -593,6 +615,9 @@ ChessboardViewIR::calcShapeStats3D(){
     float* depth = new float[512*424];
     unsigned char* ir = new unsigned char[512*424];
 
+    // create named window for depth image
+    cvNamedWindow("depth", CV_WINDOW_AUTOSIZE);
+    IplImage* cv_depth_image = cvCreateImage(cvSize(512, 424), 8, 1);
 
 
     OpenCVChessboardCornerDetector cd_c(1280,
@@ -636,10 +661,15 @@ ChessboardViewIR::calcShapeStats3D(){
       infile_fr.read((char*) ir, 512 * 424);
 
       if((end == 0) || (start <= i) && (i <= end)){
-	// show rgb and ir image
+	// show rgb depth and ir image
 	bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, true);
+
+	memcpy(cv_depth_image->imageData, convertTo8Bit(depth, 512, 424), 512*424 * sizeof(unsigned char));
+	cvShowImage( "depth", cv_depth_image);
+
 	bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, true);
 	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
+
 	int key = -1;
 	while(-1 == key){
 	  // detect corners in color image
@@ -650,6 +680,9 @@ ChessboardViewIR::calcShapeStats3D(){
     }
 
     infile_fr.close();
+
+    cvReleaseImage(&cv_depth_image);
+
 #endif
 
 
