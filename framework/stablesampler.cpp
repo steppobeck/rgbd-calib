@@ -5,6 +5,8 @@
 #include <OpenCVChessboardCornerDetector.hpp>
 #include <OpenCVUndistortion.hpp>
 
+#include <ChessboardSampling.hpp>
+
 #include <PoseTracker.hpp>
 #include <SampleFilter.hpp>
 #include <ChronoMeter.hpp>
@@ -139,6 +141,81 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
       sfilt.clear();
       continue;
     }
+
+
+    // detect wring corners because of shape
+    { // -------------------------- IR
+      ChessboardViewIR cb_ir_tmp;
+      for(unsigned idx = 0; idx < CB_WIDTH * CB_HEIGHT; ++idx){
+	cb_ir_tmp.corners[idx].x = m_cd_i->corners[idx].u;
+	cb_ir_tmp.corners[idx].y = m_cd_i->corners[idx].v;
+	cb_ir_tmp.corners[idx].z = 0.0;
+      }
+      shape_stats stats = cb_ir_tmp.calcShapeStats();
+      bool remove_cb = false;
+      { // find oultiers based on triangle ratiosH
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosH, mean, sd);
+	for(const auto& ratio : stats.ratiosH){
+	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	    remove_cb = true;
+	  }
+	}
+      }
+      { // find oultiers based on triangle ratiosV
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosV, mean, sd);
+	for(const auto& ratio : stats.ratiosV){
+	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	    remove_cb = true;
+	  }
+	}
+      }
+      if(remove_cb){
+	std::cerr << "detected CORRUPT corners in IR frame, not adding to filter" << std::endl;
+	num_frames_token = 0;
+	sfilt.clear();
+	continue;
+      }
+    }
+    { // -------------------------- Color
+      ChessboardViewRGB cb_rgb_tmp;
+      for(unsigned idx = 0; idx < CB_WIDTH * CB_HEIGHT; ++idx){
+	cb_rgb_tmp.corners[idx].u = m_cd_c->corners[idx].u;
+	cb_rgb_tmp.corners[idx].v = m_cd_c->corners[idx].v;
+      }
+      shape_stats stats = cb_rgb_tmp.calcShapeStats();
+      bool remove_cb = false;
+      { // find oultiers based on triangle ratiosH
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosH, mean, sd);
+	for(const auto& ratio : stats.ratiosH){
+	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	    remove_cb = true;
+	  }
+	}
+      }
+      { // find oultiers based on triangle ratiosV
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosV, mean, sd);
+	for(const auto& ratio : stats.ratiosV){
+	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	    remove_cb = true;
+	  }
+	}
+      }
+      if(remove_cb){
+	std::cerr << "detected CORRUPT corners in color frame, not adding to filter" << std::endl;
+	num_frames_token = 0;
+	sfilt.clear();
+	continue;
+      }
+    }
+
 
 
 
