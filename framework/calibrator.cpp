@@ -496,18 +496,18 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 
   std::cout << "---------------------------------------------------------" << std::endl;
   std::cout << "---------------------------------------------------------" << std::endl;
-  std::cout << range_A_mean3D << std::endl;
-  std::cout << range_A_sd3D << std::endl;
+  std::cout << range_A_mean3D * 1000 << std::endl;
+  std::cout << range_A_sd3D * 1000 << std::endl;
   std::cout << range_A_mean2D << std::endl;
   std::cout << range_A_sd2D << std::endl;
 
-  std::cout << range_B_mean3D << std::endl;
-  std::cout << range_B_sd3D << std::endl;
+  std::cout << range_B_mean3D * 1000 << std::endl;
+  std::cout << range_B_sd3D * 1000 << std::endl;
   std::cout << range_B_mean2D << std::endl;
   std::cout << range_B_sd2D << std::endl;
 
-  std::cout << range_C_mean3D << std::endl;
-  std::cout << range_C_sd3D << std::endl;
+  std::cout << range_C_mean3D * 1000 << std::endl;
+  std::cout << range_C_sd3D * 1000 << std::endl;
   std::cout << range_C_mean2D << std::endl;
   std::cout << range_C_sd2D << std::endl;
 
