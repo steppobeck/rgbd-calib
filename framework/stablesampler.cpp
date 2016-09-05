@@ -158,7 +158,7 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
 	double sd;
 	calcMeanSD(stats.ratiosH, mean, sd);
 	for(const auto& ratio : stats.ratiosH){
-	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	  if(std::abs(double(ratio) - mean) > (5.0 * sd)){
 	    remove_cb = true;
 	  }
 	}
@@ -168,7 +168,7 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
 	double sd;
 	calcMeanSD(stats.ratiosV, mean, sd);
 	for(const auto& ratio : stats.ratiosV){
-	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	  if(std::abs(double(ratio) - mean) > (5.0 * sd)){
 	    remove_cb = true;
 	  }
 	}
@@ -193,7 +193,7 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
 	double sd;
 	calcMeanSD(stats.ratiosH, mean, sd);
 	for(const auto& ratio : stats.ratiosH){
-	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	  if(std::abs(double(ratio) - mean) > (5.0 * sd)){
 	    remove_cb = true;
 	  }
 	}
@@ -203,7 +203,7 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
 	double sd;
 	calcMeanSD(stats.ratiosV, mean, sd);
 	for(const auto& ratio : stats.ratiosV){
-	  if(std::abs(double(ratio) - mean) > (3.0 * sd)){
+	  if(std::abs(double(ratio) - mean) > (5.0 * sd)){
 	    remove_cb = true;
 	  }
 	}

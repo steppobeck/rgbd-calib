@@ -335,21 +335,21 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 
   // ranges in depth 0.5-1.75 1.75-3.0 3-4.5
   const float range_A_start = 0.5;
-  const float range_A_end   = 1.5;
+  const float range_A_end   = 1.25;
   float range_A_max_3D = std::numeric_limits<float>::lowest();
   float range_A_max_2D = std::numeric_limits<float>::lowest();
   std::vector<float> range_A_errors_3D;
   std::vector<float> range_A_errors_2D;
 
-  const float range_B_start = 1.5;
-  const float range_B_end   = 2.5;
+  const float range_B_start = 1.25;
+  const float range_B_end   = 2.0;
   float range_B_max_3D = std::numeric_limits<float>::lowest();
   float range_B_max_2D = std::numeric_limits<float>::lowest();
   std::vector<float> range_B_errors_3D;
   std::vector<float> range_B_errors_2D;
 
-  const float range_C_start = 2.5;
-  const float range_C_end   = 4.5;
+  const float range_C_start = 2.0;
+  const float range_C_end   = 3.0;
   float range_C_max_3D = std::numeric_limits<float>::lowest();
   float range_C_max_2D = std::numeric_limits<float>::lowest();
   std::vector<float> range_C_errors_3D;
@@ -448,7 +448,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
       range_C_max_2D = std::max(range_C_max_2D, err_2D);
     }
     else{
-      std::cout << "ERROR: not in range: " << sps[i].depth << std::endl;
+      ;//std::cout << "ERROR: not in range: " << sps[i].depth << std::endl;
     }
 
   }
