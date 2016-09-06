@@ -825,9 +825,9 @@ int main(int argc, char* argv[]){
 
 	const unsigned cv_index = (z * cv_init.width * cv_init.height) + (y * cv_init.width) + x;
 
-	const float depth = (z/* + 0.5*/) * (cv_init.max_d - cv_init.min_d)/cv_init.depth + cv_init.min_d;
-	const float xd = (x/* + 0.5*/) * sensor.config.size_d.x * 1.0/cv_init.width;
-	const float yd = (y/* + 0.5*/) * sensor.config.size_d.y * 1.0/cv_init.height;
+	const float depth = (z + 0.5) * (cv_init.max_d - cv_init.min_d)/cv_init.depth + cv_init.min_d;
+	const float xd = (x + 0.5) * sensor.config.size_d.x * 1.0/cv_init.width;
+	const float yd = (y + 0.5) * sensor.config.size_d.y * 1.0/cv_init.height;
 
 	glm::vec3 pos3D_local = sensor.calc_pos_d(xd, yd, depth);
 	glm::vec2 pos2D_rgb   = sensor.calc_pos_rgb(pos3D_local);

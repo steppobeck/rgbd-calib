@@ -497,20 +497,20 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << "---------------------------------------------------------" << std::endl;
   // 0.0 (0.0)[0.0] & 0.0 (0.0)[0.0]
   std::cout << std::setprecision(3) << mean3D * 1000 << " (" << sd3D * 1000 << ") [" << max_3D * 1000 << "] & " << mean2D << " (" << sd2D << ") [" << max_2D << "]" << std::endl;
-  std::cout << range_A_mean3D * 1000 << std::endl;
-  std::cout << range_A_sd3D * 1000 << std::endl;
-  std::cout << range_A_mean2D << std::endl;
-  std::cout << range_A_sd2D << std::endl;
+  std::cout << (range_A_errors_3D.size() > 0 ? range_A_mean3D * 1000 : 0.0) << std::endl;
+  std::cout << (range_A_errors_3D.size() > 0 ? range_A_sd3D * 1000 : 0.0) << std::endl;
+  std::cout << (range_A_errors_2D.size() > 0 ? range_A_mean2D : 0.0) << std::endl;
+  std::cout << (range_A_errors_2D.size() > 0 ? range_A_sd2D : 0.0) << std::endl;
 
-  std::cout << range_B_mean3D * 1000 << std::endl;
-  std::cout << range_B_sd3D * 1000 << std::endl;
-  std::cout << range_B_mean2D << std::endl;
-  std::cout << range_B_sd2D << std::endl;
+  std::cout << (range_B_errors_3D.size() > 0 ? range_B_mean3D * 1000 : 0.0) << std::endl;
+  std::cout << (range_B_errors_3D.size() > 0 ? range_B_sd3D * 1000 : 0.0) << std::endl;
+  std::cout << (range_B_errors_2D.size() > 0 ? range_B_mean2D : 0.0) << std::endl;
+  std::cout << (range_B_errors_2D.size() > 0 ? range_B_sd2D : 0.0) << std::endl;
 
-  std::cout << range_C_mean3D * 1000 << std::endl;
-  std::cout << range_C_sd3D * 1000 << std::endl;
-  std::cout << range_C_mean2D << std::endl;
-  std::cout << range_C_sd2D << std::endl;
+  std::cout << (range_C_errors_3D.size() > 0 ? range_C_mean3D * 1000 : 0.0) << std::endl;
+  std::cout << (range_C_errors_3D.size() > 0 ? range_C_sd3D * 1000 : 0.0) << std::endl;
+  std::cout << (range_C_errors_2D.size() > 0 ? range_C_mean2D : 0.0) << std::endl;
+  std::cout << (range_C_errors_2D.size() > 0 ? range_C_sd2D : 0.0) << std::endl;
 
 
 }
