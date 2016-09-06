@@ -879,13 +879,15 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
       for(unsigned tid = 0; tid != num_threads; ++tid){
 
 	if(frame_id < num_frames){
-
+	  
 	  m_cb_rgb[frame_id].valid = 1;
 	  infile_fr.read((char*) &m_cb_rgb[frame_id].time, sizeof(double));
 	  infile_fr.read((char*) rgbs[tid], 1280*1080 * 3);
 
 	  m_cb_ir[frame_id].valid = 1;
 	  infile_fr.read((char*) &m_cb_ir[frame_id].time, sizeof(double));
+
+
 	  if(m_undist){
 	    infile_fr.read((char*) depth_in, 512 * 424 * sizeof(float));
 	    memcpy((char*) depths[tid], undistort_depth->process(depth_in), 512 * 424 * sizeof(float));

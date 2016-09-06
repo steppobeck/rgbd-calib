@@ -860,7 +860,7 @@ int main(int argc, char* argv[]){
   }
 
   cv_init.save(filename_xyz.c_str(), filename_uv.c_str());
-  cv_init.save(std::string(filename_xyz + "_initial").c_str(), std::string(filename_uv + "_initial").c_str());
+  
   // INITIAL CALIBRATION FINISHED HERE
 
 
@@ -1121,9 +1121,7 @@ int main(int argc, char* argv[]){
 
 
   cv_init.save(filename_xyz.c_str(), filename_uv.c_str());
-  filename_xyz += "_sweep";
-  filename_uv  += "_sweep";
-  cv_init.save(filename_xyz.c_str(), filename_uv.c_str());
+
 
   std::cout << "INFO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
   std::cout << "INFO: tracking_num_samples_taken: " << tracking_num_samples_taken << std::endl;
