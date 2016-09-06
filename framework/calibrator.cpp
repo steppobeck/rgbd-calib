@@ -495,7 +495,8 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << "range_C_mean_error_2D: " << range_C_mean2D << " (" << range_C_sd2D << ") [" << range_C_max_2D << "] (in pixels)" << std::endl;
 
   std::cout << "---------------------------------------------------------" << std::endl;
-  std::cout << "---------------------------------------------------------" << std::endl;
+  // 0.0 (0.0)[0.0] & 0.0 (0.0)[0.0]
+  std::cout << std::setprecision(3) << mean3D * 1000 << " (" << sd3D * 1000 << ") [" << max_3D * 1000 << "] & " << mean2D << " (" << sd2D << ") [" << max_2D << "]" << std::endl;
   std::cout << range_A_mean3D * 1000 << std::endl;
   std::cout << range_A_sd3D * 1000 << std::endl;
   std::cout << range_A_mean2D << std::endl;
