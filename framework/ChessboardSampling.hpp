@@ -11,6 +11,18 @@
 #include <vector>
 
 
+  class SweepStatistics{
+  public:
+    unsigned input_frames;
+    unsigned no_too_few_corners;
+    unsigned flipped_boards;
+    unsigned outliers;
+    unsigned corrupt_depth;
+    unsigned temporal_jitter;
+    unsigned output_frames;
+  };
+
+
   class ChessboardRange{
   public:
     unsigned start;
@@ -170,8 +182,9 @@
 			  const size_t frame_id,
 			  const unsigned tid);
 			  
-
-
+  public:
+    SweepStatistics p_sweep_stats;
+  private:
     std::string m_filenamebase;
   protected:
     std::vector<ChessboardPose> m_poses;

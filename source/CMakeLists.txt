@@ -74,6 +74,10 @@ add_executable(play_sweep play_sweep.cpp)
 target_link_libraries(play_sweep framework)
 install(TARGETS play_sweep DESTINATION bin)
 
+add_executable(sweep_stats sweep_stats.cpp)
+target_link_libraries(sweep_stats framework)
+install(TARGETS sweep_stats DESTINATION bin)
+
 add_executable(convert_recording_to_point_cloud convert_recording_to_point_cloud.cpp)
 target_link_libraries(convert_recording_to_point_cloud framework)
 install(TARGETS convert_recording_to_point_cloud DESTINATION bin)

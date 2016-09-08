@@ -335,7 +335,8 @@ ChessboardViewIR::calcShapeStats3D(){
 
 
   ChessboardSampling::ChessboardSampling(const char* filenamebase, const RGBDConfig& cfg, bool undist)
-    : m_filenamebase(filenamebase),
+    : p_sweep_stats(),
+      m_filenamebase(filenamebase),
       m_poses(),
       m_cb_rgb(),
       m_cb_ir(),
@@ -1761,9 +1762,23 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 
   void
   ChessboardSampling::filterSamples(const float pose_offset){
+
+#if 0
+    unsigned input_frames;
+    unsigned no_too_few_corners;
+    unsigned flipped_boards;
+    unsigned outliers;
+    unsigned corrupt_depth;
+    unsigned temporal_jitter;
+    unsigned output_frames;
+#endif
+
+
     std::cout << "ChessboardSampling::filterSamples -> begin" << std::endl;
 
     // 0. location where no corners where detected are already invalid
+    p_sweep_stats.input_frames = m_cb_ir.size();
+    p_sweep_stats.no_too_few_corners = p_sweep_stats.input_frames - getChessboardIDs().size();
 
 
     // 1. gather valid ranges to detect flipps
@@ -1775,6 +1790,8 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     std::cout << "ChessboardSampling::filterSamples -> detectFlips" << std::endl;
     detectFlips(); // better, more generic detectFlipsInRanges!
 
+    p_sweep_stats.flipped_boards = p_sweep_stats.input_frames - p_sweep_stats.no_too_few_corners - getChessboardIDs().size();
+
     // 1.2 detect shape errors based on local area ratios of corner quads
     gatherValidRanges();
     calcStatsInRanges();
@@ -1783,6 +1800,9 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     }
     std::cout << "ChessboardSampling::filterSamples -> detectShapeFaults" << std::endl;
     detectShapeFaultsInRanges();
+
+    p_sweep_stats.outliers = p_sweep_stats.input_frames - p_sweep_stats.no_too_few_corners - p_sweep_stats.flipped_boards - getChessboardIDs().size();
+
 
     // 1.5 detectCorruptedDepthInRanges
     gatherValidRanges();
@@ -1793,6 +1813,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     std::cout << "ChessboardSampling::filterSamples -> detectCorruptedDepth" << std::endl;
     detectCorruptedDepthInRanges();
 
+    p_sweep_stats.corrupt_depth = p_sweep_stats.input_frames - p_sweep_stats.no_too_few_corners - p_sweep_stats.flipped_boards - p_sweep_stats.outliers - getChessboardIDs().size();
 
     // 2. gather valid ranges to detect time jumps
     gatherValidRanges();
@@ -1803,6 +1824,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     std::cout << "ChessboardSampling::filterSamples -> detectTimeJumps" << std::endl;
     detectTimeJumpsInRanges();
 
+    p_sweep_stats.temporal_jitter = p_sweep_stats.input_frames - p_sweep_stats.no_too_few_corners - p_sweep_stats.flipped_boards - p_sweep_stats.outliers - p_sweep_stats.corrupt_depth  - getChessboardIDs().size();
    
     gatherValidRanges();
     calcStatsInRanges();
@@ -1840,6 +1862,7 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 
     std::cout << "ChessboardSampling::filterSamples -> end" << std::endl;
     
+    p_sweep_stats.output_frames = getChessboardIDs().size();
   }
 
 
@@ -1928,7 +1951,7 @@ ChessboardSampling::calcStatsInRanges(){
 
 void
 ChessboardSampling::gatherValidRanges(){
-#define MIN_RANGE_SIZE 10
+#define MIN_RANGE_SIZE 1
 
   // input is always m_cb_rgb and m_cb_ir
 
@@ -1973,7 +1996,6 @@ ChessboardSampling::gatherValidRanges(){
   }
 
   std::cout << "ChessboardSampling::gatherValidRanges() -> valid ranges: " << m_valid_ranges.size() << std::endl;
-
 
 
 }
