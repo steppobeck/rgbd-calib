@@ -927,6 +927,7 @@ int main(int argc, char* argv[]){
     if(!full_optimization_evaluation){
       break;
     }
+#if 0
   case 2:
     std::cout << "INFO: performing optimization using refine with gradient descent." << std::endl;
     if(logfilename != ""){
@@ -952,6 +953,7 @@ int main(int argc, char* argv[]){
     if(!full_optimization_evaluation){
       break;
     }
+#endif
   case 4:
     std::cout << "INFO: performing optimization of 2D and 3D error using brute force sampling." << std::endl;
     if(logfilename != ""){
@@ -1044,6 +1046,7 @@ int main(int argc, char* argv[]){
     if(!full_optimization_evaluation){
       break;
     }
+#if 0
   case 6:
     std::cout << "INFO: performing optimization using refine3D and refine2D with gradient descent." << std::endl;
     if(logfilename != ""){
@@ -1087,6 +1090,7 @@ int main(int argc, char* argv[]){
     if(!full_optimization_evaluation){
       break;
     }
+#endif
   case 7:
     std::cout << "INFO: performing no optimization, midtimes are used instead." << std::endl;
     if(!full_optimization_evaluation){
