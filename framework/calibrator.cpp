@@ -410,22 +410,34 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
 					      sps[i].tex_offset.v * cfg.size_rgb.y,0.0)));
 
 
-    errors_3D.push_back(err_3D);
-    errors_2D.push_back(err_2D);
-   
-    max_3D = std::max(max_3D, err_3D);
-    max_2D = std::max(max_2D, err_2D);
+    // only track if sample is inside sweet bbx 
+    const glm::vec3 sweet_min(-0.6, 0.0, -0.6);
+    const glm::vec3 sweet_max( 0.6, 1.9,  0.6);
+    if(sps[i].pos_real[0] > sweet_min[0] &&
+       sps[i].pos_real[1] > sweet_min[1] &&
+       sps[i].pos_real[2] > sweet_min[2] &&
 
-    // track local error for volume vis
-    nniSample nnis;
-    nnis.s_tex_off.u = err_3D;
-    nnis.s_tex_off.v = err_2D;
-    
-    nnis.s_pos.x = x;
-    nnis.s_pos.y = y;
-    nnis.s_pos.z = z;
-    
-    nnisamples_error_vol.push_back(nnis);
+       sps[i].pos_real[0] < sweet_max[0] &&
+       sps[i].pos_real[1] < sweet_max[1] &&
+       sps[i].pos_real[2] < sweet_max[2]){
+
+      errors_3D.push_back(err_3D);
+      errors_2D.push_back(err_2D);
+   
+      max_3D = std::max(max_3D, err_3D);
+      max_2D = std::max(max_2D, err_2D);
+
+      // track local error for volume vis
+      nniSample nnis;
+      nnis.s_tex_off.u = err_3D;
+      nnis.s_tex_off.v = err_2D;
+      
+      nnis.s_pos.x = x;
+      nnis.s_pos.y = y;
+      nnis.s_pos.z = z;
+      
+      nnisamples_error_vol.push_back(nnis);
+    }
 
 
     if(range_A_start < sps[i].depth &&
