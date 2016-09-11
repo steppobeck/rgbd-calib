@@ -17,9 +17,9 @@ int main(int argc, char* argv[]){
   std::string pose_offset_filename = "./poseoffset";
   unsigned cv_width  = 128;
   unsigned cv_height = 128;
-  unsigned cv_depth  = 256;
+  unsigned cv_depth  = 128;
   float    cv_min_d  = 0.5;
-  float    cv_max_d  = 4.5;
+  float    cv_max_d  = 3.0;
   bool undistort = false;
 
   unsigned idwneighbours = 10;

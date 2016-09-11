@@ -334,7 +334,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   float max_2D = std::numeric_limits<float>::lowest();
 
 
-  // ranges in depth 0.5-1.75 1.75-3.0 3-4.5
+  // ranges in depth 0.5-1.25 1.25-2.0 2.0-3.0
   const float range_A_start = 0.5;
   const float range_A_end   = 1.25;
   float range_A_max_3D = std::numeric_limits<float>::lowest();
@@ -408,6 +408,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
     const float err_3D(glm::length(glm::vec3(sps[i].pos_offset.x,sps[i].pos_offset.y,sps[i].pos_offset.z)));
     const float err_2D(glm::length(glm::vec3(sps[i].tex_offset.u * cfg.size_rgb.x,
 					      sps[i].tex_offset.v * cfg.size_rgb.y,0.0)));
+
 
     errors_3D.push_back(err_3D);
     errors_2D.push_back(err_2D);

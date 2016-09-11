@@ -82,6 +82,6 @@ add_executable(convert_recording_to_point_cloud convert_recording_to_point_cloud
 target_link_libraries(convert_recording_to_point_cloud framework)
 install(TARGETS convert_recording_to_point_cloud DESTINATION bin)
 
-install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "poseoffset")
-install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "click_x.wav")
+#install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "poseoffset")
+#install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "click_x.wav")
 
