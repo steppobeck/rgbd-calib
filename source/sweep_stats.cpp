@@ -156,7 +156,7 @@ int main(int argc, char* argv[]){
   off /*<< "density_x "*/ << mean_d_y << " (" << sd_d_y << ")" << std::endl;
   off /*<< "density_y "*/ << mean_d_x << " (" << sd_d_x << ")" << std::endl;
   off /*<< "density_z "*/ << mean_d_z << " (" << sd_d_z << ")" << std::endl;
-
+  off /*<< "duration"*/   << cb_irs.back().time - cb_irs.front().time << std::endl;
   
 
   return 0;
