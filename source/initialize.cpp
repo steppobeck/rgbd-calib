@@ -55,12 +55,12 @@ int main(int argc, char* argv[]){
 
   if(p.isOptSet("l")){
     // ./initialize ../../data/test/23.cv ../../data/test/23_init -l ../../data/test/23.volume_stats
-    volume_log_x = new std::ofstream(p.getOptsString("l")[0] + "_x");
-    volume_log_y = new std::ofstream(p.getOptsString("l")[0] + "_y");
-    volume_log_z = new std::ofstream(p.getOptsString("l")[0] + "_z");
+    volume_log_x = new std::ofstream(p.getOptsString("l")[0] + "_x.csv");
+    volume_log_y = new std::ofstream(p.getOptsString("l")[0] + "_y.csv");
+    volume_log_z = new std::ofstream(p.getOptsString("l")[0] + "_z.csv");
 
-    volume_log_rgb = new std::ofstream(p.getOptsString("l")[0] + "_rgb");
-    volume_log_depth = new std::ofstream(p.getOptsString("l")[0] + "_depth");
+    volume_log_rgb = new std::ofstream(p.getOptsString("l")[0] + "_rgb.csv");
+    volume_log_depth = new std::ofstream(p.getOptsString("l")[0] + "_depth.csv");
   }
   // used for volume log files
   float* depth_at_voxel = new float[cv_width*cv_height*cv_depth];
