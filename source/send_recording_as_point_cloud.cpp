@@ -223,7 +223,7 @@ int main(int argc, char* argv[]){
 
       if(s_num == 0){
 	memcpy((char*) &curr_frame_time, (const char*) sensor.frame_rgb, sizeof(double));
-	std::cout << "curr_frame_time: " << curr_frame_time << std::endl;
+	//std::cout << "curr_frame_time: " << curr_frame_time << std::endl;
       }
 
       if(rgb_is_compressed){
@@ -318,8 +318,11 @@ int main(int argc, char* argv[]){
     // finished of 3D reconstruction
 
     // calculate number of points in points cloud
-
-
+    unsigned voxel_count = 0;
+    for(unsigned tid = 0; tid < num_threads; ++tid){
+      voxel_count += results[tid].size();
+    }
+    std::cout << "voxel_count: " << voxel_count << std::endl;
 
     size_t timestamp = curr_frame_time * 1000;
     std::cout << "timestamp: " << timestamp << std::endl;
@@ -338,34 +341,80 @@ int main(int argc, char* argv[]){
     
     unsigned char buff[max_bufflen];
     const float voxelsize = 0.008;
-    size_t byte_index = 0;
-
+    size_t buff_index = 0;
+    unsigned packet_number = 0;
+    unsigned voxel_number = 0;
     for(unsigned tid = 0; tid < num_threads; ++tid){
       for(const auto& s : results[tid]){
 
+	if(voxel_number == max_voxels_per_packet){
+	  std::cout << "sending packer number: " << packet_number
+		    << " -> " << voxel_number
+		    << " (" << buff_index << " bytes)" << std::endl;
+	  sender->send(buff, buff_index);
+	  voxel_number = 0;
+	  buff_index = 0;
+	  ++packet_number;
+	}
 
 	// fill header
+	if(0 == voxel_number){
+	  memcpy(&buff[buff_index], &timestamp, sizeof(timestamp));
+	  buff_index += sizeof(timestamp);
+	  memcpy(&buff[buff_index], &packet_number, sizeof(packet_number));
+	  buff_index += sizeof(packet_number);
+	  memcpy(&buff[buff_index], &voxel_count, sizeof(voxel_count));
+	  buff_index += sizeof(voxel_count);
+	}
 
-	unsigned char red   = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
-	unsigned char green = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
-	unsigned char blue  = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
+	unsigned char r = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
+	unsigned char g = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
+	unsigned char b = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
 
-	// voxelize s.s_pos to unsigned short
-	// 1. subtract bbx_min
+	// voxelize
+	unsigned short x = (unsigned short) ((s.s_pos.x - bbx_min[0])/voxelsize);
+	unsigned short y = (unsigned short) ((s.s_pos.y - bbx_min[1])/voxelsize);
+	unsigned short z = (unsigned short) ((s.s_pos.z - bbx_min[2])/voxelsize);
 
-	// 2. divide s.s_pos by voxelsize
+	//std::cout << x << " " << y << " " << z << " "  << (int) red << " " << (int) green << " " << (int) blue << std::endl;
 
 	// copy "voxel into buff"
+	memcpy(&buff[buff_index], &x, sizeof(x));
+	buff_index += sizeof(x);
+	memcpy(&buff[buff_index], &y, sizeof(y));
+	buff_index += sizeof(y);
+	memcpy(&buff[buff_index], &z, sizeof(z));
+	buff_index += sizeof(z);
 
-	/*
-	  pcfile << s.s_pos.x << " " << s.s_pos.y << " " << s.s_pos.z << " "
-	  << red << " "
-	  << green << " "
-	  << blue << std::endl;
-	*/
-	
+	memcpy(&buff[buff_index], &r, sizeof(r));
+	buff_index += sizeof(r);
+	memcpy(&buff[buff_index], &g, sizeof(g));
+	buff_index += sizeof(g);
+	memcpy(&buff[buff_index], &b, sizeof(b));
+	buff_index += sizeof(b);
+
+	unsigned char joint_id = 0; // not used but needed by protocol
+	memcpy(&buff[buff_index], &joint_id, sizeof(joint_id));
+	buff_index += sizeof(joint_id);
+
+
+	++voxel_number;
       }
       
+    }
+
+    if(voxel_number > 0){
+      std::cout << "sending packer number: " << packet_number
+		<< " -> " << voxel_number
+		<< " (" << buff_index << " bytes)" << std::endl;
+      sender->send(buff, buff_index);
+    }
+
+
+
+    if(frame_num == num_frames){
+      frame_num = 0;
+      fb.rewindFile();
     }
 
 
