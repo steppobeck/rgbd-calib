@@ -6,6 +6,8 @@
 #include <NearestNeighbourSearch.hpp>
 #include <udpconnection.hpp>
 #include <squish.h>
+#include <clock.hpp>
+#include <timevalue.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
@@ -128,8 +130,8 @@ int main(int argc, char* argv[]){
   p.init(argc,argv);
 
   if(p.isOptSet("u")){
-    sender = new udpconnection(p.getOptsString("u")[0].c_str(), p.getOptsInt("u")[1]);
-    sender->open();
+    sender = new udpconnection;
+    sender->open_sending_socket(p.getOptsString("u")[0].c_str(), p.getOptsInt("u")[1]);
   }
   else{
     p.showHelp();
@@ -294,10 +296,12 @@ int main(int argc, char* argv[]){
 	}
       }
     }
-    
+    // finished of 3D reconstruction    
 
+#define DO_FILTERING
 
-    
+#ifdef DO_FILTERING 
+    // begin filtering
     std::cout << "start building acceleration structure for filtering " << nnisamples.size() << " points..." << std::endl;
     NearestNeighbourSearch nns(nnisamples);
     std::vector<std::vector<nniSample> > results;
@@ -315,13 +319,16 @@ int main(int argc, char* argv[]){
     }
     threadGroup.join_all();
 
-    // finished of 3D reconstruction
-
     // calculate number of points in points cloud
     unsigned voxel_count = 0;
     for(unsigned tid = 0; tid < num_threads; ++tid){
       voxel_count += results[tid].size();
     }
+#else
+    unsigned voxel_count = nnisamples.size();
+#endif
+
+
     std::cout << "voxel_count: " << voxel_count << std::endl;
 
     size_t timestamp = curr_frame_time * 1000;
@@ -344,14 +351,20 @@ int main(int argc, char* argv[]){
     size_t buff_index = 0;
     unsigned packet_number = 0;
     unsigned voxel_number = 0;
+#ifdef DO_FILTERING
     for(unsigned tid = 0; tid < num_threads; ++tid){
       for(const auto& s : results[tid]){
-
+#else
+    for(const auto& s : nnisamples){
+#endif
 	if(voxel_number == max_voxels_per_packet){
-	  std::cout << "sending packer number: " << packet_number
+	  std::cout << "sending packet number: " << packet_number
 		    << " -> " << voxel_number
 		    << " (" << buff_index << " bytes)" << std::endl;
 	  sender->send(buff, buff_index);
+
+	  //sleep(sensor::timevalue::const_999_us * 10);
+
 	  voxel_number = 0;
 	  buff_index = 0;
 	  ++packet_number;
@@ -399,9 +412,14 @@ int main(int argc, char* argv[]){
 
 
 	++voxel_number;
+
+#ifdef DO_FILTERING
       }
       
     }
+#else
+    }
+#endif
 
     if(voxel_number > 0){
       std::cout << "sending packer number: " << packet_number

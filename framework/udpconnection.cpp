@@ -1,96 +1,78 @@
 #include "udpconnection.hpp"
-#include <netinet/in.h>
-#include <netdb.h>
-#include <iostream>
-#include <strings.h>
 
-udpconnection::udpconnection(const char* hostname, unsigned short portnum):
-  _hostname(hostname),
-  _portnum(portnum),
-  _sock(0),
-  _me(),
-  _other(),
-  _blocking(false)
+#include <iostream>
+#include <string.h>
+#include <unistd.h>
+
+udpconnection::udpconnection()
+  : m_socket_desc(0),
+    m_socket()
 {}
 
 
 udpconnection::~udpconnection(){
-
+  close(m_socket_desc);
 }
 
-
 bool
-udpconnection::open(){
-
-  _me.sin_addr.s_addr = 0;
-  _me.sin_family = AF_INET;
-  _me.sin_port = htons(_portnum);
-
-  struct hostent *he;
-  if ((he=gethostbyname(_hostname.c_str())) == 0){
-      std::cerr << "Error by Client: hostname "
-                << _hostname
-                << " unknown"
-                << std::endl;
-      return false;
-  }
-
-
-  _other.sin_family = AF_INET;
-  _other.sin_port = htons(_portnum);
-  _other.sin_addr = *((struct in_addr *)he->h_addr);
-  bzero(&(_other.sin_zero), 8);
-
-
-  /* Socket anlegen und binden */
-  if ((_sock = socket(AF_INET, SOCK_DGRAM, 0)) == -1){
-    std::cerr << "udpconnection::open(): cannot create socket "
-	      << std::endl;
+udpconnection::open_sending_socket(const char* ip, unsigned short port){
+  if ( (m_socket_desc=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
+    std::cerr << "ERROR: unable to create socket" << std::endl;
     return false;
   }
 
 
+  memset((char *) &m_socket, 0, sizeof(m_socket));
+  m_socket.sin_family = AF_INET;
+  m_socket.sin_port = htons(port);
 
-
-  return true;
-}
-
-bool
-udpconnection::bind(){
-  if (::bind(_sock, (struct sockaddr *)&_me, sizeof(struct sockaddr)) == -1){
-    std::cerr << "udpconnection::open(): cannot bind socket "
-	      << std::endl;
+  if (inet_aton(ip , &m_socket.sin_addr) == 0){
+    std::cerr << "ERROR: unable to connect to " << ip << std::endl;
     return false;
   }
+
   return true;
 }
+
+
+bool
+udpconnection::open_receiving_socket(unsigned short port){
+    
+  if ((m_socket_desc=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
+    std::cerr << "ERROR: unable to create socket" << std::endl;
+    return false;
+  }
+  memset((char *) &m_socket, 0, sizeof(m_socket));
+  m_socket.sin_family = AF_INET;
+  m_socket.sin_port = htons(port);
+  m_socket.sin_addr.s_addr = htonl(INADDR_ANY);
+
+  //bind socket to port
+  if( bind(m_socket_desc , (struct sockaddr*)&m_socket, sizeof(m_socket) ) == -1){
+    std::cerr << "ERROR: unable to bind socket" << std::endl;
+    return false;
+  }
+
+  return true;
+}
+
 
 bool
 udpconnection::send(const void* data, size_t len){
-  socklen_t l = sizeof (_other);
-  if(!_blocking)
-    sendto( _sock, data, len, MSG_DONTWAIT, (struct sockaddr* )&_other, l);
-  else
-    sendto( _sock, data, len, 0, (struct sockaddr* )&_other, l);
+  if(sendto(m_socket_desc, data, len, 0 , (struct sockaddr *) &m_socket, sizeof(m_socket)) == -1){
+    std::cerr << "ERROR: unable to send data" << std::endl;
+    return false;
+  }
   return true;
 }
 
-int
+
+size_t
 udpconnection::recv(void* data, size_t len){
-
-  socklen_t l = sizeof (_other);
-  int bytes_received;
-  if(!_blocking)
-    bytes_received = recvfrom( _sock, data, len, MSG_DONTWAIT, (struct sockaddr* )&_other, &l);
-  else
-    bytes_received = recvfrom( _sock, data, len, 0, (struct sockaddr* )&_other, &l);
-
-  return bytes_received;
-}
-
-
-
-void
-udpconnection::setBlocking(bool on){
-  _blocking = on;
+  //try to receive some data, this is a blocking call
+  size_t recv_len = 0;
+  socklen_t slen;
+  struct sockaddr_in si_other;
+  recv_len = recvfrom(m_socket_desc, data, len, 0, (struct sockaddr *) &si_other, &slen);
+  return recv_len;
 }
