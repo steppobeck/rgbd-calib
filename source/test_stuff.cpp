@@ -22,7 +22,6 @@ int main(void){
   while(1){
     size_t bytes_received = c.recv(buff, max_bufflen);
     std::cout << "bytes_received: " << bytes_received << std::endl;
-    //sleep(sensor::timevalue::const_999_us * 10);
   }
 
 

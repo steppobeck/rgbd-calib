@@ -103,7 +103,7 @@ namespace{
 }
 
 
-// ./send_recording_as_point_cloud /mnt/pitoti/kinect_recordings/25.8b/23.cv /mnt/pitoti/kinect_recordings/25.8b/24.cv /mnt/pitoti/kinect_recordings/25.8b/25.cv /mnt/pitoti/kinect_recordings/25.8b/26.cv -s /mnt/pitoti/kinect_recordings/25.8b/session_2.stream -c -p1k 0 -p2k 0 -bbx -1.5 0.0 -1.5 1.5 2.4 1.5
+// ./send_recording_as_point_cloud /mnt/pitoti/kinect_recordings/25.8b/23.cv /mnt/pitoti/kinect_recordings/25.8b/24.cv /mnt/pitoti/kinect_recordings/25.8b/25.cv /mnt/pitoti/kinect_recordings/25.8b/26.cv -s /mnt/pitoti/kinect_recordings/25.8b/session_1.stream -c -bbx -0.5 0.0 -0.5 0.5 2.0 0.5 -u 127.0.0.1 7002 -p1k 20 -p2k 3
 int main(int argc, char* argv[]){
 
 
@@ -126,6 +126,9 @@ int main(int argc, char* argv[]){
   p.addOpt("bbx",6,"bounding_box", "specify the bounding box x_min y_min z_min x_max y_max z_max in meters, default -1.2 -0.05 -1.2 1.2 2.4 1.2");
 
   p.addOpt("u",2,"udpconncetion", "specify hostname and port of receiving udpconnection (client)");
+
+  unsigned wait_ms = 0;
+  p.addOpt("w",1,"wait", "specify how many milliseconds to wait between packets: default 0");
 
   p.init(argc,argv);
 
@@ -179,6 +182,11 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("c")){
     rgb_is_compressed = true;
   }
+
+  if(p.isOptSet("w")){
+    wait_ms = p.getOptsInt("w")[0];
+  }
+
 
   const unsigned num_streams(p.getArgs().size());
   
@@ -255,8 +263,10 @@ int main(int argc, char* argv[]){
     std::vector<nniSample> nnisamples;
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       // do 3D reconstruction for each depth pixel
-      for(unsigned y = 0; y < sensor.config.size_d.y; ++y){
-	for(unsigned x = 0; x < sensor.config.size_d.x; ++x){
+      for(unsigned y = 0; y < sensor.config.size_d.y; /*++y*/ y += 2){
+	for(unsigned x = 0; x < sensor.config.size_d.x; /*++x*/ x += 2){
+
+
 	  const unsigned d_idx = y* sensor.config.size_d.x + x;
 	  float d = s_num == 0 ? sensor.frame_d[d_idx] : sensor.slave_frames_d[s_num - 1][d_idx];
 	  if(d < cvs[s_num]->min_d || d > cvs[s_num]->max_d){
@@ -290,6 +300,7 @@ int main(int argc, char* argv[]){
 	  nnis.s_pos_off.y = rgb.y;
 	  nnis.s_pos_off.z = rgb.z;
 
+	  // discretize voxel here
 
           nnisamples.push_back(nnis);
 
@@ -363,7 +374,8 @@ int main(int argc, char* argv[]){
 		    << " (" << buff_index << " bytes)" << std::endl;
 	  sender->send(buff, buff_index);
 
-	  //sleep(sensor::timevalue::const_999_us * 10);
+	  if(wait_ms)
+	    sleep(sensor::timevalue::const_999_us * wait_ms);
 
 	  voxel_number = 0;
 	  buff_index = 0;
