@@ -51,7 +51,7 @@ int main(int argc, char* argv[]){
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       // do 3D recosntruction for each depth pixel
       for(unsigned y = 0; y < sensor.config.size_d.y; ++y){
-	for(unsigned x = 0; x < sensor.config.size_d.x; ++x){
+	for(unsigned x = 0; x < (sensor.config.size_d.x - 3); ++x){
 	  const unsigned d_idx = y* sensor.config.size_d.x + x;
 	  float d = s_num == 0 ? sensor.frame_d[d_idx] : sensor.slave_frames_d[s_num - 1][d_idx];
 	  if(d < cvs[s_num]->min_d || d > cvs[s_num]->max_d)

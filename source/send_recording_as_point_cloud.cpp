@@ -18,24 +18,28 @@
 
 namespace{
 
-  template <class T>
-  inline std::string
-  toStringP(T value, unsigned p)
-  {
-    std::ostringstream stream;
-    stream << std::setw(p) << std::setfill('0') << value;
-    return stream.str();
-  }
 
-
-  float calcAvgDist(const std::vector<nniSample>& neighbours, const nniSample& s){
-    float avd = 0.0;
-    for(const auto& n : neighbours){
-      const float dist = glm::length(glm::vec3(s.s_pos.x - n.s_pos.x,s.s_pos.y - n.s_pos.y,s.s_pos.z - n.s_pos.z));
-      avd += dist;
+  class voxel{
+  public:
+    voxel()
+      : xyz(),
+	rgbi()
+    {
+      xyz[0] = 0;
+      xyz[1] = 0;
+      xyz[2] = 0;
+      rgbi[0] = 0;
+      rgbi[1] = 0;
+      rgbi[2] = 0;
+      rgbi[3] = 0;
     }
-    avd /= neighbours.size();
-    return avd;
+    unsigned short xyz[3];
+    unsigned char rgbi[4];
+  };
+
+  std::ostream& operator<< (std::ostream& os, const voxel& v){
+    os << "voxel: " << v.xyz[0] << ", " << v.xyz[1] << ", " << v.xyz[2] << " color: " << (int) v.rgbi[0] << ", " << (int) v.rgbi[1] << ", " << (int) v.rgbi[2];
+    return os;
   }
 
 
@@ -54,63 +58,17 @@ namespace{
     return false;
   }
 
-  float filter_pass_1_max_avg_dist_in_meter = 0.025;
-  float filter_pass_2_sd_fac = 1.0;
-  unsigned filter_pass_1_k = 50;
-  unsigned filter_pass_2_k = 50;
-
-  void filterPerThread(NearestNeighbourSearch* nns, std::vector<nniSample>* nnisamples, std::vector<std::vector<nniSample> >* results, const unsigned tid, const unsigned num_threads){
-
-    
-    for(unsigned sid = tid; sid < nnisamples->size(); sid += num_threads){
-      
-      nniSample s = (*nnisamples)[sid];
-      
-      if(filter_pass_1_k > 2){      
-	std::vector<nniSample> neighbours = nns->search(s,filter_pass_1_k);
-	if(neighbours.empty()){
-	  continue;
-	}
-	
-	const float avd = calcAvgDist(neighbours, s);
-	if(avd > filter_pass_1_max_avg_dist_in_meter){
-	  continue;
-	}
-      }
-
-      if(filter_pass_2_k > 2){
-	std::vector<nniSample> neighbours = nns->search(s,filter_pass_2_k);
-	const float avd = calcAvgDist(neighbours, s);
-	std::vector<float> dists;
-	for(const auto& n : neighbours){
-	  std::vector<nniSample> local_neighbours = nns->search(n,filter_pass_2_k);
-	  if(!local_neighbours.empty()){
-	    dists.push_back(calcAvgDist(local_neighbours, n));
-	  }
-	}
-	double mean;
-	double sd;
-	calcMeanSD(dists, mean, sd);
-	if((avd - mean) > filter_pass_2_sd_fac * sd){
-	  continue;
-	}
-      }
-      (*results)[tid].push_back(s);
-    }
-
-  }
-
 }
 
 
 // ./send_recording_as_point_cloud /mnt/pitoti/kinect_recordings/25.8b/23.cv /mnt/pitoti/kinect_recordings/25.8b/24.cv /mnt/pitoti/kinect_recordings/25.8b/25.cv /mnt/pitoti/kinect_recordings/25.8b/26.cv -s /mnt/pitoti/kinect_recordings/25.8b/session_1.stream -c -bbx -0.5 0.0 -0.5 0.5 2.0 0.5 -u 127.0.0.1 7002 -p1k 20 -p2k 3
 int main(int argc, char* argv[]){
 
-
+  float voxelsize = 0.008;
   unsigned num_threads = 16;
   bool rgb_is_compressed = false;
   std::string stream_filename;
-
+  unsigned wait_ms = 0;
   udpconnection* sender = 0;
 
   CMDParser p("basefilename_cv .... ");
@@ -118,17 +76,13 @@ int main(int argc, char* argv[]){
   p.addOpt("n",1,"num_threads", "specify how many threads should be used, default 16");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed support for rgb stream, default: false (not compressed)");
 
-  p.addOpt("p1d",1,"filter_pass_1_max_avg_dist_in_meter", "filter pass 1 skips points which have an average distance of more than this to it k neighbors, default 0.025");
-  p.addOpt("p1k",1,"filter_pass_1_k", "filter pass 1 number of neighbors, default 50");
-  p.addOpt("p2s",1,"filter_pass_2_sd_fac", "filter pass 2, specify how many times a point's distance should be above (values higher than 1.0) / below (values smaller than 1.0) is allowed to be compared to standard deviation of its k neighbors, default 1.0");
-  p.addOpt("p2k",1,"filter_pass_2_k", "filter pass 2 number of neighbors (the higher the more to process) , default 50");
-
   p.addOpt("bbx",6,"bounding_box", "specify the bounding box x_min y_min z_min x_max y_max z_max in meters, default -1.2 -0.05 -1.2 1.2 2.4 1.2");
 
   p.addOpt("u",2,"udpconncetion", "specify hostname and port of receiving udpconnection (client)");
-
-  unsigned wait_ms = 0;
+  
   p.addOpt("w",1,"wait", "specify how many milliseconds to wait between packets: default 0");
+  p.addOpt("v",1,"voxelsize", "specify the voxel size in meter: default 0.008");
+
 
   p.init(argc,argv);
 
@@ -146,26 +100,6 @@ int main(int argc, char* argv[]){
     bbx_max = glm::vec3(p.getOptsFloat("bbx")[3], p.getOptsFloat("bbx")[4], p.getOptsFloat("bbx")[5]);
     std::cout << "setting bounding box to min: " << bbx_min << " -> max: " << bbx_max << std::endl;
   }
-
-
-  if(p.isOptSet("p1d")){
-    filter_pass_1_max_avg_dist_in_meter = p.getOptsFloat("p1d")[0];
-    std::cout << "setting filter_pass_1_max_avg_dist_in_meter to " << filter_pass_1_max_avg_dist_in_meter << std::endl;
-  }
-  if(p.isOptSet("p1k")){
-    filter_pass_1_k = p.getOptsInt("p1k")[0];
-    std::cout << "setting filter_pass_1_k to " << filter_pass_1_k << std::endl;
-  }
-  if(p.isOptSet("p2s")){
-    filter_pass_2_sd_fac = p.getOptsFloat("p2s")[0];
-    std::cout << "setting filter_pass_2_sd_fac to " << filter_pass_2_sd_fac << std::endl;
-  }
-  if(p.isOptSet("p2k")){
-    filter_pass_2_k = p.getOptsInt("p2k")[0];
-    std::cout << "setting filter_pass_2_k to " << filter_pass_2_k << std::endl;
-  }
-  
-
 
   if(p.isOptSet("s")){
     stream_filename = p.getOptsString("s")[0];
@@ -186,6 +120,17 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("w")){
     wait_ms = p.getOptsInt("w")[0];
   }
+
+  if(p.isOptSet("v")){
+    voxelsize = p.getOptsFloat("v")[0];
+  }
+
+  // compute volume dimensions
+  float voxelsize_inv = 1.0f/voxelsize;
+  const unsigned volume_width  = (bbx_max[0] - bbx_min[0])*voxelsize_inv;
+  const unsigned volume_height = (bbx_max[1] - bbx_min[1])*voxelsize_inv;
+  const unsigned volume_depth  = (bbx_max[2] - bbx_min[2])*voxelsize_inv;
+  
 
 
   const unsigned num_streams(p.getArgs().size());
@@ -225,9 +170,18 @@ int main(int argc, char* argv[]){
   double curr_frame_time = 0.0;
 
   unsigned frame_num = 0;
+
+  sensor::timevalue ts = sensor::clock::time();
+
   while(frame_num < num_frames){
     ++frame_num;
+    std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start of frame" << std::endl;
+    sensor::timevalue ts_now = sensor::clock::time();
+    std::cout << "frame time: " << (ts_now - ts).msec() << " ms" << std::endl;
+    ts = ts_now;
 
+
+    // start reading frames from file
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       fb.read((unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]), colorsize);
 
@@ -236,6 +190,7 @@ int main(int argc, char* argv[]){
 	//std::cout << "curr_frame_time: " << curr_frame_time << std::endl;
       }
 
+      // start deconpress, if rgb is compressed
       if(rgb_is_compressed){
          // uncompress to rgb_tmp from (unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]) to tmp_rgba
          squish::DecompressImage (tmp_rgba, cfg.size_rgb.x, cfg.size_rgb.y,
@@ -258,14 +213,14 @@ int main(int argc, char* argv[]){
       fb.read((unsigned char*) (s_num == 0 ? sensor.frame_d : sensor.slave_frames_d[s_num - 1]), depthsize);
     }
 
+    sensor::timevalue ts_now_read = sensor::clock::time();
+    std::cout << "frame time_read: " << (ts_now_read - ts_now).msec() << " ms" << std::endl;
 
-
-    std::vector<nniSample> nnisamples;
+    std::map<size_t, std::vector<voxel>> recon_volume;
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       // do 3D reconstruction for each depth pixel
-      for(unsigned y = 0; y < sensor.config.size_d.y; /*++y*/ y += 2){
-	for(unsigned x = 0; x < sensor.config.size_d.x; /*++x*/ x += 2){
-
+      for(unsigned y = 0; y < sensor.config.size_d.y; ++y){
+	for(unsigned x = 0; x < (sensor.config.size_d.x - 3); ++x){
 
 	  const unsigned d_idx = y* sensor.config.size_d.x + x;
 	  float d = s_num == 0 ? sensor.frame_d[d_idx] : sensor.slave_frames_d[s_num - 1][d_idx];
@@ -283,11 +238,7 @@ int main(int argc, char* argv[]){
 	    continue;
 	  }
 
-	  nniSample nnis;
-	  nnis.s_pos.x = pos3D.x;
-	  nnis.s_pos.y = pos3D.y;
-	  nnis.s_pos.z = pos3D.z;		
-		
+
 	  glm::vec2 pos2D_rgb_norm = cvs[s_num]->lookupPos2D_normalized( x * 1.0/sensor.config.size_d.x, 
 									 y * 1.0/sensor.config.size_d.y, d);
 	  pos2D_rgb = glm::vec2(pos2D_rgb_norm.x * sensor.config.size_rgb.x,
@@ -295,52 +246,33 @@ int main(int argc, char* argv[]){
 	  
 	  glm::vec3 rgb = sensor.get_rgb_bilinear_normalized(pos2D_rgb, s_num);
 
-          
-	  nnis.s_pos_off.x = rgb.x;
-	  nnis.s_pos_off.y = rgb.y;
-	  nnis.s_pos_off.z = rgb.z;
-
 	  // discretize voxel here
-
-          nnisamples.push_back(nnis);
-
+	  voxel vxl;
+	  vxl.xyz[0] = (unsigned short)((pos3D.x - bbx_min[0])*voxelsize_inv);
+	  vxl.xyz[1] = (unsigned short)((pos3D.y - bbx_min[1])*voxelsize_inv);
+	  vxl.xyz[2] = (unsigned short)((pos3D.z - bbx_min[2])*voxelsize_inv);
+	  // compute grid_loc of surface point
+	  const size_t grid_loc = vxl.xyz[0] + volume_width * vxl.xyz[1] + volume_width * volume_height * vxl.xyz[2];
+	  vxl.rgbi[0] = (unsigned char) std::max(0.0f , std::min(255.0f, rgb.x * 255.0f));
+	  vxl.rgbi[1] = (unsigned char) std::max(0.0f , std::min(255.0f, rgb.y * 255.0f));
+	  vxl.rgbi[2] = (unsigned char) std::max(0.0f , std::min(255.0f, rgb.z * 255.0f));
+	  recon_volume[grid_loc].push_back(vxl);
 	}
       }
     }
+    // filter recon_volume
+    std::vector<voxel> voxels;
+    for(const auto& vxls : recon_volume){
+      voxels.push_back(vxls.second.front());
+    }
+    unsigned voxel_count = voxels.size();
+    std::cout << "voxel_count: " << voxel_count << std::endl;
+
+    sensor::timevalue ts_now_recon = sensor::clock::time();
+    std::cout << "frame time_recon: " << (ts_now_recon - ts_now_read).msec() << " ms" << std::endl;
     // finished of 3D reconstruction    
 
-#define DO_FILTERING
-
-#ifdef DO_FILTERING 
-    // begin filtering
-    std::cout << "start building acceleration structure for filtering " << nnisamples.size() << " points..." << std::endl;
-    NearestNeighbourSearch nns(nnisamples);
-    std::vector<std::vector<nniSample> > results;
-    for(unsigned tid = 0; tid < num_threads; ++tid){
-      results.push_back(std::vector<nniSample>() );
-    }
-
-    std::cout << "start filtering frame " << frame_num << " using " << num_threads << " threads." << std::endl;
-
-
-
-    boost::thread_group threadGroup;
-    for (unsigned tid = 0; tid < num_threads; ++tid){
-      threadGroup.create_thread(boost::bind(&filterPerThread, &nns, &nnisamples, &results, tid, num_threads));
-    }
-    threadGroup.join_all();
-
-    // calculate number of points in points cloud
-    unsigned voxel_count = 0;
-    for(unsigned tid = 0; tid < num_threads; ++tid){
-      voxel_count += results[tid].size();
-    }
-#else
-    unsigned voxel_count = nnisamples.size();
-#endif
-
-
-    std::cout << "voxel_count: " << voxel_count << std::endl;
+    
 
     size_t timestamp = curr_frame_time * 1000;
     std::cout << "timestamp: " << timestamp << std::endl;
@@ -358,80 +290,66 @@ int main(int argc, char* argv[]){
     const unsigned max_bufflen = max_voxels_per_packet * byte_per_voxel + byte_of_header;
     
     unsigned char buff[max_bufflen];
-    const float voxelsize = 0.008;
+    
     size_t buff_index = 0;
     unsigned packet_number = 0;
     unsigned voxel_number = 0;
-#ifdef DO_FILTERING
-    for(unsigned tid = 0; tid < num_threads; ++tid){
-      for(const auto& s : results[tid]){
-#else
-    for(const auto& s : nnisamples){
-#endif
-	if(voxel_number == max_voxels_per_packet){
-	  std::cout << "sending packet number: " << packet_number
-		    << " -> " << voxel_number
-		    << " (" << buff_index << " bytes)" << std::endl;
-	  sender->send(buff, buff_index);
 
-	  if(wait_ms)
-	    sleep(sensor::timevalue::const_999_us * wait_ms);
+    for(const auto& s : voxels){
 
-	  voxel_number = 0;
-	  buff_index = 0;
-	  ++packet_number;
-	}
-
-	// fill header
-	if(0 == voxel_number){
-	  memcpy(&buff[buff_index], &timestamp, sizeof(timestamp));
-	  buff_index += sizeof(timestamp);
-	  memcpy(&buff[buff_index], &packet_number, sizeof(packet_number));
-	  buff_index += sizeof(packet_number);
-	  memcpy(&buff[buff_index], &voxel_count, sizeof(voxel_count));
-	  buff_index += sizeof(voxel_count);
-	}
-
-	unsigned char r = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
-	unsigned char g = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
-	unsigned char b = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
-
-	// voxelize
-	unsigned short x = (unsigned short) ((s.s_pos.x - bbx_min[0])/voxelsize);
-	unsigned short y = (unsigned short) ((s.s_pos.y - bbx_min[1])/voxelsize);
-	unsigned short z = (unsigned short) ((s.s_pos.z - bbx_min[2])/voxelsize);
-
-	//std::cout << x << " " << y << " " << z << " "  << (int) red << " " << (int) green << " " << (int) blue << std::endl;
-
-	// copy "voxel into buff"
-	memcpy(&buff[buff_index], &x, sizeof(x));
-	buff_index += sizeof(x);
-	memcpy(&buff[buff_index], &y, sizeof(y));
-	buff_index += sizeof(y);
-	memcpy(&buff[buff_index], &z, sizeof(z));
-	buff_index += sizeof(z);
-
-	memcpy(&buff[buff_index], &r, sizeof(r));
-	buff_index += sizeof(r);
-	memcpy(&buff[buff_index], &g, sizeof(g));
-	buff_index += sizeof(g);
-	memcpy(&buff[buff_index], &b, sizeof(b));
-	buff_index += sizeof(b);
-
-	unsigned char joint_id = 0; // not used but needed by protocol
-	memcpy(&buff[buff_index], &joint_id, sizeof(joint_id));
-	buff_index += sizeof(joint_id);
-
-
-	++voxel_number;
-
-#ifdef DO_FILTERING
+      if(voxel_number == max_voxels_per_packet){
+	std::cout << "sending packet number: " << packet_number
+		  << " -> " << voxel_number
+		  << " (" << buff_index << " bytes)" << std::endl;
+	sender->send(buff, buff_index);
+	
+	if(wait_ms)
+	  sleep(sensor::timevalue::const_100_us * wait_ms);
+	
+	voxel_number = 0;
+	buff_index = 0;
+	++packet_number;
       }
+
+      // fill header
+      if(0 == voxel_number){
+	memcpy(&buff[buff_index], &timestamp, sizeof(timestamp));
+	buff_index += sizeof(timestamp);
+	memcpy(&buff[buff_index], &packet_number, sizeof(packet_number));
+	buff_index += sizeof(packet_number);
+	memcpy(&buff[buff_index], &voxel_count, sizeof(voxel_count));
+	buff_index += sizeof(voxel_count);
+      }
+
+      unsigned char r = s.rgbi[0];
+      unsigned char g = s.rgbi[1];
+      unsigned char b = s.rgbi[2];
+      unsigned short x = s.xyz[0];
+      unsigned short y = s.xyz[1];
+      unsigned short z = s.xyz[2];
+
+      // copy "voxel into buff"
+      memcpy(&buff[buff_index], &x, sizeof(x));
+      buff_index += sizeof(x);
+      memcpy(&buff[buff_index], &y, sizeof(y));
+      buff_index += sizeof(y);
+      memcpy(&buff[buff_index], &z, sizeof(z));
+      buff_index += sizeof(z);
       
+      memcpy(&buff[buff_index], &r, sizeof(r));
+      buff_index += sizeof(r);
+      memcpy(&buff[buff_index], &g, sizeof(g));
+      buff_index += sizeof(g);
+      memcpy(&buff[buff_index], &b, sizeof(b));
+      buff_index += sizeof(b);
+      
+      unsigned char joint_id = 0; // not used but needed by protocol
+      memcpy(&buff[buff_index], &joint_id, sizeof(joint_id));
+      buff_index += sizeof(joint_id);
+      
+      
+      ++voxel_number;
     }
-#else
-    }
-#endif
 
     if(voxel_number > 0){
       std::cout << "sending packer number: " << packet_number
@@ -440,7 +358,10 @@ int main(int argc, char* argv[]){
       sender->send(buff, buff_index);
     }
 
-
+    sensor::timevalue ts_now_send = sensor::clock::time();
+    std::cout << "frame time_send: " << (ts_now_send - ts_now_recon).msec() << " ms" << std::endl;
+    // finished sending
+    
 
     if(frame_num == num_frames){
       frame_num = 0;
