@@ -20,7 +20,7 @@ int main(void){
 
 
   while(1){
-    size_t bytes_received = c.recv(buff, max_bufflen);
+    size_t bytes_received = c.recv(buff, max_bufflen, true /*blocking*/);
     std::cout << "bytes_received: " << bytes_received << std::endl;
   }
 

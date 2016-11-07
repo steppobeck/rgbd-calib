@@ -68,11 +68,11 @@ udpconnection::send(const void* data, size_t len){
 
 
 size_t
-udpconnection::recv(void* data, size_t len){
+udpconnection::recv(void* data, size_t len, bool blocking){
   //try to receive some data, this is a blocking call
   size_t recv_len = 0;
   socklen_t slen;
   struct sockaddr_in si_other;
-  recv_len = recvfrom(m_socket_desc, data, len, 0, (struct sockaddr *) &si_other, &slen);
+  recv_len = recvfrom(m_socket_desc, data, len, blocking ? 0 : MSG_DONTWAIT, (struct sockaddr *) &si_other, &slen);
   return recv_len;
 }

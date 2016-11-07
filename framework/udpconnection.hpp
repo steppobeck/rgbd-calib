@@ -15,7 +15,7 @@ class udpconnection{
   bool open_receiving_socket(unsigned short port);
 
   bool send(const void* data, size_t len);
-  size_t recv(void* data, size_t len);
+  size_t recv(void* data, size_t len, bool blocking);
 
 
  private:
