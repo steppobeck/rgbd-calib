@@ -1,0 +1,34 @@
+Required packages
+=================
+CMake: sudo apt-get install cmake
+ccmake: sudo apt-get install cmake-curses-gui
+sudo apt-get install build-essential freeglut3-dev xorg-dev libglu1-mesa-dev
+sudo apt-get install libxi-dev libxrandr-dev
+
+Further dependcies
+=================
+- boost (tested with version 1.55.0)
+-> variables are defined in cmake/modules/FindBoost.cmake
+
+- zmq (tested with version 2.0.10)
+-> variables are defined in cmake/modules/FindZMQ.cmake
+
+- OpenCV (tested with version 2.4.10)
+-> variables are defined in cmake/modules/FindOpenCV.cmake
+
+- CGAL (tested with version 4.4)
+-> variables are defined in cmake/modules/FindCGAL.cmake
+
+Please configure the cmake find scripts on your own!
+
+
+First compilation
+=================
+cd rgbd-calib
+mkdir build
+cd build
+cmake ..
+
+# compile
+make -j4
+

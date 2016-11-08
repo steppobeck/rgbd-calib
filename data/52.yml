@@ -1,0 +1,93 @@
+%YAML:1.0
+rgb_intrinsics: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 1.0308298147184005e+03, 0., 7.0197249731713282e+02, 0.,
+       1.0304970747985769e+03, 5.3214308403756036e+02, 0., 0., 1. ]
+rgb_distortion: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [ 1.2749900549859687e-02, 5.8923597233907665e-02,
+       -1.7313220519093081e-04, 1.5694089336950317e-03,
+       -1.3485369823882790e-01 ]
+depth_intrinsics: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 3.5543370873967319e+02, 0., 2.5700954752382728e+02, 0.,
+       3.5567234945397036e+02, 2.0907778795830330e+02, 0., 0., 1. ]
+depth_distortion: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   data: [ 7.5833226260084208e-02, -1.8196772890072521e-01,
+       -1.6393619139620724e-05, 1.5854382871526931e-03,
+       -1.0569577355247675e-01 ]
+R: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 9.9995006330404790e-01, -9.1976470932822931e-03,
+       -3.9082203338572210e-03, 9.1692046864978675e-03,
+       9.9993179350712880e-01, -7.2342255310264940e-03,
+       3.9744916212825004e-03, 7.1980290055046192e-03,
+       9.9996619532601616e-01 ]
+T: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ 5.1236770563480742e-02, -6.6694593951076341e-04,
+       -1.9538514118633030e-04 ]
+rgb_size: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 1280, 1080 ]
+raw_rgb_size: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 1280, 1080 ]
+depth_size: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 512, 424 ]
+raw_depth_size: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 512, 424 ]
+depth_base_and_offset: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: f
+   data: [ 8.03228642e-04, 7.33677006e+00 ]
+near_far: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: f
+   data: [ 0.5, 4.5 ]
+compress_rgb: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 1, 1 ]
+use_bf: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 1, 1 ]
+min_length: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 0.03, 1 ]
+num_channels_rgb: !!opencv-matrix
+   rows: 1
+   cols: 2
+   dt: i
+   data: [ 3, 1 ]
+
