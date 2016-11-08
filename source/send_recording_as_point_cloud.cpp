@@ -37,11 +37,6 @@ namespace{
     unsigned char rgbi[4];
   };
 
-  std::ostream& operator<< (std::ostream& os, const voxel& v){
-    os << "voxel: " << v.xyz[0] << ", " << v.xyz[1] << ", " << v.xyz[2] << " color: " << (int) v.rgbi[0] << ", " << (int) v.rgbi[1] << ", " << (int) v.rgbi[2];
-    return os;
-  }
-
 
   glm::vec3 bbx_min = glm::vec3(-1.2, -0.05, -1.2);
   glm::vec3 bbx_max = glm::vec3( 1.2, 2.4,  1.2);
@@ -145,7 +140,7 @@ int main(int argc, char* argv[]){
 
   p.addOpt("bbx",6,"bounding_box", "specify the bounding box x_min y_min z_min x_max y_max z_max in meters, default -1.2 -0.05 -1.2 1.2 2.4 1.2");
 
-  p.addOpt("u",2,"udpconncetion", "specify hostname and port of receiving udpconnection (client)");
+  p.addOpt("u",2,"udpconnection", "specify hostname and port of sending udpconnection (for sending to client)");
   
   p.addOpt("w",1,"wait", "specify how many milliseconds to wait between packets: default 0");
   p.addOpt("v",1,"voxelsize", "specify the voxel size in meter: default 0.008");
@@ -187,8 +182,7 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("v")){
     voxelsize_inv = 1.0f/p.getOptsFloat("v")[0];
   }
-
-  // compute volume dimensions
+  // recompute volume dimensions
   volume_width  = (bbx_max[0] - bbx_min[0])*voxelsize_inv;
   volume_height = (bbx_max[1] - bbx_min[1])*voxelsize_inv;
   
