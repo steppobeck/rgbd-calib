@@ -267,8 +267,6 @@ ChessboardViewIR::calcShapeStats3D(){
   }
 
 
-
-
   std::ostream& operator << (std::ostream& o, const ChessboardRange& v){
 
     o << "ChessboardRange: " << v.start << " -> " << v.end << std::endl;
@@ -277,18 +275,12 @@ ChessboardViewIR::calcShapeStats3D(){
 
   }
 
-
-
-
-
   std::ostream& operator << (std::ostream& o, const ChessboardViewRGB& v){
     o << "ChessboardViewRGB time stamp: " << v.time << std::endl;
     o << "ChessboardViewRGB valid: " << v.valid << std::endl;
     o << "ChessboardViewRGB corners:" << std::endl;
     for(unsigned i = 0; i< CB_WIDTH * CB_HEIGHT; ++i){
-      o << i << " -> " << v.corners[i] << std::endl;
-      o << i << " -> " << v.quality[i] << std::endl;
-      
+      o << i << " -> " << v.corners[i] << " -> " << v.quality[i] << std::endl;
     }
     return o;
   }
@@ -298,8 +290,7 @@ ChessboardViewIR::calcShapeStats3D(){
     o << "ChessboardViewIR valid: " << v.valid << std::endl;
     o << "ChessboardViewIR corners:" << std::endl;
     for(unsigned i = 0; i< CB_WIDTH * CB_HEIGHT; ++i){
-      o << i << " -> " << v.corners[i] << std::endl;
-      o << i << " -> " << v.quality[i] << std::endl;
+      o << i << " -> " << v.corners[i] << " -> " << v.quality[i] << std::endl;
     }
     return o;
   }
@@ -621,7 +612,6 @@ namespace{
   ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end){
 
 
-#if 1
     unsigned char* rgb = new unsigned char[1280*1080 * 3];
     float* depth = new float[512*424];
     unsigned char* ir = new unsigned char[512*424];
@@ -679,7 +669,19 @@ namespace{
 	cvShowImage( "depth", cv_depth_image);
 
 	bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, true);
+	std::cout << "--- BEGIN OF FRAME -------------------------------------------------" << std::endl;
 	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
+
+
+	// show corner coordinates here!
+	std::vector<bool> corner_mask;
+	for(unsigned c_id = 0; c_id < (CB_WIDTH * CB_HEIGHT); ++c_id){
+	  corner_mask.push_back(true);
+	}
+	fillCBsFromCDs(&cd_c, &cd_i, cb_rgb, cb_ir, corner_mask, depth);
+	std::cout << cb_rgb << std::endl;
+	std::cout << cb_ir << std::endl;
+
 
 	int key = -1;
 	while(-1 == key){
@@ -694,98 +696,27 @@ namespace{
 
     cvReleaseImage(&cv_depth_image);
 
-#endif
-
-
-
-
-#if 0
-    int port = 5000;
-    int devicename = 7;
-    sensor::device* d = sensor::devicemanager::the()->get_dtrack(port, sensor::timevalue::const_050_ms);
-    sensor::sensor* s = new sensor::sensor(d,devicename/*station*/);
-    
-    glm::mat4 xmitterOffset;
-    s->setTransmitterOffset(xmitterOffset);
-    
-    glm::mat4 receiverOffset;
-    s->setReceiverOffset(receiverOffset);
-    for(unsigned i = 0; i < 3; ++i){
-      sleep(1);
-      std::cerr << s->getMatrix() << std::endl;
-    }
-    glm::mat4 target_mat = s->getMatrix();
-
-
-    // show all poses
-    glm::vec4 ori(0.0,0.0,0.0,1.0);
-    unsigned best_id = 0;
-    float best_dist = std::numeric_limits<float>::max();
-    std::cout << "Poses -----------------------------------------------------" << std::endl;
-    for(unsigned i = 0; i < m_poses.size(); ++i){
-
-      glm::vec4 last_pose = m_poses[i].mat * ori;
-      glm::vec4 curr_pose = target_mat * ori;
-      const float dist =  glm::length((glm::vec3(curr_pose.x, curr_pose.y, curr_pose.z)
-				       - glm::vec3(last_pose.x,last_pose.y,last_pose.z)));
-#if 0
-      const float dist = glm::length((m_poses[i].mat * ori) - (target_mat * ori));
-#endif
-
-      std::cerr << dist << " " << best_dist << std::endl;
-      if(dist < best_dist){
-	best_dist =dist;
-	best_id = i;
-      }
-    }
-    std::cout << best_id << " -> " << m_poses[best_id] << std::endl;
-#endif
-
-#if 0
-    std::cout << "RGBD -----------------------------------------------------" << std::endl;
-
-    cvNamedWindow("rgb", CV_WINDOW_AUTOSIZE);
-    cvNamedWindow("ir", CV_WINDOW_AUTOSIZE);
-
-    IplImage* rgb = cvCreateImage(cvSize(1280,1080), 8, 3);
-    float* depth = new float[512*424];
-    IplImage* ir = cvCreateImage(cvSize(512,424), 8, 1);
-
-    std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
-    const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
-					    + (1280 * 1080 * 3)
-					    + (512 * 424 * sizeof(float))
-					    + (512 * 424));
-    for(size_t i = 0; i != num_frames; ++i){
-      double rgb_time;
-      infile_fr.read((char*) &rgb_time, sizeof(double));
-      infile_fr.read((char*) rgb->imageData, 1280*1080 * 3);
-
-      double ir_time;
-      infile_fr.read((char*) &ir_time, sizeof(double));
-      infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
-      infile_fr.read((char*) ir->imageData, 512 * 424);
-
-
-      if((end == 0) || (start < i) && (i < end)){
-	std::cout << "cb_id: " << i << " rgb time: " << rgb_time << " ir time: " << ir_time << std::endl;
-
-	// show rgb and ir image
-	int key = -1;
-	while(-1 == key){
-	  cvShowImage( "rgb", rgb);
-	  cvShowImage( "ir", ir);
-	  key = cvWaitKey(10);
-	}
-      }
-
-    }
-
-    cvReleaseImage(&rgb);
-    delete [] depth;
-    cvReleaseImage(&ir);
-#endif
   }
+
+
+  void
+  ChessboardSampling::fillCBsFromCDs(OpenCVChessboardCornerDetector* cd_rgb, OpenCVChessboardCornerDetector* cd_ir,
+				     ChessboardViewRGB& cb_rgb, ChessboardViewIR& cb_ir,
+				     const std::vector<bool>& corner_mask, float* depth){
+    for(unsigned c_id = 0; c_id != cd_rgb->corners.size(); ++c_id){
+      cb_rgb.corners[c_id].u = cd_rgb->corners[c_id].u;
+      cb_rgb.corners[c_id].v = cd_rgb->corners[c_id].v;
+      cb_rgb.quality[c_id] = corner_mask[c_id] == true ? 1.0 : 0.0;
+
+      cb_ir.corners[c_id].x = cd_ir->corners[c_id].u;
+      cb_ir.corners[c_id].y = cd_ir->corners[c_id].v;
+      cb_ir.corners[c_id].z = depth != 0 ? getBilinear(depth, 512, 424,
+						       cb_ir.corners[c_id].x,
+						       cb_ir.corners[c_id].y) : 0.0; 
+      cb_ir.quality[c_id] = corner_mask[c_id] == true ? 1.0 : 0.0;
+    }
+  }
+
 
 
   void
@@ -802,22 +733,41 @@ namespace{
     // detect corners in color image
     bool found_color = cd_c->process((unsigned char*) rgb, 1280*1080 * 3, false);
     bool found_ir = cd_i->process((unsigned char*) ir, 512 * 424, false);
-      
+
+
+
+
     if(found_color && found_ir &&
        (cd_i->corners.size() == cd_c->corners.size() &&
 	(cd_i->corners.size() == CB_WIDTH * CB_HEIGHT))){
       
       (*valids)[tid] = 1;
+
+      
+#if 1
+      // new version using corner_mask
+      std::vector<bool> corner_mask;
+      for(unsigned c_id = 0; c_id < (CB_WIDTH * CB_HEIGHT); ++c_id){
+	corner_mask.push_back(true);
+      }
+      fillCBsFromCDs(cd_c, cd_i, m_cb_rgb[frame_id], m_cb_ir[frame_id],
+		     corner_mask, depth);
+#else
+      // old version
       for(unsigned c_id = 0; c_id != cd_c->corners.size(); ++c_id){
 	m_cb_rgb[frame_id].corners[c_id].u = cd_c->corners[c_id].u;
 	m_cb_rgb[frame_id].corners[c_id].v = cd_c->corners[c_id].v;
-	
+	m_cb_rgb[frame_id].quality[c_id] = 1.0;
+
 	m_cb_ir[frame_id].corners[c_id].x = cd_i->corners[c_id].u;
 	m_cb_ir[frame_id].corners[c_id].y = cd_i->corners[c_id].v;
 	m_cb_ir[frame_id].corners[c_id].z = getBilinear(depth, 512, 424,
 							m_cb_ir[frame_id].corners[c_id].x,
 							m_cb_ir[frame_id].corners[c_id].y); 
+	m_cb_ir[frame_id].quality[c_id] = 1.0;
       }
+#endif
+
     }
     else{
       (*valids)[tid] = 0;
@@ -827,12 +777,6 @@ namespace{
     }
   }
 
-
-#if 0
-undistort_rgb = new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb);
-undistort_d   = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 32 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d);
-undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d);
-#endif
 
 
   bool
@@ -948,114 +892,6 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
     infile_fr.close();
     return true;
   }
-
-
-
-  bool
-  ChessboardSampling::loadRecordingSeq(){
-
-    m_cb_rgb.clear();
-    m_cb_ir.clear();
-
-
-    unsigned char* rgb = new unsigned char[1280*1080 * 3];
-    float* depth = new float[512*424];
-    unsigned char* ir = new unsigned char[512*424];
-
-
-
-    OpenCVChessboardCornerDetector cd_c(1280,
-					1080,
-					8 /*bits per channel*/,
-					3 /*num channels*/,
-					CB_WIDTH, CB_HEIGHT,
-					true /*open window to show images*/,
-					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0);
-
-    OpenCVChessboardCornerDetector cd_i(512,
-					424,
-					8 /*bits per channel*/,
-					1,
-					CB_WIDTH, CB_HEIGHT,
-					true /*open window to show images*/,
-					m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0);
-
-
-    float* depth_in = m_undist ? new float [512 * 424] : 0;
-    OpenCVUndistortion* undistort_depth = m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y,
-									    32 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0;
-    unsigned valid = 0;
-    std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
-    const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
-					    + (1280 * 1080 * 3)
-					    + (512 * 424 * sizeof(float))
-					    + (512 * 424));
-
-    for(size_t i = 0; i != num_frames; ++i){
-      ChessboardViewRGB cb_rgb;
-      cb_rgb.valid = 1;
-      infile_fr.read((char*) &cb_rgb.time, sizeof(double));
-      infile_fr.read((char*) rgb, 1280*1080 * 3);
-
-      ChessboardViewIR cb_ir;
-      cb_ir.valid = 1;
-      infile_fr.read((char*) &cb_ir.time, sizeof(double));
-      if(m_undist){
-	infile_fr.read((char*) depth_in, 512 * 424 * sizeof(float));
-	memcpy((char*) depth, undistort_depth->process(depth_in), 512 * 424 * sizeof(float));
-      }
-      else{
-	infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
-      }
-      
-      infile_fr.read((char*) ir, 512 * 424);
-
-      // detect corners in color image
-      bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, true);
-      bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, true);
-      
-      if(found_color && found_ir &&
-	 (cd_i.corners.size() == cd_c.corners.size() &&
-	  (cd_i.corners.size() == CB_WIDTH * CB_HEIGHT))){
-	++valid;
-	for(unsigned c_id = 0; c_id != cd_c.corners.size(); ++c_id){
-	  cb_rgb.corners[c_id].u = cd_c.corners[c_id].u;
-	  cb_rgb.corners[c_id].v = cd_c.corners[c_id].v;
-
-	  cb_ir.corners[c_id].x = cd_i.corners[c_id].u;
-	  cb_ir.corners[c_id].y = cd_i.corners[c_id].v;
-	  cb_ir.corners[c_id].z = getBilinear(depth, 512, 424,
-					      cb_ir.corners[c_id].x,
-					      cb_ir.corners[c_id].y); 
-	}
-      }
-      else{
-	cb_rgb.valid = 0;
-	cb_ir.valid = 0;
-	std::cout << "skipping cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
-      }
-	
-      m_cb_rgb.push_back(cb_rgb);
-      m_cb_ir.push_back(cb_ir);
-
-    }
-
-    std::cout << "ChessboardSampling::loadRecordingSeq() loaded chessboard views: "
-	      << m_cb_rgb.size() << " valid: " << valid << std::endl;
-
-    if(m_undist){
-      delete [] depth_in;
-      delete undistort_depth;
-    }
-
-    delete [] rgb;
-    delete [] depth;
-    delete [] ir;
-
-    infile_fr.close();
-    return true;
-  }
-
 
 
   bool

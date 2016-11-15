@@ -117,7 +117,6 @@
     void filterSamples(const float pose_offset);
 
     bool loadRecording();
-    bool loadRecordingSeq();
 
     bool loadChessboards();
 
@@ -141,7 +140,9 @@
 
     bool showRecordingAndPoses(unsigned start, unsigned end);
     
-    
+    void fillCBsFromCDs(OpenCVChessboardCornerDetector* cd_rgb, OpenCVChessboardCornerDetector* cd_ir,
+			ChessboardViewRGB& cb_rgb, ChessboardViewIR& cb_ir,
+			const std::vector<bool>& corner_mask, float* depth);
 
     void detectFlips();
 
