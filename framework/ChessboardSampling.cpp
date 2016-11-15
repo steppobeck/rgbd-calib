@@ -317,6 +317,11 @@ ChessboardViewIR::calcShapeStats3D(){
     for(unsigned i = 0; i < CB_WIDTH*CB_HEIGHT; ++i){
       res.corners[i] = interpolate(a.corners[i], b.corners[i], t);
       res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
+      // ensure that quality of both was greater than 0.0
+      if( !(a.quality[i] > 0.0 && b.quality[i] > 0.0) ){
+	res.valid = 0;
+	res.quality[i] = 0.0;
+      }
     }
     return res;
   }
@@ -329,6 +334,11 @@ ChessboardViewIR::calcShapeStats3D(){
     for(unsigned i = 0; i < CB_WIDTH*CB_HEIGHT; ++i){
       res.corners[i] = interpolate(a.corners[i], b.corners[i], t);
       res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
+      // ensure that quality of both was greater than 0.0
+      if( !(a.quality[i] > 0.0 && b.quality[i] > 0.0) ){
+	res.valid = 0;
+	res.quality[i] = 0.0;
+      }
     }
     return res;
   }
@@ -1399,8 +1409,15 @@ undistort_ir  = new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits 
 	  const float quality = 1.0f - (  (std::max(best_frametime, curr_frametime) - best_frametime) / (worst_frametime - best_frametime) );
 
 	  for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
-	    m_cb_ir[cb_id].quality[c] = quality;
-	    m_cb_rgb[cb_id].quality[c] = quality;
+	    // only update quality if both are greater than 0.0
+	    if(m_cb_ir[cb_id].quality[c] > 0.0 &&
+	       m_cb_rgb[cb_id].quality[c] > 0.0){
+	      m_cb_ir[cb_id].quality[c] = quality;
+	      m_cb_rgb[cb_id].quality[c] = quality;
+	    }
+	    else{
+	      std::cout << "INFO: not updating corner quality" << std::endl;
+	    }
 	  }
 
 
