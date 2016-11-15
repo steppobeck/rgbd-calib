@@ -11,10 +11,10 @@
   class OpenCVChessboardCornerDetector{
 
   public:
-    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages, OpenCVUndistortion* undist = 0);
+    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist = 0);
     ~OpenCVChessboardCornerDetector();
 
-    bool process(void*, unsigned bytes, bool showimages = true);
+    bool process(void*, unsigned bytes, unsigned board_w, unsigned board_h, bool showimages = true);
 
 
   private:
@@ -27,11 +27,6 @@
     IplImage* m_gray_image;
     IplImage* m_gray_image_f;
     IplImage* m_tmp_image;
-    CvSize m_board_sz;
-    CvPoint2D32f* m_corners;
-    unsigned m_board_w;
-    unsigned m_board_h;
-    unsigned m_num_corners;
     OpenCVUndistortion* m_undist;
 
   public:

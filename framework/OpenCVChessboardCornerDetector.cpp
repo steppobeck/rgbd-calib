@@ -17,7 +17,7 @@
 
 
 
-OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, unsigned board_w, unsigned board_h, bool showimages, OpenCVUndistortion* undist)
+OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist)
     : m_channels(channels),
       m_width(width),
       m_height(height),
@@ -27,11 +27,6 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       m_gray_image(),
       m_gray_image_f(),
       m_tmp_image(),
-      m_board_sz(cvSize( board_w, board_h )),
-      m_corners(new CvPoint2D32f[ board_w * board_h ]),
-      m_board_w(board_w),
-      m_board_h(board_h),
-      m_num_corners(board_w * board_h),
       m_undist(undist)
   {
 
@@ -57,7 +52,6 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 	cvNamedWindow(name.c_str(), CV_WINDOW_AUTOSIZE);
       }
     }
-    
 
   }
 
@@ -67,17 +61,19 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       cvReleaseImage(&m_image);
     cvReleaseImage(&m_gray_image);
     cvReleaseImage(&m_gray_image_f);
-    delete [] m_corners;
   }
 
   bool
-  OpenCVChessboardCornerDetector::process(void* buffer, unsigned bytes, bool showimages){
+  OpenCVChessboardCornerDetector::process(void* buffer, unsigned bytes, unsigned board_w, unsigned board_h, bool showimages){
+    corners.clear();
+    // setup variables for corner detection
+    const CvSize l_board_sz(cvSize( board_w, board_h ));
+    CvPoint2D32f* l_corners = new CvPoint2D32f [ board_w * board_h ];
+    const unsigned l_num_corners(board_w * board_h);
 
-    
     if(m_undist){
       buffer = m_undist->process(buffer, bytes);
     }
-
 
     if(1 != m_channels){
       //std::cerr << this << " using color image " << std::endl;
@@ -90,6 +86,7 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       }
       else{
 	std::cerr << "ERROR in OpenCVChessboardCornerDetector::process unsupported number of channels" << std::endl;
+	delete [] l_corners;
 	return false;
       }
     }
@@ -97,7 +94,7 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       //std::cerr << this << " using grey image " << std::endl;
 
 #if 1
-      // without median filter
+      // without median filter which is the default for Kinect V2 sensors
       memcpy(m_gray_image->imageData, buffer, bytes);
 #else
       // with median filter which is used for Kinect V1 due to infrared pattern
@@ -111,25 +108,21 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       
     
     // now the image is in the gray_image
-    int corner_count;
-
-    int found = cvFindChessboardCorners( m_gray_image, m_board_sz, m_corners,
+    int corner_count = 0;
+    int found = cvFindChessboardCorners( m_gray_image, l_board_sz, l_corners,
 					 &corner_count, /*CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE*/
 					 CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
 
     //std::cerr << found << " " << corner_count << std::endl;
     // Get subpixel accuracy on those corners
-#if 1
-    if((found != 0) && (corner_count == m_num_corners)){			
-      cvFindCornerSubPix( m_gray_image, m_corners, corner_count, cvSize( 5, 5 ), 
+    if((found != 0) && (corner_count == l_num_corners)){			
+      cvFindCornerSubPix( m_gray_image, l_corners, corner_count, cvSize( 5, 5 ), 
 			  cvSize( -1, -1 ), cvTermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
     }
     else{
+      delete [] l_corners;
       return false;
     }
-#endif
-
-
 
     if(showimages){
 
@@ -140,7 +133,7 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       
 
       // Draw it
-      cvDrawChessboardCorners( m_gray_image, m_board_sz, m_corners, corner_count, found );
+      cvDrawChessboardCorners( m_gray_image, l_board_sz, l_corners, corner_count, found );
       
       if(1 != m_channels){
 	// original
@@ -150,7 +143,7 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 	
 	IplImage* tmp_image = cvCreateImage(cvSize(m_width,m_height), m_depth, m_channels);
 	cvCvtColor( m_image, tmp_image, CV_BGR2RGB );
-	cvDrawChessboardCorners( tmp_image, m_board_sz, m_corners, corner_count, found );
+	cvDrawChessboardCorners( tmp_image, l_board_sz, l_corners, corner_count, found );
 	cvShowImage( name.c_str(), tmp_image);
 	cvReleaseImage(&tmp_image);
       }
@@ -161,34 +154,31 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
     }
 
     // If we got a good board, add it to our data
-    if( corner_count == m_num_corners ){
+    if( corner_count == l_num_corners ){
       
-      corners.clear();
+      //corners.clear();
       
-      for( unsigned j=0; j < m_num_corners; ++j ){
-	//std::cerr << j << " " << m_corners[j].x << " " << m_corners[j].y << std::endl;
+      for( unsigned j=0; j < l_num_corners; ++j ){
+	//std::cerr << j << " " << l_corners[j].x << " " << l_corners[j].y << std::endl;
 	uv c;
-	c.u = m_corners[j].x;
-	c.v = m_corners[j].y;
-	
+	c.u = l_corners[j].x;
+	c.v = l_corners[j].y;
+
 #if 0
+	// this is needed by Kinect V1
 	//std::cerr << "NOTE: if KinectV1 need to smooth and translate the corners from IR to depth by ir_x += 5 and ir_y += 4" << std::endl;
 	if(1 == m_channels){
 	  c.u += 5;
 	  c.v += 4;
 	}
 #endif
-	
-	
-	corners.push_back(c);
-	
 
+	corners.push_back(c);
       }
-      
-      
+      delete [] l_corners;
       return true;
     }
-    
+    delete [] l_corners;
     return false;
   }
 

@@ -625,7 +625,6 @@ namespace{
 					1080,
 					8 /*bits per channel*/,
 					3 /*num channels*/,
-					CB_WIDTH, CB_HEIGHT,
 					true /*open window to show images*/,
 					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0);
 
@@ -633,7 +632,6 @@ namespace{
 					424,
 					8 /*bits per channel*/,
 					1,
-					CB_WIDTH, CB_HEIGHT,
 					true /*open window to show images*/,
 					m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0);
 
@@ -663,12 +661,12 @@ namespace{
 
       if((end == 0) || (start <= i) && (i <= end)){
 	// show rgb depth and ir image
-	bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, true);
+	bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, CB_WIDTH, CB_HEIGHT, true);
 
 	memcpy(cv_depth_image->imageData, convertTo8Bit(depth, 512, 424), 512*424 * sizeof(unsigned char));
 	cvShowImage( "depth", cv_depth_image);
 
-	bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, true);
+	bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, true);
 	std::cout << "--- BEGIN OF FRAME -------------------------------------------------" << std::endl;
 	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
 
@@ -731,10 +729,8 @@ namespace{
 
 
     // detect corners in color image
-    bool found_color = cd_c->process((unsigned char*) rgb, 1280*1080 * 3, false);
-    bool found_ir = cd_i->process((unsigned char*) ir, 512 * 424, false);
-
-
+    bool found_color = cd_c->process((unsigned char*) rgb, 1280*1080 * 3, CB_WIDTH, CB_HEIGHT, false);
+    bool found_ir = cd_i->process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, false);
 
 
     if(found_color && found_ir &&
@@ -809,13 +805,13 @@ namespace{
 							 1080,
 							 8 /*bits per channel*/,
 							 3 /*num channels*/,
-							 CB_WIDTH, CB_HEIGHT, false,
+							 false,
 							 m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0));
       cd_is.push_back(new OpenCVChessboardCornerDetector(512,
 							 424,
 							 8 /*bits per channel*/,
-							 1,
-							 CB_WIDTH, CB_HEIGHT, false,
+							 1 /*num channels*/,
+							 false,
 							 m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0));
       valids.push_back(0);
     }

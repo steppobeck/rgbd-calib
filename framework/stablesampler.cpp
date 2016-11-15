@@ -30,15 +30,15 @@ StableSampler::StableSampler(RGBDSensor* sensor, CalibVolume* cv, unsigned art_p
 					      m_sensor->config.size_rgb.y,
 					      8 /*bits per channel*/,
 					      3 /*num channels*/,
-					      CB_WIDTH, CB_HEIGHT, true,
+					      true,
 					      undistort ? new OpenCVUndistortion(m_sensor->config.size_rgb.x, m_sensor->config.size_rgb.y, 8 /*bits per channel*/, 3, m_sensor->config.intrinsic_rgb, m_sensor->config.distortion_rgb) : 0);
 
 
   m_cd_i = new OpenCVChessboardCornerDetector(m_sensor->config.size_d.x,
 					      m_sensor->config.size_d.y,
 					      8 /*bits per channel*/,
-					      1,
-					      CB_WIDTH, CB_HEIGHT, true,
+					      1 /*num channels*/,
+					      true,
 					      undistort ? new OpenCVUndistortion(m_sensor->config.size_d.x, m_sensor->config.size_d.y, 8 /*bits per channel*/, 1, m_sensor->config.intrinsic_d, m_sensor->config.distortion_d) : 0);
 }
 
@@ -76,8 +76,8 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
     float* depth_buffer = m_sensor->frame_d;
     unsigned char* ir_buffer = m_sensor->frame_ir;
 
-    bool found_color_corners = m_cd_c->process((unsigned char*) color_buffer, colorsize, true);
-    bool found_ir_corners = m_cd_i->process((unsigned char*) ir_buffer, irsize, true);
+    bool found_color_corners = m_cd_c->process((unsigned char*) color_buffer, colorsize, CB_WIDTH, CB_HEIGHT, true);
+    bool found_ir_corners = m_cd_i->process((unsigned char*) ir_buffer, irsize, CB_WIDTH, CB_HEIGHT, true);
 
     std::vector<samplePoint> sps_tmp;
     if(found_color_corners && found_ir_corners && (m_cd_i->corners.size() == m_cd_c->corners.size())
