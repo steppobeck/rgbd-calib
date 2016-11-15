@@ -173,6 +173,7 @@
     double computeCombinedBoardQuality(const unsigned cb_id);
 
     xyz computeAverageCornerIR(const unsigned cb_id);
+    std::vector<bool> findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success);
 
     void processPerThread(unsigned char* rgb,
 			  float* depth,

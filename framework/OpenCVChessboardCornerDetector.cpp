@@ -119,10 +119,6 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       cvFindCornerSubPix( m_gray_image, l_corners, corner_count, cvSize( 5, 5 ), 
 			  cvSize( -1, -1 ), cvTermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
     }
-    else{
-      delete [] l_corners;
-      return false;
-    }
 
     if(showimages){
 
@@ -132,9 +128,11 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       std::string name = ss.str();
       
 
-      // Draw it
-      cvDrawChessboardCorners( m_gray_image, l_board_sz, l_corners, corner_count, found );
-      
+      // draw corners if found and correct number was found
+      if((found != 0) && (corner_count == l_num_corners)){
+	cvDrawChessboardCorners( m_gray_image, l_board_sz, l_corners, corner_count, found );
+      }
+
       if(1 != m_channels){
 	// original
 	//cvShowImage( name.c_str(), m_gray_image);
@@ -150,11 +148,11 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       else{
 	cvShowImage( name.c_str(), m_gray_image);
       }
-      int key = cvWaitKey(10);
+      cvWaitKey(10);
     }
 
     // If we got a good board, add it to our data
-    if( corner_count == l_num_corners ){
+    if((found != 0) && (corner_count == l_num_corners)){
       
       //corners.clear();
       

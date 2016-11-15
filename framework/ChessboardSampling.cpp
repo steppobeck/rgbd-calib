@@ -608,6 +608,19 @@ namespace{
 
 }
 
+
+  std::vector<bool>
+  ChessboardSampling::findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success){
+    std::vector<bool> corner_mask;
+    for(unsigned c_id = 0; c_id < (CB_WIDTH * CB_HEIGHT); ++c_id){
+      corner_mask.push_back(true);
+    }
+    // try 
+    success = cd->process(image, bytes, 6/*CB_WIDTH*/, 5/*CB_HEIGHT*/, show_image);
+    return corner_mask;
+  }
+
+
   bool
   ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end){
 
@@ -663,6 +676,20 @@ namespace{
 	// show rgb depth and ir image
 	bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, CB_WIDTH, CB_HEIGHT, true);
 
+
+	/*
+	  1. try to find sub_rgb and sub_ir
+	  2. analyze 
+	  3. merge corner_mask_rgb and corner_mask_ir
+	  4. fillCBsFromCDs with corner_mask_rgb
+	*/
+	bool found_sub_rgb;
+	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_sub_rgb);
+	std::cout << "found_sub_rgb: " << found_sub_rgb << std::endl;
+
+
+
+
 	memcpy(cv_depth_image->imageData, convertTo8Bit(depth, 512, 424), 512*424 * sizeof(unsigned char));
 	cvShowImage( "depth", cv_depth_image);
 
@@ -671,15 +698,17 @@ namespace{
 	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
 
 
+
+#if 0
 	// show corner coordinates here!
-	std::vector<bool> corner_mask;
+	std::vector<bool> corner_mask_merged;
 	for(unsigned c_id = 0; c_id < (CB_WIDTH * CB_HEIGHT); ++c_id){
 	  corner_mask.push_back(true);
 	}
-	fillCBsFromCDs(&cd_c, &cd_i, cb_rgb, cb_ir, corner_mask, depth);
+	fillCBsFromCDs(&cd_c, &cd_i, cb_rgb, cb_ir, corner_mask_merged, depth);
 	std::cout << cb_rgb << std::endl;
 	std::cout << cb_ir << std::endl;
-
+#endif
 
 	int key = -1;
 	while(-1 == key){
