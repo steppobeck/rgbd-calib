@@ -23,8 +23,6 @@ public:
 
   double evaluatePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride = 1);
 
-  double evaluateShapes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, unsigned stride = 1);
-
   double evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, const Checkerboard* cb, const RGBDConfig& cfg, float delta_t_pose, unsigned stride = 1);
 
   double evaluate2DError(CalibVolume* cv, ChessboardSampling* cbs, const RGBDConfig& cfg, float delta_t_color, unsigned stride = 1);

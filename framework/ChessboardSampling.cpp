@@ -49,7 +49,6 @@ namespace{
 
 
 
-
   struct DistId{
     float dist;
     unsigned id;
@@ -187,84 +186,6 @@ ChessboardViewIR::calcShapeStats(){
 
   return stats;
 }
-
-shape_stats
-ChessboardViewIR::calcShapeStats3D(){
-  if(shape_descs.empty()){
-    fillShapeIds();
-  }
-
-  shape_stats stats;
-  for(const auto& s : shape_descs){
-    glm::vec3 a(corners[s.id[0]].x, corners[s.id[0]].y, corners[s.id[0]].z);
-    glm::vec3 b(corners[s.id[1]].x, corners[s.id[1]].y, corners[s.id[1]].z);
-    glm::vec3 c(corners[s.id[2]].x, corners[s.id[2]].y, corners[s.id[2]].z);
-    glm::vec3 d(corners[s.id[3]].x, corners[s.id[3]].y, corners[s.id[3]].z);
-
-
-    // calculate the area of abc
-    glm::vec3 ab = b - a;
-    glm::vec3 ac = c - a;
-    glm::vec3 cross_0H = glm::cross(ab,ac);
-    const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
-
-    // calculate the area of cda
-    glm::vec3 cd = d - c;
-    glm::vec3 ca = a - c;
-    glm::vec3 cross_1H = glm::cross(cd,ca);
-    const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
-
-    stats.areas.push_back(area_0H + area_1H);
-    stats.ratiosH.push_back(area_0H / area_1H);
-
-    // calculate the area of dab
-    glm::vec3 da = a - d;
-    glm::vec3 db = b - d;
-    glm::vec3 cross_0V = glm::cross(da,db);
-    const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
-
-    // calculate the area of bcd
-    glm::vec3 bc = c - b;
-    glm::vec3 bd = d - b;
-    glm::vec3 cross_1V = glm::cross(bc,bd);
-    const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
-
-    stats.ratiosV.push_back(area_0V / area_1V);
-  }
-
-  return stats;
-}
-
-
-
-
-
-
-
-
-  float computeAverageDist(xyz* a, xyz* b){
-    float dx = 0.0;
-    float dy = 0.0;
-    for(unsigned i = 0; i < CB_WIDTH * CB_HEIGHT; ++i){
-      dx += std::abs(a[i].x - b[i].x);
-      dy += std::abs(a[i].y - b[i].y);
-    }
-    dx /= (CB_WIDTH * CB_HEIGHT);
-    dy /= (CB_WIDTH * CB_HEIGHT);
-    return std::sqrt(dx * dx + dy * dy);
-  }
-
-  float computeAverageDist(uv* a, uv* b){
-    float dx = 0.0;
-    float dy = 0.0;
-    for(unsigned i = 0; i < CB_WIDTH * CB_HEIGHT; ++i){
-      dx += std::abs(a[i].u - b[i].u);
-      dy += std::abs(a[i].v - b[i].v);
-    }
-    dx /= (CB_WIDTH * CB_HEIGHT);
-    dy /= (CB_WIDTH * CB_HEIGHT);
-    return std::sqrt(dx * dx + dy * dy);
-  }
 
 
   std::ostream& operator << (std::ostream& o, const ChessboardRange& v){
@@ -1277,7 +1198,7 @@ namespace{
 	      m_cb_rgb[cb_id].quality[c] = quality;
 	    }
 	    else{
-	      std::cout << "INFO: not updating corner quality" << std::endl;
+	      std::cout << "INFO: computeQualityFromSpeedIRInRanges() not updating corner quality for corner " << c << std::endl;
 	    }
 	  }
 
@@ -1406,28 +1327,33 @@ namespace{
     for(const auto& r : m_valid_ranges){
 
       m_cb_ir[r.start].valid = 0;
-
       m_cb_rgb[r.start].valid = 0;
 
 
       for(unsigned cb_id = (r.start + 1); cb_id < r.end; ++cb_id){
 	std::vector<double> ir_diffs_x;
+	std::vector<unsigned> ir_diffs_x_id;
 	std::vector<double> ir_diffs_y;
+	std::vector<unsigned> ir_diffs_y_id;
 	std::vector<double> rgb_diffs_u;
+	std::vector<unsigned> rgb_diffs_u_id;
 	std::vector<double> rgb_diffs_v;
+	std::vector<unsigned> rgb_diffs_v_id;
 
 	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
-	  ir_diffs_x.push_back(  (m_cb_ir[cb_id].corners[c].x - m_cb_ir[cb_id-1].corners[c].x)/* +
-												 (m_cb_ir[cb_id+1].corners[c].x - m_cb_ir[cb_id].corners[c].x)*/);
-	  ir_diffs_y.push_back(  (m_cb_ir[cb_id].corners[c].y - m_cb_ir[cb_id-1].corners[c].y)/* +
-												 (m_cb_ir[cb_id+1].corners[c].y - m_cb_ir[cb_id].corners[c].y)*/);
+	  if( (m_cb_ir[cb_id].quality[c] > 0.0) && (m_cb_ir[cb_id-1].quality[c] > 0.0) ){
+	    ir_diffs_x.push_back(  m_cb_ir[cb_id].corners[c].x - m_cb_ir[cb_id-1].corners[c].x);
+	    ir_diffs_y.push_back(  m_cb_ir[cb_id].corners[c].y - m_cb_ir[cb_id-1].corners[c].y);
+	    ir_diffs_x_id.push_back(c);
+	    ir_diffs_y_id.push_back(c);
 
-	  rgb_diffs_u.push_back( (m_cb_rgb[cb_id].corners[c].u - m_cb_rgb[cb_id-1].corners[c].u)/* +
-												   (m_cb_rgb[cb_id+1].corners[c].u - m_cb_rgb[cb_id].corners[c].u)*/);
-	  rgb_diffs_v.push_back( (m_cb_rgb[cb_id].corners[c].v - m_cb_rgb[cb_id-1].corners[c].v)/* +
-												   (m_cb_rgb[cb_id+1].corners[c].v - m_cb_rgb[cb_id].corners[c].v)*/);
-
-
+	  }
+	  if( (m_cb_rgb[cb_id].quality[c] > 0.0) && (m_cb_rgb[cb_id-1].quality[c] > 0.0) ){
+	    rgb_diffs_u.push_back( m_cb_rgb[cb_id].corners[c].u - m_cb_rgb[cb_id-1].corners[c].u);
+	    rgb_diffs_v.push_back( m_cb_rgb[cb_id].corners[c].v - m_cb_rgb[cb_id-1].corners[c].v);
+	    rgb_diffs_u_id.push_back(c);
+	    rgb_diffs_v_id.push_back(c);
+	  }
 	}
 
 	double avg_ir_x;
@@ -1435,11 +1361,11 @@ namespace{
 	calcMeanSD(ir_diffs_x, avg_ir_x, sd_ir_x);
 	for(unsigned c = 0; c < ir_diffs_x.size(); ++c){
 	  if(std::abs(ir_diffs_x[c] - avg_ir_x) > 3.0 * sd_ir_x ){
-	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_ir[cb_id].quality[c] = 0.0f;
-	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_rgb[cb_id].quality[c] = 0.0f;
-
+	    m_cb_ir[cb_id - 1].quality[ir_diffs_x_id[c]] = 0.0f;
+	    m_cb_ir[cb_id].quality[ir_diffs_x_id[c]] = 0.0f;
+	    m_cb_rgb[cb_id - 1].quality[ir_diffs_x_id[c]] = 0.0f;
+	    m_cb_rgb[cb_id].quality[ir_diffs_x_id[c]] = 0.0f;
+	    std::cout << "INFO: computeCornerQualityInRanges(): setting quality to 0.0 for both, RGB and IR cb_ids " << cb_id << " and " << cb_id - 1 << " of corner number " << ir_diffs_x_id[c] << std::endl;
 	  }
 	}
 
@@ -1448,10 +1374,11 @@ namespace{
 	calcMeanSD(ir_diffs_y, avg_ir_y, sd_ir_y);
 	for(unsigned c = 0; c < ir_diffs_y.size(); ++c){
 	  if(std::abs(ir_diffs_y[c] - avg_ir_y) > 3.0 * sd_ir_y ){
-	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_ir[cb_id].quality[c] = 0.0f;
-	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_rgb[cb_id].quality[c] = 0.0f;
+	    m_cb_ir[cb_id - 1].quality[ir_diffs_y_id[c]] = 0.0f;
+	    m_cb_ir[cb_id].quality[ir_diffs_y_id[c]] = 0.0f;
+	    m_cb_rgb[cb_id - 1].quality[ir_diffs_y_id[c]] = 0.0f;
+	    m_cb_rgb[cb_id].quality[ir_diffs_y_id[c]] = 0.0f;
+	    std::cout << "INFO: computeCornerQualityInRanges(): setting quality to 0.0 for both, RGB and IR cb_ids " << cb_id << " and " << cb_id - 1 << " of corner number " << ir_diffs_y_id[c] << std::endl;
 	  }
 	}
 
@@ -1460,10 +1387,11 @@ namespace{
 	calcMeanSD(rgb_diffs_u, avg_rgb_u, sd_rgb_u);
 	for(unsigned c = 0; c < rgb_diffs_u.size(); ++c){
 	  if(std::abs(rgb_diffs_u[c] - avg_rgb_u) > 3.0 * sd_rgb_u ){
-	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_rgb[cb_id].quality[c] = 0.0f;
-	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_ir[cb_id].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id - 1].quality[rgb_diffs_u_id[c]] = 0.0f;
+	    m_cb_rgb[cb_id].quality[rgb_diffs_u_id[c]] = 0.0f;
+	    m_cb_ir[cb_id - 1].quality[rgb_diffs_u_id[c]] = 0.0f;
+	    m_cb_ir[cb_id].quality[rgb_diffs_u_id[c]] = 0.0f;
+	    std::cout << "INFO: computeCornerQualityInRanges(): setting quality to 0.0 for both, RGB and IR cb_ids " << cb_id << " and " << cb_id - 1 << " of corner number " << rgb_diffs_u_id[c] << std::endl;
 	  }
 	}
 
@@ -1472,30 +1400,13 @@ namespace{
 	calcMeanSD(rgb_diffs_v, avg_rgb_v, sd_rgb_v);
 	for(unsigned c = 0; c < rgb_diffs_v.size(); ++c){
 	  if(std::abs(rgb_diffs_v[c] - avg_rgb_v) > 3.0 * sd_rgb_v ){
-	    m_cb_rgb[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_rgb[cb_id].quality[c] = 0.0f;
-	    m_cb_ir[cb_id - 1].quality[c] = 0.0f;
-	    m_cb_ir[cb_id].quality[c] = 0.0f;
+	    m_cb_rgb[cb_id - 1].quality[rgb_diffs_v_id[c]] = 0.0f;
+	    m_cb_rgb[cb_id].quality[rgb_diffs_v_id[c]] = 0.0f;
+	    m_cb_ir[cb_id - 1].quality[rgb_diffs_v_id[c]] = 0.0f;
+	    m_cb_ir[cb_id].quality[rgb_diffs_v_id[c]] = 0.0f;
+	    std::cout << "INFO: computeCornerQualityInRanges(): setting quality to 0.0 for both, RGB and IR cb_ids " << cb_id << " and " << cb_id - 1 << " of corner number " << rgb_diffs_v_id[c] << std::endl;
 	  }
 	}
-
-
-	unsigned removed_ir  = 0;
-	unsigned removed_rgb = 0;
-	// check which corner qualities were set to zero
-	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
-	  if(m_cb_ir[cb_id].quality[c] == 0.0){
-	    ++removed_ir;
-	  }
-	  if(m_cb_rgb[cb_id].quality[c] == 0.0){
-	    ++removed_rgb;
-	  }
-	}
-
-	if(removed_ir || removed_rgb){
-	  std::cout << "cb_id: " << cb_id << " removed_ir: " << removed_ir << " removed_rgb: " << removed_rgb << std::endl;
-	}
-
 
       }
 
@@ -1513,15 +1424,11 @@ namespace{
 
 	std::vector<xyz> corners;
 	for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
-
-	  xyz corner(m_cb_ir[cb_id].corners[c]);
-	  corner.z *= 100.0f;
-#if 0
-	  // for testing
-	  if(cb_id % 30 == 0 && c == 23)
-	    corner.z = 0;
-#endif
-	  corners.push_back(corner);
+	  if(m_cb_ir[cb_id].quality[c] > 0.0){
+	    xyz corner(m_cb_ir[cb_id].corners[c]);
+	    corner.z *= 100.0f;
+	    corners.push_back(corner);
+	  }
 	}
 
 	const auto pq = detectPlaneQuality(corners);
@@ -1533,21 +1440,18 @@ namespace{
       double mean;
       double sd;
       calcMeanSD(plane_qualities, mean, sd);
-      std::cout << "checking plane qualities in depth frame from cb_id range " << r.start << " to " << r.end << std::endl;
+      std::cout << "INFO: detectCorruptedDepthInRanges() checking plane qualities in depth frame from cb_id range " << r.start << " to " << r.end << std::endl;
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
 	const float curr_quality = plane_qualities[cb_id - r.start];
 	if (curr_quality < (mean - 3.0 * sd)){
 	  
-	  std::cout << "found corrupted depth buffer in cb_id: " << cb_id << " -> plane quality: " << curr_quality << " mean quality: "<< mean << std::endl;
+	  std::cout << "INFO: detectCorruptedDepthInRanges() found corrupted depth buffer in cb_id: " << cb_id << " -> plane quality: " << curr_quality << " mean quality: "<< mean << std::endl;
 	  m_cb_ir[cb_id].valid = 0;
 	  m_cb_rgb[cb_id].valid = 0;
 	}
       }
 
-
     }
-
-    
 
   }
 
@@ -1591,7 +1495,7 @@ namespace{
 	  }
 
 	  if(remove_cb){
-	    std::cout << "removing cb_id: " << cb_id << " because IRs shape ratio is outlier" << std::endl;
+	    std::cout << "INFO: detectShapeFaultsInRanges() removing cb_id: " << cb_id << " because IRs shape ratio is outlier" << std::endl;
 	    m_cb_ir[cb_id].valid = 0;
 	    m_cb_rgb[cb_id].valid = 0;
 	  }
@@ -1626,7 +1530,7 @@ namespace{
 	  }
 
 	  if(remove_cb){
-	    std::cout << "removing cb_id: " << cb_id << " because RGBs shape ratio is outlier" << std::endl;
+	    std::cout << "INFO: detectShapeFaultsInRanges() removing cb_id: " << cb_id << " because RGBs shape ratio is outlier" << std::endl;
 	    m_cb_ir[cb_id].valid = 0;
 	    m_cb_rgb[cb_id].valid = 0;
 	  }
@@ -1640,17 +1544,6 @@ namespace{
 
   void
   ChessboardSampling::filterSamples(const float pose_offset){
-
-#if 0
-    unsigned input_frames;
-    unsigned no_too_few_corners;
-    unsigned flipped_boards;
-    unsigned outliers;
-    unsigned corrupt_depth;
-    unsigned temporal_jitter;
-    unsigned output_frames;
-#endif
-
 
     std::cout << "ChessboardSampling::filterSamples -> begin" << std::endl;
 
@@ -1774,7 +1667,7 @@ namespace{
 	  cb_rgb.valid = 0;
 	  cb_ir.valid = 0;
 
-	  std::cout << "ChessboardSampling::detectFlips() -> detected flip at " << cb_id << std::endl;
+	  std::cout << "INFO: ChessboardSampling::detectFlips() -> detected flip and therefore invalidating " << cb_id << std::endl;
 
 	}
       }

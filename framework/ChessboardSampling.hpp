@@ -61,7 +61,6 @@
     unsigned valid;
 
     shape_stats calcShapeStats();
-    shape_stats calcShapeStats3D();
   private:
     void fillShapeIds();
     static std::vector<shape_desc> shape_descs;
