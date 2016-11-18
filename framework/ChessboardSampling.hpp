@@ -36,6 +36,21 @@
   extern std::ostream& operator << (std::ostream& o, const ChessboardRange& v);
 
 
+  /*
+    0   1  2  3  4  5  6
+    7  UL  9 10 UR 12 13
+    14 15 16 17 18 19 20
+    21 LL 23 24 LR 26 27
+    28 29 30 31 32 33 34
+  */
+  struct ChessboardExtremas{
+    unsigned UL;
+    unsigned UR;
+    unsigned LL;
+    unsigned LR;
+  };
+
+  extern std::ostream& operator << (std::ostream& o, const ChessboardExtremas& v);
 
   class ChessboardViewRGB{
   public:
@@ -45,6 +60,7 @@
     unsigned valid;
 
     shape_stats calcShapeStats();
+    ChessboardExtremas findExtremas();
   private:
     void fillShapeIds();
     static std::vector<shape_desc> shape_descs;
@@ -61,6 +77,7 @@
     unsigned valid;
 
     shape_stats calcShapeStats();
+    ChessboardExtremas findExtremas();
   private:
     void fillShapeIds();
     static std::vector<shape_desc> shape_descs;
@@ -140,8 +157,8 @@
     bool showRecordingAndPoses(unsigned start, unsigned end);
     
     void fillCBsFromCDs(OpenCVChessboardCornerDetector* cd_rgb, OpenCVChessboardCornerDetector* cd_ir,
-			ChessboardViewRGB& cb_rgb, ChessboardViewIR& cb_ir,
-			const std::vector<bool>& corner_mask, float* depth);
+				     ChessboardViewRGB& cb_rgb, ChessboardViewIR& cb_ir,
+			const std::vector<bool>& corner_mask_rgb, const std::vector<bool>& corner_mask_ir, float* depth);
 
     void detectFlips();
 

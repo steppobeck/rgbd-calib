@@ -16,6 +16,8 @@
 
     bool process(void*, unsigned bytes, unsigned board_w, unsigned board_h, bool showimages = true);
 
+    unsigned getWidth() const;
+    unsigned getHeight() const;
 
   private:
     unsigned m_channels;

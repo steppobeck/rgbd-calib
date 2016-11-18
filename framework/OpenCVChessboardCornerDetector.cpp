@@ -182,4 +182,12 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 
 
 
+unsigned
+OpenCVChessboardCornerDetector::getWidth() const{
+  return m_width;
+}
 
+unsigned
+OpenCVChessboardCornerDetector::getHeight() const{
+  return m_height;
+}

@@ -62,7 +62,13 @@ namespace{
 }
 
 
-
+/*extern*/ std::ostream& operator << (std::ostream& o, const ChessboardExtremas& v){
+  o << "ChessboardExtremas:" << std::endl
+    << v.UL << " - " << v.UR << std::endl
+    << "| - |" << std::endl
+    << v.LL << " - " << v.LR << std::endl;
+  return o;
+}
 
 /*static*/ std::vector<shape_desc> ChessboardViewRGB::shape_descs;
 
@@ -86,46 +92,75 @@ ChessboardViewRGB::calcShapeStats(){
   
   shape_stats stats;
   for(const auto& s : shape_descs){
-    glm::vec3 a(corners[s.id[0]].u, corners[s.id[0]].v, 0.0f);
-    glm::vec3 b(corners[s.id[1]].u, corners[s.id[1]].v, 0.0f);
-    glm::vec3 c(corners[s.id[2]].u, corners[s.id[2]].v, 0.0f);
-    glm::vec3 d(corners[s.id[3]].u, corners[s.id[3]].v, 0.0f);
+    if(quality[s.id[0]] > 0.0 &&
+       quality[s.id[1]] > 0.0 &&
+       quality[s.id[2]] > 0.0 &&
+       quality[s.id[3]] > 0.0){
 
+      glm::vec3 a(corners[s.id[0]].u, corners[s.id[0]].v, 0.0f);
+      glm::vec3 b(corners[s.id[1]].u, corners[s.id[1]].v, 0.0f);
+      glm::vec3 c(corners[s.id[2]].u, corners[s.id[2]].v, 0.0f);
+      glm::vec3 d(corners[s.id[3]].u, corners[s.id[3]].v, 0.0f);
 
-    // calculate the area of abc
-    glm::vec3 ab = b - a;
-    glm::vec3 ac = c - a;
-    glm::vec3 cross_0H = glm::cross(ab,ac);
-    const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
+      // calculate the area of abc
+      glm::vec3 ab = b - a;
+      glm::vec3 ac = c - a;
+      glm::vec3 cross_0H = glm::cross(ab,ac);
+      const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
 
-    // calculate the area of cda
-    glm::vec3 cd = d - c;
-    glm::vec3 ca = a - c;
-    glm::vec3 cross_1H = glm::cross(cd,ca);
-    const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
+      // calculate the area of cda
+      glm::vec3 cd = d - c;
+      glm::vec3 ca = a - c;
+      glm::vec3 cross_1H = glm::cross(cd,ca);
+      const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
 
-    stats.areas.push_back(area_0H + area_1H);
-    stats.ratiosH.push_back(area_0H / area_1H);
+      stats.areas.push_back(area_0H + area_1H);
+      stats.ratiosH.push_back(area_0H / area_1H);
 
-    // calculate the area of dab
-    glm::vec3 da = a - d;
-    glm::vec3 db = b - d;
-    glm::vec3 cross_0V = glm::cross(da,db);
-    const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
+      // calculate the area of dab
+      glm::vec3 da = a - d;
+      glm::vec3 db = b - d;
+      glm::vec3 cross_0V = glm::cross(da,db);
+      const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
 
-    // calculate the area of bcd
-    glm::vec3 bc = c - b;
-    glm::vec3 bd = d - b;
-    glm::vec3 cross_1V = glm::cross(bc,bd);
-    const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
+      // calculate the area of bcd
+      glm::vec3 bc = c - b;
+      glm::vec3 bd = d - b;
+      glm::vec3 cross_1V = glm::cross(bc,bd);
+      const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
 
-    stats.ratiosV.push_back(area_0V / area_1V);
+      stats.ratiosV.push_back(area_0V / area_1V);
+    }
 
   }
 
   return stats;
 }
 
+  ChessboardExtremas
+  ChessboardViewRGB::findExtremas(){
+    unsigned c_id = 0;
+    std::vector< std::vector<unsigned> > insides(CB_HEIGHT);
+    std::vector<unsigned> rows_available;
+    for(unsigned y = 0; y < CB_HEIGHT; ++y){
+      for(unsigned x = 0; x < CB_WIDTH; ++x){
+	if(quality[c_id] > 0.0){
+	  insides[y].push_back(c_id);
+	}
+	++c_id;
+      }
+      if(!insides[y].empty()){
+	rows_available.push_back(y);
+      }
+    }
+
+    ChessboardExtremas res;
+    res.UL = insides[rows_available.front()].front();
+    res.UR = insides[rows_available.front()].back();
+    res.LL = insides[rows_available.back()].front();
+    res.LR = insides[rows_available.back()].back();
+    return res;
+  }
 
 /*static*/ std::vector<shape_desc> ChessboardViewIR::shape_descs;
 
@@ -148,45 +183,75 @@ ChessboardViewIR::calcShapeStats(){
 
   shape_stats stats;
   for(const auto& s : shape_descs){
-    glm::vec3 a(corners[s.id[0]].x, corners[s.id[0]].y, 0.0f);
-    glm::vec3 b(corners[s.id[1]].x, corners[s.id[1]].y, 0.0f);
-    glm::vec3 c(corners[s.id[2]].x, corners[s.id[2]].y, 0.0f);
-    glm::vec3 d(corners[s.id[3]].x, corners[s.id[3]].y, 0.0f);
+    if(quality[s.id[0]] > 0.0 &&
+       quality[s.id[1]] > 0.0 &&
+       quality[s.id[2]] > 0.0 &&
+       quality[s.id[3]] > 0.0){
+      glm::vec3 a(corners[s.id[0]].x, corners[s.id[0]].y, 0.0f);
+      glm::vec3 b(corners[s.id[1]].x, corners[s.id[1]].y, 0.0f);
+      glm::vec3 c(corners[s.id[2]].x, corners[s.id[2]].y, 0.0f);
+      glm::vec3 d(corners[s.id[3]].x, corners[s.id[3]].y, 0.0f);
 
+      // calculate the area of abc
+      glm::vec3 ab = b - a;
+      glm::vec3 ac = c - a;
+      glm::vec3 cross_0H = glm::cross(ab,ac);
+      const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
 
-    // calculate the area of abc
-    glm::vec3 ab = b - a;
-    glm::vec3 ac = c - a;
-    glm::vec3 cross_0H = glm::cross(ab,ac);
-    const float area_0H = 0.5f*glm::sqrt(glm::dot(cross_0H, cross_0H));
+      // calculate the area of cda
+      glm::vec3 cd = d - c;
+      glm::vec3 ca = a - c;
+      glm::vec3 cross_1H = glm::cross(cd,ca);
+      const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
 
-    // calculate the area of cda
-    glm::vec3 cd = d - c;
-    glm::vec3 ca = a - c;
-    glm::vec3 cross_1H = glm::cross(cd,ca);
-    const float area_1H = 0.5f*glm::sqrt(glm::dot(cross_1H, cross_1H));
+      stats.areas.push_back(area_0H + area_1H);
+      stats.ratiosH.push_back(area_0H / area_1H);
 
-    stats.areas.push_back(area_0H + area_1H);
-    stats.ratiosH.push_back(area_0H / area_1H);
-
-    // calculate the area of dab
-    glm::vec3 da = a - d;
-    glm::vec3 db = b - d;
-    glm::vec3 cross_0V = glm::cross(da,db);
-    const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
-
-    // calculate the area of bcd
-    glm::vec3 bc = c - b;
-    glm::vec3 bd = d - b;
-    glm::vec3 cross_1V = glm::cross(bc,bd);
-    const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
-
-    stats.ratiosV.push_back(area_0V / area_1V);
+      // calculate the area of dab
+      glm::vec3 da = a - d;
+      glm::vec3 db = b - d;
+      glm::vec3 cross_0V = glm::cross(da,db);
+      const float area_0V = 0.5f*glm::sqrt(glm::dot(cross_0V, cross_0V));
+      
+      // calculate the area of bcd
+      glm::vec3 bc = c - b;
+      glm::vec3 bd = d - b;
+      glm::vec3 cross_1V = glm::cross(bc,bd);
+      const float area_1V = 0.5f*glm::sqrt(glm::dot(cross_1V, cross_1V));
+      
+      stats.ratiosV.push_back(area_0V / area_1V);
+    }
   }
 
   return stats;
 }
 
+
+
+  ChessboardExtremas
+  ChessboardViewIR::findExtremas(){
+    unsigned c_id = 0;
+    std::vector< std::vector<unsigned> > insides(CB_HEIGHT);
+    std::vector<unsigned> rows_available;
+    for(unsigned y = 0; y < CB_HEIGHT; ++y){
+      for(unsigned x = 0; x < CB_WIDTH; ++x){
+	if(quality[c_id] > 0.0){
+	  insides[y].push_back(c_id);
+	}
+	++c_id;
+      }
+      if(!insides[y].empty()){
+	rows_available.push_back(y);
+      }
+    }
+
+    ChessboardExtremas res;
+    res.UL = insides[rows_available.front()].front();
+    res.UR = insides[rows_available.front()].back();
+    res.LL = insides[rows_available.back()].front();
+    res.LR = insides[rows_available.back()].back();
+    return res;
+  }
 
   std::ostream& operator << (std::ostream& o, const ChessboardRange& v){
 
@@ -527,17 +592,50 @@ namespace{
     return b;
   }
 
+  float computeAverageDistOfCorners(std::vector<uv>& corners, unsigned width, unsigned height){
+    double dx = 0.0;
+    double dy = 0.0;
+    unsigned w_dx = 0;
+    unsigned w_dy = 0;
+
+    for(unsigned y = 0; y < height; ++y){
+      for(unsigned x = 1; x < width; ++x){
+	const unsigned c_id_r = y * width + x;
+	const unsigned c_id_l = y * width + (x - 1);
+	dx += corners[c_id_r].u - corners[c_id_l].u;
+	++w_dx;
+      }
+    }
+
+    for(unsigned x = 0; x < width; ++x){
+      for(unsigned y = 1; x < height; ++y){
+	const unsigned c_id_b = y * width + x;
+	const unsigned c_id_t = (y - 1) * width + x;
+	dy += corners[c_id_b].v - corners[c_id_t].v;
+	++w_dy;
+      }
+    }
+    dx /= w_dx;
+    dx /= w_dy;
+    return (float) std::sqrt(dx * dx + dy * dy);
+  }
+
 }
 
 
   std::vector<bool>
   ChessboardSampling::findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success){
-    std::vector<bool> corner_mask;
-    for(unsigned c_id = 0; c_id < (CB_WIDTH * CB_HEIGHT); ++c_id){
-      corner_mask.push_back(true);
+    std::vector<bool> corner_mask(CB_WIDTH*CB_HEIGHT);
+    for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
+      corner_mask[c_id] = true;
     }
-    // try 
-    success = cd->process(image, bytes, 6/*CB_WIDTH*/, 5/*CB_HEIGHT*/, show_image);
+    // try CB_WIDTH * CB_HEIGHT
+    unsigned width  = CB_WIDTH;
+    unsigned height = CB_HEIGHT;
+    success = cd->process(image, bytes, width, height, false);
+    const float avarage_corner_dist = computeAverageDistOfCorners(cd->corners, cd->getWidth(), cd->getHeight());
+    std::cout << "average_corner_dist in pixels: " << avarage_corner_dist  << std::endl;
+    // continue work here
     return corner_mask;
   }
 
@@ -599,10 +697,8 @@ namespace{
 
 
 	/*
-	  1. try to find sub_rgb and sub_ir
-	  2. analyze 
-	  3. merge corner_mask_rgb and corner_mask_ir
-	  4. fillCBsFromCDs with corner_mask_rgb
+	  1. try to find sub_rgb and sub_ir and analyze
+	  2. fillCBsFromCDs with corner_mask_rgb and corner_mask_ir
 	*/
 	bool found_sub_rgb;
 	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_sub_rgb);
@@ -622,11 +718,14 @@ namespace{
 
 #if 0
 	// show corner coordinates here!
-	std::vector<bool> corner_mask_merged;
-	for(unsigned c_id = 0; c_id < (CB_WIDTH * CB_HEIGHT); ++c_id){
-	  corner_mask.push_back(true);
+	std::vector<bool> corner_mask_rgb(CB_WIDTH*CB_HEIGHT);
+	std::vector<bool> corner_mask_ir(CB_WIDTH*CB_HEIGHT);
+	for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
+	  corner_mask_rgb[c_id] = true;
+	  corner_mask_ir[c_id] = true;
 	}
-	fillCBsFromCDs(&cd_c, &cd_i, cb_rgb, cb_ir, corner_mask_merged, depth);
+	fillCBsFromCDs(cd_c, cd_i, m_cb_rgb[frame_id], m_cb_ir[frame_id],
+		       corner_mask_rgb, corner_mask_ir, depth);
 	std::cout << cb_rgb << std::endl;
 	std::cout << cb_ir << std::endl;
 #endif
@@ -650,19 +749,38 @@ namespace{
   void
   ChessboardSampling::fillCBsFromCDs(OpenCVChessboardCornerDetector* cd_rgb, OpenCVChessboardCornerDetector* cd_ir,
 				     ChessboardViewRGB& cb_rgb, ChessboardViewIR& cb_ir,
-				     const std::vector<bool>& corner_mask, float* depth){
-    for(unsigned c_id = 0; c_id != cd_rgb->corners.size(); ++c_id){
-      cb_rgb.corners[c_id].u = cd_rgb->corners[c_id].u;
-      cb_rgb.corners[c_id].v = cd_rgb->corners[c_id].v;
-      cb_rgb.quality[c_id] = corner_mask[c_id] == true ? 1.0 : 0.0;
+				     const std::vector<bool>& corner_mask_rgb, const std::vector<bool>& corner_mask_ir, float* depth){
+    unsigned c_id_rgb = 0;
+    unsigned c_id_ir = 0;
+    for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
 
-      cb_ir.corners[c_id].x = cd_ir->corners[c_id].u;
-      cb_ir.corners[c_id].y = cd_ir->corners[c_id].v;
-      cb_ir.corners[c_id].z = depth != 0 ? getBilinear(depth, 512, 424,
-						       cb_ir.corners[c_id].x,
-						       cb_ir.corners[c_id].y) : 0.0; 
-      cb_ir.quality[c_id] = corner_mask[c_id] == true ? 1.0 : 0.0;
+      // mask both boards accordingly
+      cb_rgb.quality[c_id] = (corner_mask_rgb[c_id] && corner_mask_ir[c_id]) ? 1.0 : 0.0;
+      cb_ir.quality[c_id]  = (corner_mask_rgb[c_id] && corner_mask_ir[c_id]) ? 1.0 : 0.0;
+
+      // consume rgb corner if available
+      uv c_rgb;
+      if(corner_mask_rgb[c_id]){
+	c_rgb.u = cd_rgb->corners[c_id_rgb].u;
+	c_rgb.v = cd_rgb->corners[c_id_rgb].v;
+	++c_id_rgb;
+      }
+      // consume ir corner if available
+      xyz c_ir;
+      if(corner_mask_ir[c_id]){
+	c_ir.x = cd_ir->corners[c_id_ir].u;
+	c_ir.y = cd_ir->corners[c_id_ir].v;
+	c_ir.z = depth != 0 ? getBilinear(depth, 512, 424,
+					  c_ir.x,
+					  c_ir.y) : 0.0;
+	++c_id_ir;
+      }
+
+      // apply corners
+      cb_rgb.corners[c_id] = c_rgb;
+      cb_ir.corners[c_id]  = c_ir;
     }
+
   }
 
 
@@ -692,12 +810,14 @@ namespace{
       
 #if 1
       // new version using corner_mask
-      std::vector<bool> corner_mask;
-      for(unsigned c_id = 0; c_id < (CB_WIDTH * CB_HEIGHT); ++c_id){
-	corner_mask.push_back(true);
+      std::vector<bool> corner_mask_rgb(CB_WIDTH*CB_HEIGHT);
+      std::vector<bool> corner_mask_ir(CB_WIDTH*CB_HEIGHT);
+      for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
+	corner_mask_rgb[c_id] = true;
+	corner_mask_ir[c_id] = true;
       }
       fillCBsFromCDs(cd_c, cd_i, m_cb_rgb[frame_id], m_cb_ir[frame_id],
-		     corner_mask, depth);
+		     corner_mask_rgb, corner_mask_ir, depth);
 #else
       // old version
       for(unsigned c_id = 0; c_id != cd_c->corners.size(); ++c_id){
@@ -1637,6 +1757,7 @@ namespace{
   }
 
 
+
   void
   ChessboardSampling::detectFlips(){
 
@@ -1653,14 +1774,12 @@ namespace{
 	bool rgb_orientation;
 	bool ir_orientation;
 	{
-	  glm::vec2 a(cb_rgb.corners[CB_WIDTH - 1].u - cb_rgb.corners[0].u, cb_rgb.corners[CB_WIDTH - 1].v - cb_rgb.corners[0].v);
-	  glm::vec2 b(cb_rgb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - cb_rgb.corners[0].u, cb_rgb.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - cb_rgb.corners[0].v);
-	  rgb_orientation = a.x > 0.0 && b.y > 0.0;
+	  ChessboardExtremas extremas = cb_rgb.findExtremas();
+	  rgb_orientation = ((cb_rgb.corners[extremas.UR].u - cb_rgb.corners[extremas.UL].u) > 0.0) && ((cb_rgb.corners[extremas.LL].v - cb_rgb.corners[extremas.UL].v) > 0.0);
 	}
 	{
-	  glm::vec2 a(cb_ir.corners[CB_WIDTH - 1].x - cb_ir.corners[0].x, cb_ir.corners[CB_WIDTH - 1].y - cb_ir.corners[0].y);
-	  glm::vec2 b(cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].x - cb_ir.corners[0].y /*x?????*/ , cb_ir.corners[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].y - cb_ir.corners[0].y);
-	  ir_orientation = a.x > 0.0 && b.y > 0.0;
+	  ChessboardExtremas extremas = cb_ir.findExtremas();
+	  rgb_orientation = ((cb_ir.corners[extremas.UR].x - cb_ir.corners[extremas.UL].x) > 0.0) && ((cb_ir.corners[extremas.LL].y - cb_ir.corners[extremas.UL].y) > 0.0);
 	}
 
 	if( !(rgb_orientation && ir_orientation) ){
