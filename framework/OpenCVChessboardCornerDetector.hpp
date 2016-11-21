@@ -33,6 +33,15 @@
 
   public:
     std::vector<uv> corners;
+    /*
+      UL - UR
+      |     |
+      LL - LR
+    */
+    unsigned UL;
+    unsigned UR;
+    unsigned LL;
+    unsigned LR;
   };
 
 

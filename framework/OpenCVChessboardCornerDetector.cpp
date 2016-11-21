@@ -16,7 +16,6 @@
 #include <string>  //for std::string
 
 
-
 OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist)
     : m_channels(channels),
       m_width(width),
@@ -27,7 +26,12 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       m_gray_image(),
       m_gray_image_f(),
       m_tmp_image(),
-      m_undist(undist)
+      m_undist(undist),
+      corners(),
+      UL(0),
+      UR(0),
+      LL(0),
+      LR(0)
   {
 
 
@@ -65,12 +69,15 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 
   bool
   OpenCVChessboardCornerDetector::process(void* buffer, unsigned bytes, unsigned board_w, unsigned board_h, bool showimages){
+    
+    // clear latest corners
     corners.clear();
+
     // setup variables for corner detection
     const CvSize l_board_sz(cvSize( board_w, board_h ));
     CvPoint2D32f* l_corners = new CvPoint2D32f [ board_w * board_h ];
     const unsigned l_num_corners(board_w * board_h);
-
+    
     if(m_undist){
       buffer = m_undist->process(buffer, bytes);
     }
@@ -112,16 +119,16 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
     int found = cvFindChessboardCorners( m_gray_image, l_board_sz, l_corners,
 					 &corner_count, /*CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE*/
 					 CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
-
+    
     //std::cerr << found << " " << corner_count << std::endl;
     // Get subpixel accuracy on those corners
     if((found != 0) && (corner_count == l_num_corners)){			
       cvFindCornerSubPix( m_gray_image, l_corners, corner_count, cvSize( 5, 5 ), 
 			  cvSize( -1, -1 ), cvTermCriteria( CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1 ));
     }
-
+    
     if(showimages){
-
+      
       const void * address = static_cast<const void*>(this);
       std::stringstream ss;
       ss << address;  
@@ -154,27 +161,42 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
     // If we got a good board, add it to our data
     if((found != 0) && (corner_count == l_num_corners)){
       
-      //corners.clear();
-      
-      for( unsigned j=0; j < l_num_corners; ++j ){
-	//std::cerr << j << " " << l_corners[j].x << " " << l_corners[j].y << std::endl;
-	uv c;
-	c.u = l_corners[j].x;
-	c.v = l_corners[j].y;
+    for( unsigned j=0; j < l_num_corners; ++j ){
+      //std::cerr << j << " " << l_corners[j].x << " " << l_corners[j].y << std::endl;
+      uv c;
+      c.u = l_corners[j].x;
+      c.v = l_corners[j].y;
 
 #if 0
-	// this is needed by Kinect V1
-	//std::cerr << "NOTE: if KinectV1 need to smooth and translate the corners from IR to depth by ir_x += 5 and ir_y += 4" << std::endl;
-	if(1 == m_channels){
-	  c.u += 5;
-	  c.v += 4;
-	}
+      // this is needed by Kinect V1
+      //std::cerr << "NOTE: if KinectV1 need to smooth and translate the corners from IR to depth by ir_x += 5 and ir_y += 4" << std::endl;
+      if(1 == m_channels){
+	c.u += 5;
+	c.v += 4;
+      }
 #endif
 
-	corners.push_back(c);
-      }
-      delete [] l_corners;
-      return true;
+      corners.push_back(c);
+    }
+    delete [] l_corners;
+
+    // setup corner ids of extrema:
+    /*
+      UL - UR
+      |     |
+      LL - LR
+    */
+    UL = 0;
+    UR = board_w - 1;
+    LL = (board_w * board_h) - board_w;
+    LR = board_w * board_h - 1;
+
+    // detectFlips here!
+    bool is_correct_orientation = ((corners[UR].u - corners[UL].u) > 0.0) && ((corners[LL].v - corners[UL].v) > 0.0);
+
+    // correct flip -> FUTURE WORK
+    return is_correct_orientation;
+
     }
     delete [] l_corners;
     return false;

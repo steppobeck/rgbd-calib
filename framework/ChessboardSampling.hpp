@@ -191,6 +191,8 @@
     xyz computeAverageCornerIR(const unsigned cb_id);
     std::vector<bool> findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success);
 
+    float findSBAndCornerDist(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, unsigned board_width, unsigned board_height, bool show_image);
+
     void processPerThread(unsigned char* rgb,
 			  float* depth,
 			  unsigned char* ir,

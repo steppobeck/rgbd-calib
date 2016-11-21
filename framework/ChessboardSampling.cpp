@@ -597,7 +597,6 @@ namespace{
     double dy = 0.0;
     unsigned w_dx = 0;
     unsigned w_dy = 0;
-
     for(unsigned y = 0; y < height; ++y){
       for(unsigned x = 1; x < width; ++x){
 	const unsigned c_id_r = y * width + x;
@@ -608,7 +607,7 @@ namespace{
     }
 
     for(unsigned x = 0; x < width; ++x){
-      for(unsigned y = 1; x < height; ++y){
+      for(unsigned y = 1; y < height; ++y){
 	const unsigned c_id_b = y * width + x;
 	const unsigned c_id_t = (y - 1) * width + x;
 	dy += corners[c_id_b].v - corners[c_id_t].v;
@@ -616,26 +615,151 @@ namespace{
       }
     }
     dx /= w_dx;
-    dx /= w_dy;
+    dy /= w_dy;
     return (float) std::sqrt(dx * dx + dy * dy);
   }
 
 }
 
+  float
+  ChessboardSampling::findSBAndCornerDist(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, unsigned board_width, unsigned board_height, bool show_image){
+    if(show_image){
+      std::cout << "INFO: trying to find sub board with: " << board_width << " x " << board_height << std::endl;
+    }
+    bool found_sub_board = cd->process(image, bytes, board_width, board_height, false);
+    if(found_sub_board){
+      const float avarage_corner_dist = computeAverageDistOfCorners(cd->corners, board_width, board_height);
+      if(show_image){
+	std::cout << "INFO: found sub board with: " << board_width << " x " << board_height << std::endl;
+	std::cout << "average_corner_dist in pixels: " << avarage_corner_dist  << std::endl;
+	cd->process(image, bytes, board_width, board_height, show_image);
+      }
+      return avarage_corner_dist;
+    }
+    else{
+      if(show_image){
+	std::cout << "INFO: did no find sub board with: " << board_width << " x " << board_height << std::endl;
+      }
+    }
+    return 0.0;
+  }
+
+namespace{
+  void
+  invalidateCornerMask(std::vector<bool>& corner_mask, int row, int column){
+    unsigned c_id = 0;
+    for(unsigned y = 0; y < CB_HEIGHT; ++y){
+      for(unsigned x = 0; x < CB_WIDTH; ++x){
+	if(row >= 0 && row == y){
+	  corner_mask[c_id] = false;
+	}
+	if(column >= 0 && column == x){
+	  corner_mask[c_id] = false;
+	}
+	++c_id;
+      }
+    }
+  }
+
+  void dumpCornerMask(const std::vector<bool>& corner_mask){
+    unsigned c_id = 0;
+    for(unsigned y = 0; y < CB_HEIGHT; ++y){
+      for(unsigned x = 0; x < CB_WIDTH; ++x){
+	std::cout << (int) corner_mask[c_id] << " ";
+	++c_id;
+      }
+      std::cout << std::endl;
+    }
+  }
+}
 
   std::vector<bool>
   ChessboardSampling::findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success){
+    
+    std::cout << "INFO: begin ChessboardSampling::findSubBoard" << std::endl;
     std::vector<bool> corner_mask(CB_WIDTH*CB_HEIGHT);
     for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
       corner_mask[c_id] = true;
     }
-    // try CB_WIDTH * CB_HEIGHT
-    unsigned width  = CB_WIDTH;
-    unsigned height = CB_HEIGHT;
-    success = cd->process(image, bytes, width, height, false);
-    const float avarage_corner_dist = computeAverageDistOfCorners(cd->corners, cd->getWidth(), cd->getHeight());
-    std::cout << "average_corner_dist in pixels: " << avarage_corner_dist  << std::endl;
-    // continue work here
+    // do it explicitely
+    
+    { // 1. find all corners
+      const unsigned board_width  = CB_WIDTH;
+      const unsigned board_height = CB_HEIGHT;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	success = true;
+	return corner_mask;
+      }
+    }
+
+    { // 2. find out_TopLeft || out_TopRight || out_BottomLeft || out_BottomRight
+      const unsigned board_width  = CB_WIDTH - 1;
+      const unsigned board_height = CB_HEIGHT - 1;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
+	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
+	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
+	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
+	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
+
+	// 1. test for out_TopLeft:
+	if(dist_LR < dist_UL &&
+	   dist_LR < dist_UR &&
+	   dist_LR < dist_LL){
+	  // invalidate bottom row and right column of checkerboard
+	  invalidateCornerMask(corner_mask, 0, 0);
+	  success = true;
+	  return corner_mask;
+	}
+
+	// 2. test for out_TopRight: dist_LL must be smallest
+
+	// 3. test for out_BottomLeft: dist_UR must be smallest
+
+	// 4. test for out_BottomRight: dist_UL must be smallest
+
+      }
+    }
+
+    { // 3. find out_Top || out_Bottom
+
+    }
+
+    { // 4. find out_Left || out_Right
+      const unsigned board_width  = CB_WIDTH - 1;
+      const unsigned board_height = CB_HEIGHT;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
+	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
+	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
+	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
+	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
+	// 1. test for out_Left:
+	if(dist_UR < dist_UL && dist_UR < dist_LL &&
+	   dist_LR < dist_UL && dist_LR < dist_LL){
+	  // invalidate left column of checkerboard
+	  invalidateCornerMask(corner_mask, -1, 0);
+	  success = true;
+	  return corner_mask;
+	}
+	// 2. test for out_Right:
+	if(dist_UL < dist_UR && dist_UL < dist_LR &&
+	   dist_LL < dist_UR && dist_LL < dist_LR){
+	  // invalidate right column of checkerboard
+	  invalidateCornerMask(corner_mask, -1, (CB_WIDTH - 1));
+	  success = true;
+	  return corner_mask;
+	}
+      }
+    }
+
+    // show anyway
+    cd->process(image, bytes, CB_WIDTH, CB_HEIGHT, show_image);
+    std::cout << "INFO: end ChessboardSampling::findSubBoard did not find anything" << std::endl;
+    success = false;
     return corner_mask;
   }
 
@@ -692,43 +816,50 @@ namespace{
       infile_fr.read((char*) ir, 512 * 424);
 
       if((end == 0) || (start <= i) && (i <= end)){
-	// show rgb depth and ir image
-	bool found_color = cd_c.process((unsigned char*) rgb, 1280*1080 * 3, CB_WIDTH, CB_HEIGHT, true);
 
+	// show rgb depth and ir image
 
 	/*
 	  1. try to find sub_rgb and sub_ir and analyze
 	  2. fillCBsFromCDs with corner_mask_rgb and corner_mask_ir
 	*/
-	bool found_sub_rgb;
-	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_sub_rgb);
-	std::cout << "found_sub_rgb: " << found_sub_rgb << std::endl;
-
-
-
+	bool found_color;
+	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_color);
+	if(found_color){
+	  std::cout << "found_color with following corner mask" << std::endl;
+	  dumpCornerMask(corner_mask_rgb);
+	}
 
 	memcpy(cv_depth_image->imageData, convertTo8Bit(depth, 512, 424), 512*424 * sizeof(unsigned char));
 	cvShowImage( "depth", cv_depth_image);
 
-	bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, true);
+	//bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, true);
+	bool found_ir;
+	std::vector<bool> corner_mask_ir = findSubBoard(&cd_i, (unsigned char*) ir, 512 * 424, true /*show_image*/, found_ir);
+	if(found_ir){
+	  std::cout << "found_ir with following corner mask" << std::endl;
+	  dumpCornerMask(corner_mask_ir);
+	}
+
 	std::cout << "--- BEGIN OF FRAME -------------------------------------------------" << std::endl;
 	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
 
 
-
-#if 0
-	// show corner coordinates here!
-	std::vector<bool> corner_mask_rgb(CB_WIDTH*CB_HEIGHT);
-	std::vector<bool> corner_mask_ir(CB_WIDTH*CB_HEIGHT);
-	for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
-	  corner_mask_rgb[c_id] = true;
-	  corner_mask_ir[c_id] = true;
+	if(found_color && found_ir){
+	  cb_rgb.valid = true;
+	  cb_ir.valid =  true;
+	  std::cout << "SUCCESS able to to fill checkerboard views from corner masks!" << std::endl;
+	  fillCBsFromCDs(&cd_c, &cd_i, cb_rgb, cb_ir,
+			 corner_mask_rgb, corner_mask_ir, depth);
+	  //std::cout << cb_rgb << std::endl;
+	  //std::cout << cb_ir << std::endl;
 	}
-	fillCBsFromCDs(cd_c, cd_i, m_cb_rgb[frame_id], m_cb_ir[frame_id],
-		       corner_mask_rgb, corner_mask_ir, depth);
-	std::cout << cb_rgb << std::endl;
-	std::cout << cb_ir << std::endl;
-#endif
+	else{
+	  std::cout << "BOTH FRAMES ARE INVALID!" << std::endl;
+	  cb_rgb.valid = false;
+	  cb_ir.valid =  false;
+	}
+
 
 	int key = -1;
 	while(-1 == key){
@@ -1673,15 +1804,17 @@ namespace{
 
 
     // 1. gather valid ranges to detect flipps
+    std::cerr << "ALARM: filterSamples(): detectDlips should not be used any more!" << std::endl;
     gatherValidRanges();
     calcStatsInRanges();
     for(auto& r : m_valid_ranges){
       std::cout << r << std::endl;
     }
     std::cout << "ChessboardSampling::filterSamples -> detectFlips" << std::endl;
-    detectFlips(); // better, more generic detectFlipsInRanges!
-
+    detectFlips();
     p_sweep_stats.flipped_boards = p_sweep_stats.input_frames - p_sweep_stats.no_too_few_corners - getChessboardIDs().size();
+
+
 
     // 1.2 detect shape errors based on local area ratios of corner quads
     gatherValidRanges();
