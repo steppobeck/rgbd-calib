@@ -708,24 +708,106 @@ namespace{
 	if(dist_LR < dist_UL &&
 	   dist_LR < dist_UR &&
 	   dist_LR < dist_LL){
-	  // invalidate bottom row and right column of checkerboard
+	  // invalidate row 0 and column 0 of checkerboard
 	  invalidateCornerMask(corner_mask, 0, 0);
 	  success = true;
 	  return corner_mask;
 	}
 
-	// 2. test for out_TopRight: dist_LL must be smallest
+	// 2. test for out_TopRight:
+	if(dist_LL < dist_UL &&
+	   dist_LL < dist_UR &&
+	   dist_LL < dist_LR){
+	  // invalidate row 0 and column (CB_WIDTH - 1) of checkerboard
+	  invalidateCornerMask(corner_mask, 0, (CB_WIDTH - 1));
+	  success = true;
+	  return corner_mask;
+	}
 
-	// 3. test for out_BottomLeft: dist_UR must be smallest
 
-	// 4. test for out_BottomRight: dist_UL must be smallest
+	// 3. test for out_BottomLeft:
+	if(dist_UR < dist_LR &&
+	   dist_UR < dist_LL &&
+	   dist_UR < dist_UL){
+	  // invalidate row (CB_HEIGHT - 1) and column 0 of checkerboard
+	  invalidateCornerMask(corner_mask, (CB_HEIGHT - 1), 0);
+	  success = true;
+	  return corner_mask;
+	}
+
+	// 4. test for out_BottomRight:
+	if(dist_UL < dist_UR &&
+	   dist_UL < dist_LR &&
+	   dist_UL < dist_LL){
+	  // invalidate row (CB_HEIGHT - 1) and column (CB_WIDTH - 1) of checkerboard
+	  invalidateCornerMask(corner_mask, (CB_HEIGHT - 1), (CB_WIDTH - 1));
+	  success = true;
+	  return corner_mask;
+	}
 
       }
     }
 
-    { // 3. find out_Top || out_Bottom
-
+    { // 3. find out_Top || out_Bottom ONE ROW MISSING
+      const unsigned board_width  = CB_WIDTH;
+      const unsigned board_height = CB_HEIGHT - 1;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
+	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
+	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
+	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
+	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
+	// 1. test for out_Top:
+	if(dist_LL < dist_UL && dist_LL < dist_UR &&
+	   dist_LR < dist_UL && dist_LR < dist_UR){
+	  // invalidate row 0 of checkerboard
+	  invalidateCornerMask(corner_mask, 0, -1);
+	  success = true;
+	  return corner_mask;
+	}
+	// 1. test for out_Bottom:
+	if(dist_UL < dist_LL && dist_UL < dist_LR &&
+	   dist_UR < dist_LL && dist_UR < dist_LR){
+	  // invalidate row (CB_HEIGHT - 1) of checkerboard
+	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 1), -1);
+	  success = true;
+	  return corner_mask;
+	}
+      }
     }
+
+    { // 3b. find out_Top || out_Bottom TWO ROWS MISSING
+      const unsigned board_width  = CB_WIDTH;
+      const unsigned board_height = CB_HEIGHT - 2;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
+	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
+	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
+	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
+	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
+	// 1. test for out_Top:
+	if(dist_LL < dist_UL && dist_LL < dist_UR &&
+	   dist_LR < dist_UL && dist_LR < dist_UR){
+	  // invalidate row 0 and 1 of checkerboard
+	  invalidateCornerMask(corner_mask, 0, -1);
+	  invalidateCornerMask(corner_mask, 1, -1);
+	  success = true;
+	  return corner_mask;
+	}
+	// 1. test for out_Bottom:
+	if(dist_UL < dist_LL && dist_UL < dist_LR &&
+	   dist_UR < dist_LL && dist_UR < dist_LR){
+	  // invalidate row (CB_HEIGHT - 1) and (CB_HEIGHT - 2) of checkerboard
+	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 1), -1);
+	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 2), -1);
+	  success = true;
+	  return corner_mask;
+	}
+      }
+    }
+
 
     { // 4. find out_Left || out_Right
       const unsigned board_width  = CB_WIDTH - 1;
@@ -819,10 +901,6 @@ namespace{
 
 	// show rgb depth and ir image
 
-	/*
-	  1. try to find sub_rgb and sub_ir and analyze
-	  2. fillCBsFromCDs with corner_mask_rgb and corner_mask_ir
-	*/
 	bool found_color;
 	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_color);
 	if(found_color){
@@ -851,8 +929,8 @@ namespace{
 	  std::cout << "SUCCESS able to to fill checkerboard views from corner masks!" << std::endl;
 	  fillCBsFromCDs(&cd_c, &cd_i, cb_rgb, cb_ir,
 			 corner_mask_rgb, corner_mask_ir, depth);
-	  //std::cout << cb_rgb << std::endl;
-	  //std::cout << cb_ir << std::endl;
+	  std::cout << cb_rgb << std::endl;
+	  std::cout << cb_ir << std::endl;
 	}
 	else{
 	  std::cout << "BOTH FRAMES ARE INVALID!" << std::endl;
@@ -1803,20 +1881,7 @@ namespace{
     p_sweep_stats.no_too_few_corners = p_sweep_stats.input_frames - getChessboardIDs().size();
 
 
-    // 1. gather valid ranges to detect flipps
-    std::cerr << "ALARM: filterSamples(): detectDlips should not be used any more!" << std::endl;
-    gatherValidRanges();
-    calcStatsInRanges();
-    for(auto& r : m_valid_ranges){
-      std::cout << r << std::endl;
-    }
-    std::cout << "ChessboardSampling::filterSamples -> detectFlips" << std::endl;
-    detectFlips();
-    p_sweep_stats.flipped_boards = p_sweep_stats.input_frames - p_sweep_stats.no_too_few_corners - getChessboardIDs().size();
-
-
-
-    // 1.2 detect shape errors based on local area ratios of corner quads
+    // 1. detect shape errors based on local area ratios of corner quads
     gatherValidRanges();
     calcStatsInRanges();
     for(auto& r : m_valid_ranges){
@@ -1890,42 +1955,6 @@ namespace{
   }
 
 
-
-  void
-  ChessboardSampling::detectFlips(){
-
-    for(unsigned cb_id = 0; cb_id < m_cb_ir.size(); ++cb_id){
-      ChessboardViewRGB& cb_rgb = m_cb_rgb[cb_id];
-      ChessboardViewIR& cb_ir  = m_cb_ir[cb_id];
-
-      // if one of both is not valid both will be not valid
-      cb_rgb.valid = cb_ir.valid && cb_rgb.valid;
-      cb_ir.valid = cb_rgb.valid;
-
-      if(cb_ir.valid){
-
-	bool rgb_orientation;
-	bool ir_orientation;
-	{
-	  ChessboardExtremas extremas = cb_rgb.findExtremas();
-	  rgb_orientation = ((cb_rgb.corners[extremas.UR].u - cb_rgb.corners[extremas.UL].u) > 0.0) && ((cb_rgb.corners[extremas.LL].v - cb_rgb.corners[extremas.UL].v) > 0.0);
-	}
-	{
-	  ChessboardExtremas extremas = cb_ir.findExtremas();
-	  rgb_orientation = ((cb_ir.corners[extremas.UR].x - cb_ir.corners[extremas.UL].x) > 0.0) && ((cb_ir.corners[extremas.LL].y - cb_ir.corners[extremas.UL].y) > 0.0);
-	}
-
-	if( !(rgb_orientation && ir_orientation) ){
-	  cb_rgb.valid = 0;
-	  cb_ir.valid = 0;
-
-	  std::cout << "INFO: ChessboardSampling::detectFlips() -> detected flip and therefore invalidating " << cb_id << std::endl;
-
-	}
-      }
-    }
-
-  }
 
 
 

@@ -193,8 +193,10 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 
     // detectFlips here!
     bool is_correct_orientation = ((corners[UR].u - corners[UL].u) > 0.0) && ((corners[LL].v - corners[UL].v) > 0.0);
-
-    // correct flip -> FUTURE WORK
+    // correct flip -> FUTURE WORK, currently a flipped board is invalid
+    if(!is_correct_orientation){
+      std::cout << "INFO: OpenCVChessboardCornerDetector::process detected flip! invalidating frame" << std::endl;
+    }
     return is_correct_orientation;
 
     }

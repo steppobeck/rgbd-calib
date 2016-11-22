@@ -160,7 +160,6 @@
 				     ChessboardViewRGB& cb_rgb, ChessboardViewIR& cb_ir,
 			const std::vector<bool>& corner_mask_rgb, const std::vector<bool>& corner_mask_ir, float* depth);
 
-    void detectFlips();
 
     float computeAVGRGBFrequency();
     float computeAVGIRFrequency();
