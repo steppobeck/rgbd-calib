@@ -145,27 +145,27 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       // correct flip
       if(!is_correct_orientation){
 	std::cout << "INFO: OpenCVChessboardCornerDetector::process detected flip! trying to reflip" << std::endl;
-	std::cout << "INFO: OpenCVChessboardCornerDetector::process before flip:" << std::endl;
+	//std::cout << "INFO: OpenCVChessboardCornerDetector::process before flip:" << std::endl;
 	std::vector<uv> corners_tmp;
 	for(int y = (board_h - 1); y >= 0; --y){
 	  for(int x = (board_w - 1); x >= 0; --x){
 	    const unsigned c_id = y * board_w + x;
-	    std::cout << c_id << " -> " << corners[c_id] << " | ";
+	    //std::cout << c_id << " -> " << corners[c_id] << " | ";
 	    corners_tmp.push_back(corners[c_id]);
 	  }
-	  std::cout << std::endl;
+	  //std::cout << std::endl;
 	}
 	corners = corners_tmp;
-	std::cout << "INFO: OpenCVChessboardCornerDetector::process after flip:" << std::endl;
+	//std::cout << "INFO: OpenCVChessboardCornerDetector::process after flip:" << std::endl;
 	for(int y = 0; y < board_h; ++y){
 	  for(int x = 0; x < board_w; ++x){
 	    const unsigned c_id = y * board_w + x;
-	    std::cout << c_id << " -> " << corners[c_id] << " | ";
+	    //std::cout << c_id << " -> " << corners[c_id] << " | ";
 	    corners_tmp.push_back(corners[c_id]);
 	  }
-	  std::cout << std::endl;
+	  //std::cout << std::endl;
 	}
-	std::cout << "INFO: OpenCVChessboardCornerDetector::process end of flip:" << std::endl;
+	//std::cout << "INFO: OpenCVChessboardCornerDetector::process end of flip:" << std::endl;
 
 	// copy from our corners to OpenCV, needed in for showimages
 	for( unsigned j=0; j < l_num_corners; ++j ){

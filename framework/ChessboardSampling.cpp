@@ -683,7 +683,7 @@ namespace{
     }
     // do it explicitely
     
-    { // 1. find all corners
+    { // find all corners
       const unsigned board_width  = CB_WIDTH;
       const unsigned board_height = CB_HEIGHT;
       const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
@@ -693,7 +693,105 @@ namespace{
       }
     }
 
-    { // 2. find out_TopLeft || out_TopRight || out_BottomLeft || out_BottomRight
+    { // find out_Top || out_Bottom ONE ROW MISSING
+      const unsigned board_width  = CB_WIDTH;
+      const unsigned board_height = CB_HEIGHT - 1;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
+	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
+	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
+	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
+	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
+
+	std::cout << "dist_LL: " << dist_LL << std::endl;
+	std::cout << "dist_LR: " << dist_LR << std::endl;
+	std::cout << "dist_UL: " << dist_UL << std::endl;
+	std::cout << "dist_UR: " << dist_UR << std::endl;
+
+	// 1. test for out_Top:
+	std::cout << "TESTING FOR out_TOP" << std::endl;
+	if(dist_LL < dist_UL &&
+	   dist_LR < dist_UR){
+	  // invalidate row 0 of checkerboard
+	  invalidateCornerMask(corner_mask, 0, -1);
+	  success = true;
+	  return corner_mask;
+	}
+	// 1. test for out_Bottom:
+	std::cout << "TESTING FOR out_BOTTOM" << std::endl;
+	if(dist_UL < dist_LL &&
+	   dist_UR < dist_LR){
+	  // invalidate row (CB_HEIGHT - 1) of checkerboard
+	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 1), -1);
+	  success = true;
+	  return corner_mask;
+	}
+      }
+    }
+
+    { // find out_Top || out_Bottom TWO ROWS MISSING
+      const unsigned board_width  = CB_WIDTH;
+      const unsigned board_height = CB_HEIGHT - 2;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
+	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
+	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
+	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
+	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
+	// 1. test for out_Top:
+	if(dist_LL < dist_UL &&
+	   dist_LR < dist_UR){
+	  // invalidate row 0 and 1 of checkerboard
+	  invalidateCornerMask(corner_mask, 0, -1);
+	  invalidateCornerMask(corner_mask, 1, -1);
+	  success = true;
+	  return corner_mask;
+	}
+	// 1. test for out_Bottom:
+	if(dist_UL < dist_LL &&
+	   dist_UR < dist_LR){
+	  // invalidate row (CB_HEIGHT - 1) and (CB_HEIGHT - 2) of checkerboard
+	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 1), -1);
+	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 2), -1);
+	  success = true;
+	  return corner_mask;
+	}
+      }
+    }
+
+
+    { // find out_Left || out_Right
+      const unsigned board_width  = CB_WIDTH - 1;
+      const unsigned board_height = CB_HEIGHT;
+      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
+      if(avarage_corner_dist > 0.0){
+	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
+	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
+	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
+	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
+	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
+	// 1. test for out_Left:
+	if(dist_UR < dist_UL && dist_UR < dist_LL &&
+	   dist_LR < dist_UL && dist_LR < dist_LL){
+	  // invalidate left column of checkerboard
+	  invalidateCornerMask(corner_mask, -1, 0);
+	  success = true;
+	  return corner_mask;
+	}
+	// 2. test for out_Right:
+	if(dist_UL < dist_UR && dist_UL < dist_LR &&
+	   dist_LL < dist_UR && dist_LL < dist_LR){
+	  // invalidate right column of checkerboard
+	  invalidateCornerMask(corner_mask, -1, (CB_WIDTH - 1));
+	  success = true;
+	  return corner_mask;
+	}
+      }
+    }
+
+    { // find out_TopLeft || out_TopRight || out_BottomLeft || out_BottomRight
       const unsigned board_width  = CB_WIDTH - 1;
       const unsigned board_height = CB_HEIGHT - 1;
       const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
@@ -748,95 +846,6 @@ namespace{
       }
     }
 
-    { // 3. find out_Top || out_Bottom ONE ROW MISSING
-      const unsigned board_width  = CB_WIDTH;
-      const unsigned board_height = CB_HEIGHT - 1;
-      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
-      if(avarage_corner_dist > 0.0){
-	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
-	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
-	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
-	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
-	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
-	// 1. test for out_Top:
-	if(dist_LL < dist_UL && dist_LL < dist_UR &&
-	   dist_LR < dist_UL && dist_LR < dist_UR){
-	  // invalidate row 0 of checkerboard
-	  invalidateCornerMask(corner_mask, 0, -1);
-	  success = true;
-	  return corner_mask;
-	}
-	// 1. test for out_Bottom:
-	if(dist_UL < dist_LL && dist_UL < dist_LR &&
-	   dist_UR < dist_LL && dist_UR < dist_LR){
-	  // invalidate row (CB_HEIGHT - 1) of checkerboard
-	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 1), -1);
-	  success = true;
-	  return corner_mask;
-	}
-      }
-    }
-
-    { // 3b. find out_Top || out_Bottom TWO ROWS MISSING
-      const unsigned board_width  = CB_WIDTH;
-      const unsigned board_height = CB_HEIGHT - 2;
-      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
-      if(avarage_corner_dist > 0.0){
-	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
-	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
-	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
-	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
-	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
-	// 1. test for out_Top:
-	if(dist_LL < dist_UL && dist_LL < dist_UR &&
-	   dist_LR < dist_UL && dist_LR < dist_UR){
-	  // invalidate row 0 and 1 of checkerboard
-	  invalidateCornerMask(corner_mask, 0, -1);
-	  invalidateCornerMask(corner_mask, 1, -1);
-	  success = true;
-	  return corner_mask;
-	}
-	// 1. test for out_Bottom:
-	if(dist_UL < dist_LL && dist_UL < dist_LR &&
-	   dist_UR < dist_LL && dist_UR < dist_LR){
-	  // invalidate row (CB_HEIGHT - 1) and (CB_HEIGHT - 2) of checkerboard
-	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 1), -1);
-	  invalidateCornerMask(corner_mask,(CB_HEIGHT - 2), -1);
-	  success = true;
-	  return corner_mask;
-	}
-      }
-    }
-
-
-    { // 4. find out_Left || out_Right
-      const unsigned board_width  = CB_WIDTH - 1;
-      const unsigned board_height = CB_HEIGHT;
-      const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
-      if(avarage_corner_dist > 0.0){
-	const glm::vec2 image_center(cd->getWidth()/2, cd->getHeight()/2);
-	const float dist_UL = glm::length(glm::vec2(cd->corners[cd->UL].u, cd->corners[cd->UL].v) - image_center);
-	const float dist_UR = glm::length(glm::vec2(cd->corners[cd->UR].u, cd->corners[cd->UR].v) - image_center);
-	const float dist_LL = glm::length(glm::vec2(cd->corners[cd->LL].u, cd->corners[cd->LL].v) - image_center);
-	const float dist_LR = glm::length(glm::vec2(cd->corners[cd->LR].u, cd->corners[cd->LR].v) - image_center);
-	// 1. test for out_Left:
-	if(dist_UR < dist_UL && dist_UR < dist_LL &&
-	   dist_LR < dist_UL && dist_LR < dist_LL){
-	  // invalidate left column of checkerboard
-	  invalidateCornerMask(corner_mask, -1, 0);
-	  success = true;
-	  return corner_mask;
-	}
-	// 2. test for out_Right:
-	if(dist_UL < dist_UR && dist_UL < dist_LR &&
-	   dist_LL < dist_UR && dist_LL < dist_LR){
-	  // invalidate right column of checkerboard
-	  invalidateCornerMask(corner_mask, -1, (CB_WIDTH - 1));
-	  success = true;
-	  return corner_mask;
-	}
-      }
-    }
 
     // show anyway
     cd->process(image, bytes, CB_WIDTH, CB_HEIGHT, show_image);
