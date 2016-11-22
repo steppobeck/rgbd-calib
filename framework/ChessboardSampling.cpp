@@ -929,8 +929,8 @@ namespace{
 	  std::cout << "SUCCESS able to to fill checkerboard views from corner masks!" << std::endl;
 	  fillCBsFromCDs(&cd_c, &cd_i, cb_rgb, cb_ir,
 			 corner_mask_rgb, corner_mask_ir, depth);
-	  std::cout << cb_rgb << std::endl;
-	  std::cout << cb_ir << std::endl;
+	  //std::cout << cb_rgb << std::endl;
+	  //std::cout << cb_ir << std::endl;
 	}
 	else{
 	  std::cout << "BOTH FRAMES ARE INVALID!" << std::endl;
