@@ -139,10 +139,11 @@
     bool saveChessboards();
 
     double searchStartIR() const;
-
+#if 0
     std::vector<unsigned> extractBoardsForIntrinsicsFromValidRanges(const unsigned grid_w,
 								    const unsigned grid_h,
 								    const unsigned grid_d);
+#endif
     std::vector<unsigned> getChessboardIDs();
 
 
@@ -165,6 +166,8 @@
     float computeAVGIRFrequency();
 
     void detectCorruptedDepthInRanges();
+
+    void detectShapeFaults(const unsigned cb_id);
 
     void detectShapeFaultsInRanges();
 

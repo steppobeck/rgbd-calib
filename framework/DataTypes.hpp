@@ -52,6 +52,7 @@ public:
   std::vector<float> areas;
   std::vector<float> ratiosH;
   std::vector<float> ratiosV;
+  std::vector<shape_desc> corners;
 };
 
 class Checkerboard{

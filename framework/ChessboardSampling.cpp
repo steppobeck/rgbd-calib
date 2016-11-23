@@ -97,6 +97,7 @@ ChessboardViewRGB::calcShapeStats(){
        quality[s.id[2]] > 0.0 &&
        quality[s.id[3]] > 0.0){
 
+      stats.corners.push_back(s);
       glm::vec3 a(corners[s.id[0]].u, corners[s.id[0]].v, 0.0f);
       glm::vec3 b(corners[s.id[1]].u, corners[s.id[1]].v, 0.0f);
       glm::vec3 c(corners[s.id[2]].u, corners[s.id[2]].v, 0.0f);
@@ -187,6 +188,8 @@ ChessboardViewIR::calcShapeStats(){
        quality[s.id[1]] > 0.0 &&
        quality[s.id[2]] > 0.0 &&
        quality[s.id[3]] > 0.0){
+
+      stats.corners.push_back(s);
       glm::vec3 a(corners[s.id[0]].x, corners[s.id[0]].y, 0.0f);
       glm::vec3 b(corners[s.id[1]].x, corners[s.id[1]].y, 0.0f);
       glm::vec3 c(corners[s.id[2]].x, corners[s.id[2]].y, 0.0f);
@@ -296,7 +299,6 @@ ChessboardViewIR::calcShapeStats(){
       res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
       // ensure that quality of both was greater than 0.0
       if( !(a.quality[i] > 0.0 && b.quality[i] > 0.0) ){
-	res.valid = 0;
 	res.quality[i] = 0.0;
       }
     }
@@ -313,7 +315,6 @@ ChessboardViewIR::calcShapeStats(){
       res.quality[i] = (1.0f - t) * a.quality[i] + t * b.quality[i];
       // ensure that quality of both was greater than 0.0
       if( !(a.quality[i] > 0.0 && b.quality[i] > 0.0) ){
-	res.valid = 0;
 	res.quality[i] = 0.0;
       }
     }
@@ -1562,6 +1563,7 @@ namespace{
 
   }
 
+#if 0
   std::vector<unsigned>
   ChessboardSampling::extractBoardsForIntrinsicsFromValidRanges(const unsigned grid_w,
 								const unsigned grid_h,
@@ -1624,7 +1626,7 @@ namespace{
 	      << res.size() << " cb_ids! from potentially " << grid.size() << std::endl;
     return res;
   }
-
+#endif
 
 
   std::vector<unsigned>
@@ -1648,10 +1650,6 @@ namespace{
     double qIR = 0.0;
     double qRGB = 0.0;
     for(unsigned c = 0; c < CB_WIDTH * CB_HEIGHT; ++c){
-      if(m_cb_ir[cb_id].quality[c] == 0.0 ||
-	 m_cb_rgb[cb_id].quality[c] == 0.0){
-	return 0.0;
-      }
       qIR += m_cb_ir[cb_id].quality[c];
       qRGB += m_cb_rgb[cb_id].quality[c];
     }
@@ -1808,90 +1806,98 @@ namespace{
 
   }
 
+  void
+  ChessboardSampling::detectShapeFaults(const unsigned cb_id){
 
+    bool did_invalidation = false;
+    {
+      shape_stats stats = m_cb_ir[cb_id].calcShapeStats();
+      { // find oultiers based on triangle ratiosH
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosH, mean, sd);
+	for(unsigned r_id = 0; r_id < stats.ratiosH.size(); ++r_id){
+	  if(std::abs(double(stats.ratiosH[r_id]) - mean) > (3.0 * sd)){
+	    did_invalidation = true;
+	    // set corner qualitys of both, rgb and ir to 0.0
+	    for(unsigned s_id = 0; s_id < 4; ++s_id){
+	      m_cb_ir[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	      m_cb_rgb[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	    }
+	  }
+	}
+      }
+      { // find oultiers based on triangle ratiosV
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosV, mean, sd);
+	for(unsigned r_id = 0; r_id < stats.ratiosV.size(); ++r_id){
+	  if(std::abs(double(stats.ratiosV[r_id]) - mean) > (3.0 * sd)){
+	    did_invalidation = true;
+	    // set corner qualitys of both, rgb and ir to 0.0
+	    for(unsigned s_id = 0; s_id < 4; ++s_id){
+	      m_cb_ir[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	      m_cb_rgb[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	    }
+	  }
+	}
+      }
+    }
+    
+    {
+      shape_stats stats = m_cb_rgb[cb_id].calcShapeStats();
+      { // find oultiers based on triangle ratiosH
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosH, mean, sd);
+	for(unsigned r_id = 0; r_id < stats.ratiosH.size(); ++r_id){
+	  if(std::abs(double(stats.ratiosH[r_id]) - mean) > (3.0 * sd)){
+	    did_invalidation = true;
+	    // set corner qualitys of both, rgb and ir to 0.0
+	    for(unsigned s_id = 0; s_id < 4; ++s_id){
+	      m_cb_ir[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	      m_cb_rgb[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	    }
+	  }
+	}
+      }
+      { // find oultiers based on triangle ratiosV
+	double mean;
+	double sd;
+	calcMeanSD(stats.ratiosV, mean, sd);
+	for(unsigned r_id = 0; r_id < stats.ratiosV.size(); ++r_id){
+	  if(std::abs(double(stats.ratiosV[r_id]) - mean) > (3.0 * sd)){
+	    did_invalidation = true;
+	    // set corner qualitys of both, rgb and ir to 0.0
+	    for(unsigned s_id = 0; s_id < 4; ++s_id){
+	      m_cb_ir[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	      m_cb_rgb[cb_id].quality[stats.corners[r_id].id[s_id]] = 0.0;
+	    }
+	  }
+	}
+      }
+    }
+
+    if(did_invalidation){
+      std::cout << "ChessboardSampling::detectShapeFaults for cb_id: " << cb_id << std::endl;
+      std::cout << m_cb_ir[cb_id] << std::endl;
+      std::cout << m_cb_rgb[cb_id] << std::endl;
+    }
+
+  }
 
   void
   ChessboardSampling::detectShapeFaultsInRanges(){
 
     for(const auto& r : m_valid_ranges){
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
-
-	//std::cout << "shape Areas for CB: " << cb_id << std::endl;
-
-	{
-	  shape_stats stats = m_cb_ir[cb_id].calcShapeStats();
-
-
-	  bool remove_cb = false;
-
-	  { // find oultiers based on triangle ratiosH
-	    double mean;
-	    double sd;
-	    calcMeanSD(stats.ratiosH, mean, sd);
-	    for(const auto& ratio : stats.ratiosH){
-	      if(std::abs(double(ratio) - mean) > (3.0 * sd)){
-		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
-		remove_cb = true;
-	      }
-	    }
-	  }
-	  { // find oultiers based on triangle ratiosV
-	    double mean;
-	    double sd;
-	    calcMeanSD(stats.ratiosV, mean, sd);
-	    for(const auto& ratio : stats.ratiosV){
-	      if(std::abs(double(ratio) - mean) > (3.0 * sd)){
-		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
-		remove_cb = true;
-	      }
-	    }
-	  }
-
-	  if(remove_cb){
-	    std::cout << "INFO: detectShapeFaultsInRanges() removing cb_id: " << cb_id << " because IRs shape ratio is outlier" << std::endl;
-	    m_cb_ir[cb_id].valid = 0;
-	    m_cb_rgb[cb_id].valid = 0;
-	  }
-	}
-
-	{
-	  shape_stats stats = m_cb_rgb[cb_id].calcShapeStats();
-
-	  bool remove_cb = false;
-	  
-	  { // find oultiers based on triangle ratiosH
-	    double mean;
-	    double sd;
-	    calcMeanSD(stats.ratiosH, mean, sd);
-	    for(const auto& ratio : stats.ratiosH){
-	      if(std::abs(double(ratio) - mean) > (4.0 * sd)){
-		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
-		remove_cb = true;
-	      }
-	    }
-	  }
-	  { // find oultiers based on triangle ratiosV
-	    double mean;
-	    double sd;
-	    calcMeanSD(stats.ratiosV, mean, sd);
-	    for(const auto& ratio : stats.ratiosV){
-	      if(std::abs(double(ratio) - mean) > (4.0 * sd)){
-		//std::cout << ratio << " mean: " << mean << " sd:" << sd << " -> " << std::abs(double(ratio) - mean) << " > " << (3.0 * sd) << std::endl;
-		remove_cb = true;
-	      }
-	    }
-	  }
-
-	  if(remove_cb){
-	    std::cout << "INFO: detectShapeFaultsInRanges() removing cb_id: " << cb_id << " because RGBs shape ratio is outlier" << std::endl;
-	    m_cb_ir[cb_id].valid = 0;
-	    m_cb_rgb[cb_id].valid = 0;
-	  }
-	}
-
-
+	
+	//std::cout << "detectShapeFaults for CB: " << cb_id << std::endl;
+	detectShapeFaults(cb_id);
+	
       }
     }
+
   }
 
 
@@ -2027,7 +2033,7 @@ ChessboardSampling::calcStatsInRanges(){
 
 void
 ChessboardSampling::gatherValidRanges(){
-#define MIN_RANGE_SIZE 1
+#define MIN_RANGE_SIZE 10
 
   // input is always m_cb_rgb and m_cb_ir
 
