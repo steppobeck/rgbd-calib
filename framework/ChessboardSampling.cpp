@@ -674,7 +674,7 @@ namespace{
 }
 
   std::vector<bool>
-  ChessboardSampling::findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success){
+  ChessboardSampling::findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success, bool is_rgb){
     
     std::cout << "INFO: begin ChessboardSampling::findSubBoard" << std::endl;
     std::vector<bool> corner_mask(CB_WIDTH*CB_HEIGHT);
@@ -791,7 +791,7 @@ namespace{
       }
     }
 
-    { // find out_TopLeft || out_TopRight || out_BottomLeft || out_BottomRight
+    if(is_rgb){ // find out_TopLeft || out_TopRight || out_BottomLeft || out_BottomRight
       const unsigned board_width  = CB_WIDTH - 1;
       const unsigned board_height = CB_HEIGHT - 1;
       const float avarage_corner_dist = findSBAndCornerDist(cd, image, bytes, board_width, board_height, show_image);
@@ -846,10 +846,11 @@ namespace{
       }
     }
 
-
-    // show anyway
-    cd->process(image, bytes, CB_WIDTH, CB_HEIGHT, show_image);
-    std::cout << "INFO: end ChessboardSampling::findSubBoard did not find anything" << std::endl;
+    
+    if(show_image){ // show anyway
+      cd->process(image, bytes, CB_WIDTH, CB_HEIGHT, show_image);
+      std::cout << "INFO: end ChessboardSampling::findSubBoard did not find anything" << std::endl;
+    }
     success = false;
     return corner_mask;
   }
@@ -911,7 +912,7 @@ namespace{
 	// show rgb depth and ir image
 
 	bool found_color;
-	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_color);
+	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_color, true);
 	if(found_color){
 	  std::cout << "found_color with following corner mask" << std::endl;
 	  dumpCornerMask(corner_mask_rgb);
@@ -922,14 +923,15 @@ namespace{
 
 	//bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, true);
 	bool found_ir;
-	std::vector<bool> corner_mask_ir = findSubBoard(&cd_i, (unsigned char*) ir, 512 * 424, true /*show_image*/, found_ir);
+	std::vector<bool> corner_mask_ir = findSubBoard(&cd_i, (unsigned char*) ir, 512 * 424, true /*show_image*/, found_ir, false);
 	if(found_ir){
 	  std::cout << "found_ir with following corner mask" << std::endl;
 	  dumpCornerMask(corner_mask_ir);
 	}
 
 	std::cout << "--- BEGIN OF FRAME -------------------------------------------------" << std::endl;
-	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
+	std::cout << "cb_id: " << i << " rgb time: " << cb_rgb.time << " ir time: " << cb_ir.time
+		  << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
 
 
 	if(found_color && found_ir){
@@ -1014,30 +1016,40 @@ namespace{
 				       const unsigned tid){
 
 
+    // new version
+#if 1
+    bool found_color;
+    std::vector<bool> corner_mask_rgb = findSubBoard(cd_c, (unsigned char*) rgb, 1280*1080 * 3, false /*show_image*/, found_color, true);
+    bool found_ir;
+    std::vector<bool> corner_mask_ir = findSubBoard(cd_i, (unsigned char*) ir, 512 * 424, false /*show_image*/, found_ir, false);
+
+    if(found_color && found_ir){
+      (*valids)[tid] = 1;
+      fillCBsFromCDs(cd_c, cd_i, m_cb_rgb[frame_id], m_cb_ir[frame_id],
+		     corner_mask_rgb, corner_mask_ir, depth);
+    }
+    else{
+      (*valids)[tid] = 0;
+      m_cb_rgb[frame_id].valid = 0;
+      m_cb_ir[frame_id].valid = 0;
+      std::cout << tid << "skipping cb_id: " << frame_id
+		<< " rgb time: " << m_cb_rgb[frame_id].time << " ir time: " << m_cb_ir[frame_id].time
+		<< " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
+    }
+#endif
+
+
+    // old version
+#if 0
     // detect corners in color image
     bool found_color = cd_c->process((unsigned char*) rgb, 1280*1080 * 3, CB_WIDTH, CB_HEIGHT, false);
     bool found_ir = cd_i->process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, false);
-
-
     if(found_color && found_ir &&
        (cd_i->corners.size() == cd_c->corners.size() &&
 	(cd_i->corners.size() == CB_WIDTH * CB_HEIGHT))){
-      
+
       (*valids)[tid] = 1;
 
-      
-#if 1
-      // new version using corner_mask
-      std::vector<bool> corner_mask_rgb(CB_WIDTH*CB_HEIGHT);
-      std::vector<bool> corner_mask_ir(CB_WIDTH*CB_HEIGHT);
-      for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
-	corner_mask_rgb[c_id] = true;
-	corner_mask_ir[c_id] = true;
-      }
-      fillCBsFromCDs(cd_c, cd_i, m_cb_rgb[frame_id], m_cb_ir[frame_id],
-		     corner_mask_rgb, corner_mask_ir, depth);
-#else
-      // old version
       for(unsigned c_id = 0; c_id != cd_c->corners.size(); ++c_id){
 	m_cb_rgb[frame_id].corners[c_id].u = cd_c->corners[c_id].u;
 	m_cb_rgb[frame_id].corners[c_id].v = cd_c->corners[c_id].v;
@@ -1050,15 +1062,18 @@ namespace{
 							m_cb_ir[frame_id].corners[c_id].y); 
 	m_cb_ir[frame_id].quality[c_id] = 1.0;
       }
-#endif
-
     }
     else{
       (*valids)[tid] = 0;
       m_cb_rgb[frame_id].valid = 0;
       m_cb_ir[frame_id].valid = 0;
-      std::cout << tid << "skipping cb_id: " << frame_id << " rgb time: " << m_cb_rgb[frame_id].time << " ir time: " << m_cb_ir[frame_id].time << " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
+      std::cout << tid << "skipping cb_id: " << frame_id
+		<< " rgb time: " << m_cb_rgb[frame_id].time << " ir time: " << m_cb_ir[frame_id].time
+		<< " found_color: " << int(found_color) << " found_ir: " << int(found_ir) << std::endl;
     }
+#endif
+
+
   }
 
 
