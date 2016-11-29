@@ -166,9 +166,9 @@
     float computeAVGIRFrequency();
 
     void detectCorruptedDepthInRanges();
-
+  public:
     void detectShapeFaults(const unsigned cb_id);
-
+  private:
     void detectShapeFaultsInRanges();
 
     void calcStatsInRanges();

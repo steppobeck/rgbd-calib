@@ -119,31 +119,7 @@ StableSampler::sampleBoardLocation(float max_shaking_speed, unsigned min_num_fra
     }
 
 
-    // detectFlips here!
-    bool rgb_orientation;
-    bool ir_orientation;
-    {
-      const std::vector<uv>& corners_color = m_cd_c->corners;
-      glm::vec2 a(corners_color[CB_WIDTH - 1].u - corners_color[0].u, corners_color[CB_WIDTH - 1].v - corners_color[0].v);
-      glm::vec2 b(corners_color[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - corners_color[0].u, corners_color[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - corners_color[0].v);
-      rgb_orientation = a.x > 0.0 && b.y > 0.0;
-    }
-    {
-      const std::vector<uv>& corners_depth = m_cd_i->corners;
-      glm::vec2 a(corners_depth[CB_WIDTH - 1].u - corners_depth[0].u, corners_depth[CB_WIDTH - 1].v - corners_depth[0].v);
-      glm::vec2 b(corners_depth[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].u - corners_depth[0].v/*u*/, corners_depth[(CB_WIDTH * CB_HEIGHT) - CB_WIDTH].v - corners_depth[0].v);
-      ir_orientation = a.x > 0.0 && b.y > 0.0;
-    }
-    
-    if( !(rgb_orientation && ir_orientation) ){
-      std::cerr << "detected FLIPPED corners not adding to filter" << std::endl;
-      num_frames_token = 0;
-      sfilt.clear();
-      continue;
-    }
-
-
-    // detect wring corners because of shape
+    // detect wrong corners because of shape
     { // -------------------------- IR
       ChessboardViewIR cb_ir_tmp;
       for(unsigned idx = 0; idx < CB_WIDTH * CB_HEIGHT; ++idx){

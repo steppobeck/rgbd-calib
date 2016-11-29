@@ -2033,7 +2033,7 @@ ChessboardSampling::calcStatsInRanges(){
 
 void
 ChessboardSampling::gatherValidRanges(){
-#define MIN_RANGE_SIZE 10
+#define MIN_RANGE_SIZE 1
 
   // input is always m_cb_rgb and m_cb_ir
 
