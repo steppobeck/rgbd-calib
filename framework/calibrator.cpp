@@ -694,18 +694,19 @@ Calibrator::evaluatePlanes(CalibVolume* cv, ChessboardSampling* cbs, const RGBDC
       if((cb_id % stride) == 0){
 	std::vector<xyz> world_space_corners;
 	for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
+	  if(cb_irs[cb_id].quality[idx] > 0.0){
+	    const xyz corner = cb_irs[cb_id].corners[idx];
+	    const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
+	    const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
+	    const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
+	    xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
 	  
-	  const xyz corner = cb_irs[cb_id].corners[idx];
-	  const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
-	  const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
-	  const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
-	  xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
+	    pos.x *= 10;
+	    pos.y *= 10;
+	    pos.z *= 10;
 	  
-	  pos.x *= 10;
-	  pos.y *= 10;
-	  pos.z *= 10;
-	  
-	  world_space_corners.push_back(pos);
+	    world_space_corners.push_back(pos);
+	  }
 	}
 	
 	const auto pq = detectPlaneQuality(world_space_corners);
@@ -754,20 +755,21 @@ Calibrator::evaluate3DError(CalibVolume* cv, ChessboardSampling* cbs, const Chec
 	for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
 
 	  // calculate calibrated position
-	  const xyz corner = cb_irs[cb_id].corners[idx];
-	  const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
-	  const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
-	  const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
-	  xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
-	  glm::vec3 pos_calib(pos.x,pos.y,pos.z);
-	  // calculate ground truth position
-	  glm::vec4 pos_realH = (cb->pose_offset * cb_transform) * glm::vec4(cb->points_local[idx].x,
-									     cb->points_local[idx].y,
-									     cb->points_local[idx].z, 1.0f);
-	  glm::vec3 pos_gt = glm::vec3(pos_realH.x, pos_realH.y, pos_realH.z);
+	  if(cb_irs[cb_id].quality[idx] > 0.0){
+	    const xyz corner = cb_irs[cb_id].corners[idx];
+	    const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
+	    const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
+	    const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
+	    xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
+	    glm::vec3 pos_calib(pos.x,pos.y,pos.z);
+	    // calculate ground truth position
+	    glm::vec4 pos_realH = (cb->pose_offset * cb_transform) * glm::vec4(cb->points_local[idx].x,
+									       cb->points_local[idx].y,
+									       cb->points_local[idx].z, 1.0f);
+	    glm::vec3 pos_gt = glm::vec3(pos_realH.x, pos_realH.y, pos_realH.z);
 
-	  cb_errors_3D.push_back(glm::length(pos_calib - pos_gt));
-
+	    cb_errors_3D.push_back(glm::length(pos_calib - pos_gt));
+	  }
 	}
 
 	double cb_mean;
@@ -820,27 +822,28 @@ Calibrator::evaluate2DError(CalibVolume* cv, ChessboardSampling* cbs, const RGBD
 	for(unsigned idx = 0; idx < (CB_WIDTH * CB_HEIGHT); ++idx){
 
 	  // look up calibrated color coordinate
-	  const xyz corner = cb_irs[cb_id].corners[idx];
-	  const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
-	  const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
-	  const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
+	  if(cb_irs[cb_id].quality[idx] > 0.0){
+	    const xyz corner = cb_irs[cb_id].corners[idx];
+	    const float x = cv_width  *  ( corner.x)/ cfg.size_d.x;
+	    const float y = cv_height *  ( corner.y)/ cfg.size_d.y;
+	    const float z = cv_depth  *  ( corner.z - cv->min_d)/(cv->max_d - cv->min_d);
 
-	  // normalized
-	  uv  cc_calib = getTrilinear(cv->cv_uv, cv_width, cv_height, cv_depth, x , y , z );
-	  // renormalize
-	  glm::vec2 cc_calib_pixel(cc_calib.u * cfg.size_rgb.x, cc_calib.v * cfg.size_rgb.y);
+	    // normalized
+	    uv  cc_calib = getTrilinear(cv->cv_uv, cv_width, cv_height, cv_depth, x , y , z );
+	    // renormalize
+	    glm::vec2 cc_calib_pixel(cc_calib.u * cfg.size_rgb.x, cc_calib.v * cfg.size_rgb.y);
 
-	  // retrieve ground truth color coordinate, already in pixels
-	  uv  cc_gt(cb_rgb_i.corners[idx]);
-	  glm::vec2 cc_gt_pixel(cc_gt.u, cc_gt.v);
+	    // retrieve ground truth color coordinate, already in pixels
+	    uv  cc_gt(cb_rgb_i.corners[idx]);
+	    glm::vec2 cc_gt_pixel(cc_gt.u, cc_gt.v);
 #if 0
-	  std::cerr << "cb_id: " << cb_id << " corner idx: " << idx
-		    << " cc_calib_pixel -> cc_gt_pixel: "
-		    << cc_calib_pixel[0] << ", " << cc_calib_pixel[1] << " -> "
-		    << cc_gt_pixel[0] << ", " << cc_gt_pixel[1] << std::endl;
+	    std::cerr << "cb_id: " << cb_id << " corner idx: " << idx
+		      << " cc_calib_pixel -> cc_gt_pixel: "
+		      << cc_calib_pixel[0] << ", " << cc_calib_pixel[1] << " -> "
+		      << cc_gt_pixel[0] << ", " << cc_gt_pixel[1] << std::endl;
 #endif
-	  cb_errors_2D.push_back(glm::length(cc_calib_pixel - cc_gt_pixel));
-
+	    cb_errors_2D.push_back(glm::length(cc_calib_pixel - cc_gt_pixel));
+	  }
 	}
 
 	double cb_mean;
