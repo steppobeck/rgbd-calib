@@ -11,19 +11,24 @@
 
 int main(int argc, char* argv[]){
 
+
+  unsigned cv_width  = 128;
+  unsigned cv_height = 128;
+  unsigned cv_depth  = 128;
+  float    cv_min_d  = 0.5;
+  float    cv_max_d  = 3.0;
   std::string pose_offset_filename = "./poseoffset";
   float tracking_offset_time = 0.0; // in seconds
   float color_offset_time = 0.0;
-  bool append_samples = false;
   bool undistort = false;
-  CMDParser p("calibbasefilename sweepfilename logfilename");
+  CMDParser p("sweepfilename logfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("t",1,"trackingoffset", "offset in seconds of the tracking system relative to depth frame of the sensor, e.g. 0.08, default: 0.0");
   p.addOpt("c",1,"coloroffset", "offset in seconds of the color frame relative to the depth frame of the sensor , e.g. -0.02, default: 0.0");
   p.addOpt("u", -1, "undistort", "enable undistortion of images before chessboardsampling, default: false");
   p.init(argc,argv);
 
-  if(p.getArgs().size() != 3){
+  if(p.getArgs().size() != 2){
     p.showHelp();
   }
 
@@ -41,30 +46,16 @@ int main(int argc, char* argv[]){
     undistort = true;
   }
 
-  std::string basefilename = p.getArgs()[0];
-  std::string filename_xyz(basefilename + "_xyz");
-  std::string filename_uv(basefilename + "_uv");
-  const std::string filename_yml(basefilename + "_yml");
-
-  CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
 
   RGBDConfig cfg;
-  cfg.read(filename_yml.c_str());
+  cfg.read("");
 
-  Checkerboard cb;
-  cb.load_pose_offset(pose_offset_filename.c_str());
-  // configure local 3D Points on chessboard here:
-  for(unsigned y = 0; y < CB_HEIGHT; ++y){
-    for(unsigned x = 0; x < CB_WIDTH; ++x){
-      cb.points_local.push_back(glm::vec3(y * 0.075, x * 0.075,0.0));
-    }
-  }
-
-  ChessboardSampling cs(p.getArgs()[1].c_str(), cfg, undistort);
+  ChessboardSampling cs(p.getArgs()[0].c_str(), cfg, undistort);
   cs.init();
 
   cs.filterSamples(tracking_offset_time);
 
+  // calculate stats related to filter chain
 #if 0
     unsigned input_frames;
     unsigned no_too_few_corners;
@@ -75,7 +66,7 @@ int main(int argc, char* argv[]){
     unsigned output_frames;
 #endif
 
-  std::ofstream off(p.getArgs()[2].c_str());
+  std::ofstream off(p.getArgs()[1].c_str());
   off /*<< "input_frames "*/ << cs.p_sweep_stats.input_frames << std::endl;
   off /*<< "no_too_few_corners "*/ << cs.p_sweep_stats.no_too_few_corners << std::endl;
   off /*<< "flipped_boards "*/ << cs.p_sweep_stats.flipped_boards << std::endl;
@@ -87,6 +78,7 @@ int main(int argc, char* argv[]){
 
 
 
+  // calculate sweeping speed and density
   std::vector<double> speeds;
 
   std::vector<double> dense_x;
@@ -118,13 +110,13 @@ int main(int argc, char* argv[]){
 
 	xyz c0b = cb_irs[i].corners[0];
 	
-	const float x_a = cv.width  *  ( c0.x)/ cfg.size_d.x;
-	const float y_a = cv.height *  ( c0.y)/ cfg.size_d.y;
-	const float z_a = cv.depth  *  ( c0.z - cv.min_d)/(cv.max_d - cv.min_d);
+	const float x_a = cv_width  *  ( c0.x)/ cfg.size_d.x;
+	const float y_a = cv_height *  ( c0.y)/ cfg.size_d.y;
+	const float z_a = cv_depth  *  ( c0.z - cv_min_d)/(cv_max_d - cv_min_d);
 
-	const float x_b = cv.width  *  ( c1.x)/ cfg.size_d.x;
-	const float y_b = cv.height *  ( c7.y)/ cfg.size_d.y;
-	const float z_b = cv.depth  *  ( c0b.z - cv.min_d)/(cv.max_d - cv.min_d);
+	const float x_b = cv_width  *  ( c1.x)/ cfg.size_d.x;
+	const float y_b = cv_height *  ( c7.y)/ cfg.size_d.y;
+	const float z_b = cv_depth  *  ( c0b.z - cv_min_d)/(cv_max_d - cv_min_d);
 
 	const double d_x = 1.0/(x_b - x_a);
 	const double d_y = 1.0/(y_b - y_a);
@@ -158,6 +150,22 @@ int main(int argc, char* argv[]){
   off /*<< "density_z "*/ << mean_d_z << " (" << sd_d_z << ")" << std::endl;
   off /*<< "duration"*/   << cb_irs.back().time - cb_irs.front().time << std::endl;
   
+
+
+  // calculate stats related to constant latency in paper
+  cs.calcLatencyStats();
+  
+  std::cout << "SWEEPSTATS Latency stats of sweep:" << std::endl;
+
+  std::cout << "SWEEPSTATS avg_RGBD_frametime_ms: " << cs.p_sweep_stats.avg_RGBD_frametime_ms << std::endl;
+  std::cout << "SWEEPSTATS sd_RGBD_frametime_ms: " << cs.p_sweep_stats.sd_RGBD_frametime_ms << std::endl;
+  std::cout << "SWEEPSTATS max_RGBD_frametime_ms: " << cs.p_sweep_stats.max_RGBD_frametime_ms << std::endl;
+  std::cout << "SWEEPSTATS median_RGBD_frametime_ms: " << cs.p_sweep_stats.median_RGBD_frametime_ms << std::endl;
+
+  std::cout << "SWEEPSTATS avg_pose_frametime_ms: " << cs.p_sweep_stats.avg_pose_frametime_ms << std::endl;
+  std::cout << "SWEEPSTATS sd_pose_frametime_ms: " << cs.p_sweep_stats.sd_pose_frametime_ms << std::endl;
+  std::cout << "SWEEPSTATS max_pose_frametime_ms: " << cs.p_sweep_stats.max_pose_frametime_ms << std::endl;
+  std::cout << "SWEEPSTATS median_pose_frametime_ms: " << cs.p_sweep_stats.median_pose_frametime_ms << std::endl;
 
   return 0;
 }

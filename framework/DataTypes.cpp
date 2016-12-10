@@ -91,7 +91,7 @@ RGBDConfig::read(const char* ymlfilename){
 
   struct stat buffer;   
   if(stat(ymlfilename, &buffer) != 0){
-    std::cerr << "INFO: RGBDConfig::read file " << ymlfilename << " not found, using defaults" << std::endl;
+    std::cout << "INFO: RGBDConfig::read file " << ymlfilename << " not found, using defaults" << std::endl;
     return false; 
   }
   else{

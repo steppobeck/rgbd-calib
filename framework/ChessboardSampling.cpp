@@ -551,6 +551,38 @@ ChessboardViewIR::calcShapeStats(){
 
   }
 
+
+
+  void
+  ChessboardSampling::calcLatencyStats(){
+    std::vector<float> RGBD_frametimes_for_all_ranges_ms;
+    for(auto& r : m_valid_ranges){
+      for(unsigned cb_id = r.start + 1; cb_id < r.end; ++cb_id){
+	RGBD_frametimes_for_all_ranges_ms.push_back(1000.0 * m_cb_ir[cb_id].time - 1000.0 * m_cb_ir[cb_id - 1].time);
+      }
+    }
+    calcMeanSDMaxMedian(RGBD_frametimes_for_all_ranges_ms,
+			p_sweep_stats.avg_RGBD_frametime_ms,
+			p_sweep_stats.sd_RGBD_frametime_ms,
+			p_sweep_stats.max_RGBD_frametime_ms,
+			p_sweep_stats.median_RGBD_frametime_ms);
+
+
+    std::vector<float> pose_frametimes_ms;
+    for(unsigned i = 1; i < m_poses.size(); ++i){
+      pose_frametimes_ms.push_back( 1000.0 * m_poses[i].time - 1000.0 * m_poses[i-1].time);
+    }
+    calcMeanSDMaxMedian(pose_frametimes_ms,
+			p_sweep_stats.avg_pose_frametime_ms,
+			p_sweep_stats.sd_pose_frametime_ms,
+			p_sweep_stats.max_pose_frametime_ms,
+			p_sweep_stats.median_pose_frametime_ms);
+
+
+  }
+
+
+
   bool
   ChessboardSampling::loadPoses(){
     m_poses.clear();
@@ -677,7 +709,7 @@ namespace{
   std::vector<bool>
   ChessboardSampling::findSubBoard(OpenCVChessboardCornerDetector* cd, unsigned char* image, unsigned bytes, bool show_image, bool& success, bool is_rgb){
     
-    std::cout << "INFO: begin ChessboardSampling::findSubBoard" << std::endl;
+    //std::cout << "INFO: begin ChessboardSampling::findSubBoard" << std::endl;
     std::vector<bool> corner_mask(CB_WIDTH*CB_HEIGHT);
     for(unsigned c_id = 0; c_id < CB_WIDTH*CB_HEIGHT; ++c_id){
       corner_mask[c_id] = true;
@@ -1634,7 +1666,6 @@ namespace{
     gatherValidRanges();
     std::vector<unsigned> res;
     for(auto& r : m_valid_ranges){
-      std::cout << r << std::endl;
       for(unsigned cb_id = r.start; cb_id < r.end; ++cb_id){
 	res.push_back(cb_id);
       }
@@ -2033,7 +2064,7 @@ ChessboardSampling::calcStatsInRanges(){
 
 void
 ChessboardSampling::gatherValidRanges(){
-#define MIN_RANGE_SIZE 1
+#define MIN_RANGE_SIZE 2 // ????????????????
 
   // input is always m_cb_rgb and m_cb_ir
 

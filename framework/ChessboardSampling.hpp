@@ -20,6 +20,18 @@
     unsigned corrupt_depth;
     unsigned temporal_jitter;
     unsigned output_frames;
+
+    // new stats related to latency
+    double avg_RGBD_frametime_ms;
+    double sd_RGBD_frametime_ms;
+    double max_RGBD_frametime_ms;
+    double median_RGBD_frametime_ms;
+
+    double avg_pose_frametime_ms;
+    double sd_pose_frametime_ms;
+    double max_pose_frametime_ms;
+    double median_pose_frametime_ms;
+
   };
 
 
@@ -34,6 +46,7 @@
   };
 
   extern std::ostream& operator << (std::ostream& o, const ChessboardRange& v);
+
 
 
   /*
@@ -107,6 +120,8 @@
     bool init(bool load_poses = true);
 
     void dump();
+
+    void calcLatencyStats();
 
     double searchSlowestTime(double starttime) const;
     glm::mat4 interpolatePose(double time, bool& valid) const;
