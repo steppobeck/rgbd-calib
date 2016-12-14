@@ -52,7 +52,7 @@ int main(int argc, char* argv[]){
 
   ChessboardSampling cs(p.getArgs()[0].c_str(), cfg, undistort);
   cs.init();
-
+  //cs.dump();
   cs.filterSamples(tracking_offset_time);
 
   // calculate stats related to filter chain

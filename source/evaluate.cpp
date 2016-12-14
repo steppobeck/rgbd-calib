@@ -15,8 +15,10 @@
 
 int main(int argc, char* argv[]){
   bool using_nni = false;
+  bool create_error_vis = false;
   CMDParser p("calibvolume_xyz calibvolume_uv groundtruthsamplesfile");
   p.addOpt("i",-1,"nni", "calibration was performed using natural neighbor interpolation, default: false");
+  p.addOpt("v",-1,"viz", "create error visualization (takes long time since an error volume is created and evaluated), default: false");
   p.init(argc,argv);
 
 
@@ -28,6 +30,9 @@ int main(int argc, char* argv[]){
     using_nni = true;
   }
 
+  if(p.isOptSet("v")){
+    create_error_vis = true;
+  }
 
   RGBDConfig cfg;
   cfg.size_rgb = glm::uvec2(1280, 1080);
@@ -65,7 +70,7 @@ int main(int argc, char* argv[]){
 
   CalibVolume cv(filename_xyz.c_str(), filename_uv.c_str());
   Calibrator   c;
-  c.evaluateSamples(&cv, sps, cfg, filename_xyz.c_str() , using_nni);
+  c.evaluateSamples(&cv, sps, cfg, filename_xyz.c_str() , using_nni, create_error_vis);
 
   return 0;
 }

@@ -314,7 +314,7 @@ Calibrator::blendIDW2NNI(CalibVolume* cv, CalibVolume* cv_nni, const char* basef
 }
 
 void
-Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const char* basefilename, bool isnni){
+Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const char* basefilename, bool isnni, bool create_error_vis){
 
   unsigned char* cv_nnistats = 0;
   unsigned nni_valids = 0;
@@ -474,11 +474,16 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << "Evalation of ground truth samples: " << errors_3D.size() << std::endl;
   std::cout << "mean_error_3D: " << mean3D * 1000 << " (" << sd3D * 1000 << ") [" << max_3D * 1000 << "] (in millimeter)" << std::endl;
   std::cout << "mean_error_2D: " << mean2D << " (" << sd2D << ") [" << max_2D << "] (in pixels)" << std::endl;
-  
-  std::cout << "could evaluate " << nni_valids << " samples from " << sps.size() << std::endl;
-  
+  if(isnni){
+    std::cout << "could evaluate based on natural neighbour interpolation: " << nni_valids << " samples from " << sps.size() << std::endl;
+  }
+  else{
+    std::cout << "INFO: natural neighbour based evalution is turned off" << std::endl;
+  }
 
-  createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth, basefilename, isnni);
+  if(create_error_vis){
+    createErrorVis(nnisamples_error_vol, cv->width, cv->height, cv->depth, basefilename, isnni);
+  }
 
 
   double range_A_mean3D, range_A_mean2D, range_A_sd3D, range_A_sd2D;
@@ -509,6 +514,8 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << "range_C_mean_error_2D: " << range_C_mean2D << " (" << range_C_sd2D << ") [" << range_C_max_2D << "] (in pixels)" << std::endl;
 
   std::cout << "---------------------------------------------------------" << std::endl;
+
+#if 0 // this is used to print for automatic gnu plot stuff related to paper evaluation
   // 0.0 (0.0)[0.0] & 0.0 (0.0)[0.0]
   std::cout << std::setprecision(3) << mean3D * 1000 << " (" << sd3D * 1000 << ") [" << max_3D * 1000 << "] & " << mean2D << " (" << sd2D << ") [" << max_2D << "]" << std::endl;
   std::cout << (range_A_errors_3D.size() > 0 ? range_A_mean3D * 1000 : 0.0) << std::endl;
@@ -525,7 +532,7 @@ Calibrator::evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, cons
   std::cout << (range_C_errors_3D.size() > 0 ? range_C_sd3D * 1000 : 0.0) << std::endl;
   std::cout << (range_C_errors_2D.size() > 0 ? range_C_mean2D : 0.0) << std::endl;
   std::cout << (range_C_errors_2D.size() > 0 ? range_C_sd2D : 0.0) << std::endl;
-
+#endif
 
 }
 

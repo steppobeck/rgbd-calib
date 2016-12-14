@@ -13,7 +13,7 @@ class RSBoard{
 
 public:
 
-  void read(std::ifstream& iff){
+  void read(std::ifstream& iff, float& min_depth_sample, float& max_depth_sample){
     
     for(unsigned i = 0; i < CB_WIDTH*CB_HEIGHT; ++i){
       samplePoint s;
@@ -24,6 +24,10 @@ public:
       iff.read((char*) &s.tex_offset, sizeof(uv));
       iff.read((char*) glm::value_ptr(s.pos_real), sizeof(glm::vec3));
       iff.read((char*) &s.quality, sizeof(float));
+
+      min_depth_sample = std::min(s.depth, min_depth_sample);
+      max_depth_sample = std::max(s.depth, max_depth_sample);
+
       ss[i] = s;
     }
   }
@@ -52,6 +56,8 @@ public:
 
 int main(int argc, char* argv[]){
   bool shuffle = false;
+  float min_depth_sample = std::numeric_limits<float>::max();
+  float max_depth_sample = std::numeric_limits<float>::lowest();
   CMDParser p("input outputA outputB");
   p.addOpt("s",-1,"shuffle", "shuffle and split, default: false");
   p.init(argc,argv);
@@ -94,6 +100,9 @@ int main(int argc, char* argv[]){
       iff.read((char*) glm::value_ptr(s.pos_real), sizeof(glm::vec3));
       iff.read((char*) &s.quality, sizeof(float));
       
+      min_depth_sample = std::min(s.depth, min_depth_sample);
+      max_depth_sample = std::max(s.depth, max_depth_sample);
+
       sps.push_back(s);
     }
 
@@ -137,7 +146,7 @@ int main(int argc, char* argv[]){
 
       // read board
       RSBoard board;
-      board.read(iff);
+      board.read(iff, min_depth_sample, max_depth_sample);
       pos_real = board.getPos();
 
       if(first){
@@ -179,6 +188,9 @@ int main(int argc, char* argv[]){
   iff.close();
   off1.close();
   off2.close();
+
+  std::cout << "min_depth: " << min_depth_sample << std::endl;
+  std::cout << "max_depth: " << max_depth_sample << std::endl;
 
   return 0;
 }
