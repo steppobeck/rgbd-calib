@@ -125,7 +125,9 @@ Calibrator::postFilterSamples(CalibVolume* cv, std::vector<samplePoint>& sps, co
 
   if(post_filter_percentile > 0.0){
     std::sort(errors_3D_VK.begin(), errors_3D_VK.end());
+    std::reverse(errors_3D_VK.begin(),errors_3D_VK.end());
     std::sort(errors_2D_VK.begin(), errors_2D_VK.end());
+    std::reverse(errors_2D_VK.begin(),errors_2D_VK.end());
     const unsigned last_outlier = std::min(sps.size(), size_t(sps.size() * post_filter_percentile));
     std::cout << "INFO: Calibrator::postFilterSamples post filter samples, order by error (both, 3D and 2D) and discard " << post_filter_percentile << " percentile: " << last_outlier << std::endl;
     for(unsigned o_id = 0; o_id < last_outlier; ++o_id){
