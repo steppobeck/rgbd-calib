@@ -1131,7 +1131,7 @@ int main(int argc, char* argv[]){
   cs_sweep.loadChessboards();
   SweepSampler ss(&cb, &cv_init, &cfg);
   ss.extractSamples(&cs_sweep, best_tracking_offset_time, best_color_offset_time);
-  ss.appendSamplesToFile(p.getArgs()[3].c_str(), append_samples);
+  
   
   std::vector<samplePoint>& sps = ss.getSamplePointsM();
 
@@ -1146,6 +1146,7 @@ int main(int argc, char* argv[]){
     c.postFilterSamples(&cv_tmp, sps, cfg, post_filter_error_sd, post_filter_percentile);
   }
 
+  ss.appendSamplesToFile(p.getArgs()[3].c_str(), append_samples);
 
   c.applySamples(&cv_init, sps, cfg, idwneighbours, basefilename.c_str(), &sensor, &eye_d_to_world);
 
