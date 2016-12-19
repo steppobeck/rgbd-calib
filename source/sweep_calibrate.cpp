@@ -701,6 +701,10 @@ int main(int argc, char* argv[]){
   bool undistort = false;
   bool without_initial = false;
   bool full_optimization_evaluation = false;
+
+  float post_filter_error_sd = 0.0;
+  float post_filter_percentile = 0.0;
+
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep samplesfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
@@ -731,6 +735,11 @@ int main(int argc, char* argv[]){
   p.addOpt("w", -1, "without", "do not use initial calibration, default: false");
 
   p.addOpt("f", -1, "full", "perform full evaluation, default: false");
+
+
+
+  p.addOpt("x", 1, "xfilter", "post filter samples and discard samples with x-times more error than standard deviation (e.g. 3.0 * SD). default: 0.0 (nothing will be discarded)");
+  p.addOpt("y", 1, "yfilter", "post filter samples, order by error (both, 3D and 2D) and discard specified percentile (e.g. 0.05 == 5%). default: 0.0 (nothing will be discarded)");
 
   p.init(argc,argv);
 
@@ -790,6 +799,12 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("f")){
     full_optimization_evaluation = true;
     optimization_type = 0;
+  }
+  if(p.isOptSet("x")){
+    post_filter_error_sd = p.getOptsFloat("x")[0];
+  }
+  if(p.isOptSet("y")){
+    post_filter_percentile = p.getOptsFloat("y")[0];
   }
 
   const std::string basefilename = p.getArgs()[0];
@@ -1112,15 +1127,26 @@ int main(int argc, char* argv[]){
 
 
 
-  // do the calibration based on the best_tracking_offset_time
+  // do the calibration based on the best_tracking_offset_time and best_color_offset_time
   cs_sweep.loadChessboards();
   SweepSampler ss(&cb, &cv_init, &cfg);
   ss.extractSamples(&cs_sweep, best_tracking_offset_time, best_color_offset_time);
   ss.appendSamplesToFile(p.getArgs()[3].c_str(), append_samples);
   
-  const std::vector<samplePoint>& sps = ss.getSamplePoints();
+  std::vector<samplePoint>& sps = ss.getSamplePointsM();
+
   Calibrator   c;
   c.using_nni = using_nni;
+
+
+
+  if(post_filter_error_sd > 0.0 || post_filter_percentile > 0.0){
+    CalibVolume cv_tmp(filename_xyz.c_str(), filename_uv.c_str());
+    c.applySamples(&cv_tmp, sps, cfg, idwneighbours, basefilename.c_str(), &sensor, &eye_d_to_world);
+    c.postFilterSamples(&cv_tmp, sps, cfg, post_filter_error_sd, post_filter_percentile);
+  }
+
+
   c.applySamples(&cv_init, sps, cfg, idwneighbours, basefilename.c_str(), &sensor, &eye_d_to_world);
 
 

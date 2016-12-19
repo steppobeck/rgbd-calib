@@ -34,6 +34,10 @@ SweepSampler::getSamplePoints(){
   return m_sps;
 }
 
+std::vector<samplePoint>&
+SweepSampler::getSamplePointsM(){
+  return m_sps;
+}
 
 void
 SweepSampler::appendSamplesToFile(const char* filename, bool append_samples){

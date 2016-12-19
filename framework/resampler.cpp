@@ -176,13 +176,13 @@ Resampler::resampleGridBased(std::vector<nniSample>& sps, const CalibVolume* cv,
   std::cout << "INFO: grid size: " << grid.size() << " of " << cv->width * cv->height * cv->depth << std::endl;
   for(const auto& smpls : grid){
     nniSample tmp = qwa(smpls.second);
-    if(! std::isnan(tmp.quality)){
+    if(!std::isnan(tmp.quality) && tmp.quality > 0.0){
       sps.push_back(tmp);
     }
     else{
-      std::cerr << "ERROR: QWA sample is not valid!...skipping" << std::endl;
+      std::cerr << "ERROR: QWA sample is not valid!...skipping sample: " << tmp << std::endl;
       for(const auto& s : smpls.second){
-	std::cerr << "QWA sample was " << s << std::endl;
+	std::cerr << "QWA samples were" << s << std::endl;
       }
     }
   }

@@ -16,6 +16,8 @@ public:
   Calibrator();
   ~Calibrator();
 
+  void postFilterSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const float post_filter_error_sd, const float post_filter_percentile);
+
   void applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours, const char* basefilename,
 		    RGBDSensor* sensor = 0, const glm::mat4* eye_d_to_world = 0);
   void evaluateSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const char* basefilename, bool isnni, bool create_error_vis);

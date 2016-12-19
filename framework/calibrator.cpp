@@ -55,7 +55,84 @@ Calibrator::~Calibrator(){
   }
 }
 
+void
+Calibrator::postFilterSamples(CalibVolume* cv, std::vector<samplePoint>& sps, const RGBDConfig& cfg, const float post_filter_error_sd, const float post_filter_percentile){
 
+
+  std::vector<float> errors_3D;
+  std::vector<float> errors_2D;
+
+  std::vector<std::pair<float, unsigned>> errors_3D_VK;
+  std::vector<std::pair<float, unsigned>> errors_2D_VK;
+
+
+  const unsigned cv_width = cv->width;
+  const unsigned cv_height = cv->height;
+  const unsigned cv_depth = cv->depth;
+
+  for(unsigned i = 0; i < sps.size(); ++i){
+
+    const float x = cv_width  *  ( sps[i].tex_depth.u) / cfg.size_d.x;
+    const float y = cv_height *  ( sps[i].tex_depth.v)/ cfg.size_d.y;
+    const float z = cv_depth  *  ( sps[i].depth - cv->min_d)/(cv->max_d - cv->min_d);
+
+    xyz pos = getTrilinear(cv->cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
+    uv  tex = getTrilinear(cv->cv_uv,  cv_width, cv_height, cv_depth, x , y , z );
+
+    const float d_x = sps[i].pos_real[0] - pos.x;
+    const float d_y = sps[i].pos_real[1] - pos.y;
+    const float d_z = sps[i].pos_real[2] - pos.z;
+      
+    const float d_u = sps[i].tex_color.u/cfg.size_rgb.x - tex.u;
+    const float d_v = sps[i].tex_color.v/cfg.size_rgb.y - tex.v;
+
+    const float err_3D(glm::length(glm::vec3(d_x, d_y, d_z)));
+    const float err_2D(glm::length(glm::vec2(d_u * cfg.size_rgb.x, d_v * cfg.size_rgb.y)));
+    errors_3D.push_back(err_3D);
+    errors_2D.push_back(err_2D);
+
+    errors_3D_VK.push_back(std::pair<float, unsigned>(err_3D, i));
+    errors_2D_VK.push_back(std::pair<float, unsigned>(err_2D, i));
+  }
+
+
+  double mean3D, mean2D, sd3D, sd2D;
+  calcMeanSD(errors_3D, mean3D, sd3D);
+  calcMeanSD(errors_2D, mean2D, sd2D);
+
+  unsigned out_3D = 0;
+  const float out_3D_thresh = mean3D + post_filter_error_sd * sd3D;
+  for(const auto& s_id_VK : errors_3D_VK){
+    if(s_id_VK.first > out_3D_thresh){
+      sps[s_id_VK.second].quality = 0.0;
+      ++out_3D;
+    }
+  }
+  std::cout << "INFO: Calibrator::postFilterSamples 3D post filter samples and discard samples with << "
+	    << post_filter_error_sd << " << more error than standard deviation: " << out_3D << std::endl;
+
+  unsigned out_2D = 0;
+  const float out_2D_thresh = mean2D + post_filter_error_sd * sd2D;
+  for(const auto& s_id_VK : errors_2D_VK){
+    if(s_id_VK.first > out_2D_thresh){
+      sps[s_id_VK.second].quality = 0.0;
+      ++out_2D;
+    }
+  }
+  std::cout << "INFO: Calibrator::postFilterSamples 2D post filter samples and discard samples with << "
+	    << post_filter_error_sd << " << more error than standard deviation: " << out_2D << std::endl;  
+
+
+  std::sort(errors_3D_VK.begin(), errors_3D_VK.end());
+  std::sort(errors_2D_VK.begin(), errors_2D_VK.end());
+  const unsigned last_outlier = std::min(sps.size(), size_t(sps.size() * post_filter_percentile));
+  std::cout << "INFO: Calibrator::postFilterSamples post filter samples, order by error (both, 3D and 2D) and discard " << post_filter_percentile << " percentile: " << last_outlier << std::endl;
+  for(unsigned o_id = 0; o_id < last_outlier; ++o_id){
+    sps[errors_3D_VK[o_id].second].quality = 0.0;
+    sps[errors_2D_VK[o_id].second].quality = 0.0;
+  }
+
+}
 
 void
 Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, const RGBDConfig& cfg, unsigned idwneighbours, const char* basefilename, RGBDSensor* sensor, const glm::mat4* eye_d_to_world){
@@ -69,10 +146,13 @@ Calibrator::applySamples(CalibVolume* cv, const std::vector<samplePoint>& sps, c
 
   for(unsigned s = 0; s < sps.size(); ++s){
     
+    if( !(sps[s].quality > 0.0) ){
+      std::cout << "INFO: calibrator.cpp: skipping sample because quality is zero: " << sps[s] << std::endl;
+      continue;
+    }
     nniSample nnis;
-    nnis.quality = sps[s/*sample point*/].quality;
-
-    nnis.s_pos_cs  = sps[s/*sample point*/].pos_real;
+    nnis.quality = sps[s].quality;
+    nnis.s_pos_cs  = sps[s].pos_real;
 
     nnis.s_pos.x = cv->width *  ( sps[s].tex_depth.u)/ cfg.size_d.x;
     nnis.s_pos.y = cv->height *  ( sps[s].tex_depth.v)/ cfg.size_d.y;
