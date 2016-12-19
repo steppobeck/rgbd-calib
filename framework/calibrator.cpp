@@ -95,43 +95,44 @@ Calibrator::postFilterSamples(CalibVolume* cv, std::vector<samplePoint>& sps, co
     errors_2D_VK.push_back(std::pair<float, unsigned>(err_2D, i));
   }
 
+  if(post_filter_error_sd > 0.0){
+    double mean3D, mean2D, sd3D, sd2D;
+    calcMeanSD(errors_3D, mean3D, sd3D);
+    calcMeanSD(errors_2D, mean2D, sd2D);
 
-  double mean3D, mean2D, sd3D, sd2D;
-  calcMeanSD(errors_3D, mean3D, sd3D);
-  calcMeanSD(errors_2D, mean2D, sd2D);
+    unsigned out_3D = 0;
+    const float out_3D_thresh = mean3D + post_filter_error_sd * sd3D;
+    for(const auto& s_id_VK : errors_3D_VK){
+      if(s_id_VK.first > out_3D_thresh){
+	sps[s_id_VK.second].quality = 0.0;
+	++out_3D;
+      }
+    }
+    std::cout << "INFO: Calibrator::postFilterSamples 3D post filter samples and discard samples with << "
+	      << post_filter_error_sd << " << more error than standard deviation: " << out_3D << std::endl;
 
-  unsigned out_3D = 0;
-  const float out_3D_thresh = mean3D + post_filter_error_sd * sd3D;
-  for(const auto& s_id_VK : errors_3D_VK){
-    if(s_id_VK.first > out_3D_thresh){
-      sps[s_id_VK.second].quality = 0.0;
-      ++out_3D;
+    unsigned out_2D = 0;
+    const float out_2D_thresh = mean2D + post_filter_error_sd * sd2D;
+    for(const auto& s_id_VK : errors_2D_VK){
+      if(s_id_VK.first > out_2D_thresh){
+	sps[s_id_VK.second].quality = 0.0;
+	++out_2D;
+      }
+    }
+    std::cout << "INFO: Calibrator::postFilterSamples 2D post filter samples and discard samples with << "
+	      << post_filter_error_sd << " << more error than standard deviation: " << out_2D << std::endl;  
+  }
+
+  if(post_filter_percentile > 0.0){
+    std::sort(errors_3D_VK.begin(), errors_3D_VK.end());
+    std::sort(errors_2D_VK.begin(), errors_2D_VK.end());
+    const unsigned last_outlier = std::min(sps.size(), size_t(sps.size() * post_filter_percentile));
+    std::cout << "INFO: Calibrator::postFilterSamples post filter samples, order by error (both, 3D and 2D) and discard " << post_filter_percentile << " percentile: " << last_outlier << std::endl;
+    for(unsigned o_id = 0; o_id < last_outlier; ++o_id){
+      sps[errors_3D_VK[o_id].second].quality = 0.0;
+      sps[errors_2D_VK[o_id].second].quality = 0.0;
     }
   }
-  std::cout << "INFO: Calibrator::postFilterSamples 3D post filter samples and discard samples with << "
-	    << post_filter_error_sd << " << more error than standard deviation: " << out_3D << std::endl;
-
-  unsigned out_2D = 0;
-  const float out_2D_thresh = mean2D + post_filter_error_sd * sd2D;
-  for(const auto& s_id_VK : errors_2D_VK){
-    if(s_id_VK.first > out_2D_thresh){
-      sps[s_id_VK.second].quality = 0.0;
-      ++out_2D;
-    }
-  }
-  std::cout << "INFO: Calibrator::postFilterSamples 2D post filter samples and discard samples with << "
-	    << post_filter_error_sd << " << more error than standard deviation: " << out_2D << std::endl;  
-
-
-  std::sort(errors_3D_VK.begin(), errors_3D_VK.end());
-  std::sort(errors_2D_VK.begin(), errors_2D_VK.end());
-  const unsigned last_outlier = std::min(sps.size(), size_t(sps.size() * post_filter_percentile));
-  std::cout << "INFO: Calibrator::postFilterSamples post filter samples, order by error (both, 3D and 2D) and discard " << post_filter_percentile << " percentile: " << last_outlier << std::endl;
-  for(unsigned o_id = 0; o_id < last_outlier; ++o_id){
-    sps[errors_3D_VK[o_id].second].quality = 0.0;
-    sps[errors_2D_VK[o_id].second].quality = 0.0;
-  }
-
 }
 
 void
