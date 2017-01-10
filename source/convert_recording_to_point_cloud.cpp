@@ -16,6 +16,107 @@
 
 namespace{
 
+  // bilateral filter
+  ////////////////////////////////////////////////////////////////////
+  int kernel_size = 6; // in pixel
+  int kernel_end = kernel_size + 1;
+  float dist_space_max_inv = 1.0/float(kernel_size);
+
+
+  float computeGaussSpace(float dist_space){
+    float gauss_coord = dist_space * dist_space_max_inv;
+    return 1.0 - gauss_coord;
+  }
+
+  float dist_range_max = 0.05; // in meter
+  float dist_range_max_inv = 1.0/dist_range_max;
+
+  float computeGaussRange(float dist_range){
+    float gauss_coord = std::min(dist_range, dist_range_max) * dist_range_max_inv;
+    return 1.0 - gauss_coord;
+  }
+
+  bool is_outside(const float d, const unsigned s_num, const std::vector<CalibVolume*> cvs){
+    return (d < cvs[s_num]->min_d) || (d > cvs[s_num]->max_d);
+  }
+
+  float look_up_depth(const int x, const int y, const unsigned s_num, const RGBDSensor& sensor){
+
+    if( (x < 0) ||
+	(x > (sensor.config.size_d.x - 1)) ||
+	(y < 0) ||
+	(x > (sensor.config.size_d.y - 1))
+	){
+      return 0.0;
+    }
+    const unsigned d_idx = y* sensor.config.size_d.x + x;
+    return s_num == 0 ? sensor.frame_d[d_idx] : sensor.slave_frames_d[s_num - 1][d_idx];
+  }
+
+
+
+  float bilateral_filter(const int x, const int y, const RGBDSensor& sensor, const unsigned s_num, const std::vector<CalibVolume*> cvs){
+    float filtered_depth = 0.0;
+
+    float depth = look_up_depth(x, y, s_num, sensor);
+    if(is_outside(depth, s_num, cvs)){
+      return 0.0;
+    }
+
+
+    // the valid range scales with depth
+    float max_depth = 4.5; // Kinect V2
+    float d_dmax = depth/max_depth;
+    dist_range_max = 0.35 * d_dmax; // threshold around 
+    dist_range_max_inv = 1.0/dist_range_max;
+
+    float depth_bf = 0.0;
+
+    float w = 0.0;
+    float w_range = 0.0;
+    float border_samples = 0.0;
+    float num_samples = 0.0;
+    
+    for(int y_s = -kernel_size; y_s < kernel_end; ++y_s){
+      for(int x_s = -kernel_size; x_s < kernel_end; ++x_s){
+	num_samples += 1.0;
+		
+	const float depth_s = look_up_depth(x + x_s, y + y_s, s_num, sensor);
+
+	const float depth_range = std::abs(depth_s - depth);
+	if(is_outside(depth_s, s_num, cvs) || (depth_range > dist_range_max)){
+	  border_samples += 1.0;
+	  continue;
+	}
+	
+	float gauss_space = computeGaussSpace(glm::length(glm::vec2(x_s,y_s)));
+	float gauss_range = computeGaussRange(depth_range);
+	float w_s = gauss_space * gauss_range;
+	depth_bf += w_s * depth_s;
+	w += w_s;
+	w_range += gauss_range;
+      }
+    }
+    
+    const float lateral_quality  = 1.0 - border_samples/num_samples;
+    
+    if(w > 0.0)
+      filtered_depth = depth_bf/w;
+    else
+      filtered_depth = 0.0;
+    
+    
+    if(w_range < (num_samples * 0.65)){
+      filtered_depth = 0.0;
+    }
+
+    return filtered_depth;
+
+  }
+
+
+
+
   template <class T>
   inline std::string
   toStringP(T value, unsigned p)
@@ -116,10 +217,13 @@ int main(int argc, char* argv[]){
   p.addOpt("p1d",1,"filter_pass_1_max_avg_dist_in_meter", "filter pass 1 skips points which have an average distance of more than this to it k neighbors, default 0.025");
   p.addOpt("p1k",1,"filter_pass_1_k", "filter pass 1 number of neighbors, default 50");
   p.addOpt("p2s",1,"filter_pass_2_sd_fac", "filter pass 2, specify how many times a point's distance should be above (values higher than 1.0) / below (values smaller than 1.0) is allowed to be compared to standard deviation of its k neighbors, default 1.0");
-  p.addOpt("p2k",1,"filter_pass_2_k", "filter pass 2 number of neighbors (the higher the more to process) , default 50");
+  p.addOpt("p2k",1,"filter_pass_2_k", "filter pass 2 number of neighbors (the higher the more to process), default 50");
 
   p.addOpt("bbx",6,"bounding_box", "specify the bounding box x_min y_min z_min x_max y_max z_max in meters, default -1.2 -0.05 -1.2 1.2 2.4 1.2");
 
+  p.addOpt("b",1,"bil_filter_depth_kernel", "specify the kernel size of the bilateral depth filter, e.g. -b 6, default 0 (no bilateral filter ist applied)");
+
+  p.addOpt("f",1,"frames", "specify how many frames should be processed at maximum, e.g. -f 1, default 0 (all frames in the stream will be processed)");
 
   p.init(argc,argv);
 
@@ -166,6 +270,17 @@ int main(int argc, char* argv[]){
     rgb_is_compressed = true;
   }
 
+  bool using_bf = false;
+  if(p.isOptSet("b")){
+    kernel_size = std::max(0, p.getOptsInt("b")[0]);
+    kernel_end = kernel_size + 1;
+    dist_space_max_inv = 1.0/float(kernel_size);
+    using_bf = true;
+    std::cout << "performing bilateral filtering with kernel size of: " << kernel_size << std::endl;
+  }
+
+
+
   const unsigned num_streams(p.getArgs().size() - 1);
   const std::string basefilename_for_output = p.getArgs()[num_streams];
 	
@@ -199,7 +314,12 @@ int main(int argc, char* argv[]){
     std::cerr << "ERROR, while opening " << stream_filename << " exiting..." << std::endl;
     return 1;
   }
-  const unsigned num_frames = fb.calcNumFrames(num_streams * (colorsize + depthsize));
+
+  unsigned num_frames = fb.calcNumFrames(num_streams * (colorsize + depthsize));
+  if(p.isOptSet("f")){
+    num_frames = std::min(std::max(0u, (unsigned) p.getOptsInt("f")[0]), num_frames);
+    std::cout << "processing " << num_frames << " frames of the stream" << std::endl;
+  }
   double curr_frame_time = 0.0;
 
   unsigned frame_num = 0;
@@ -243,8 +363,16 @@ int main(int argc, char* argv[]){
       // do 3D reconstruction for each depth pixel
       for(unsigned y = 0; y < sensor.config.size_d.y; ++y){
 	for(unsigned x = 0; x < (sensor.config.size_d.x - 3); ++x){
-	  const unsigned d_idx = y* sensor.config.size_d.x + x;
-	  float d = s_num == 0 ? sensor.frame_d[d_idx] : sensor.slave_frames_d[s_num - 1][d_idx];
+
+	  float d = 0.0;
+	  if(!using_bf){
+	    const unsigned d_idx = y* sensor.config.size_d.x + x;
+	    d = s_num == 0 ? sensor.frame_d[d_idx] : sensor.slave_frames_d[s_num - 1][d_idx];
+	  }
+	  else{
+	    d = bilateral_filter(x, y, sensor, s_num, cvs);
+	  }
+
 	  if(d < cvs[s_num]->min_d || d > cvs[s_num]->max_d){
 	    continue;
 	  }
