@@ -82,13 +82,15 @@ int main(int argc, char* argv[]){
   Checkerboard cb;
   cb.load_pose_offset(pose_offset_filename.c_str());
 
-
-  ChessboardSampling cbs(p.getArgs()[1].c_str(), cfg, undistort);
-  cbs.init();
-
-  glm::mat4 eye_d_to_world = sensor.guess_eye_d_to_world_static(cbs, cb);
+  glm::mat4 eye_d_to_world;
+  if(p.getArgs().size() > 1){
+    ChessboardSampling cbs(p.getArgs()[1].c_str(), cfg, undistort);
+    cbs.init();
+    eye_d_to_world = sensor.guess_eye_d_to_world_static(cbs, cb);
+    std::cerr << "PLEASE note, the extrinsic guess can be improved by averaging" << std::endl;
+  }
   std::cerr << "Performing initial calibration with extrinsic for sensor: " << eye_d_to_world << std::endl;
-  std::cerr << "PLEASE note, the extrinsic guess can be improved by averaging" << std::endl;
+  
 
   for(unsigned z = 0; z < cv.depth; ++z){
     for(unsigned y = 0; y < cv.height; ++y){
