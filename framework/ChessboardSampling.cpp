@@ -2,7 +2,7 @@
 
 #include "ChessboardSampling.hpp"
 
-
+#include <window.hpp>
 #include <OpenCVUndistortion.hpp>
 #include <OpenCVChessboardCornerDetector.hpp>
 #include <MatrixInterpolation.hpp>
@@ -369,11 +369,10 @@ ChessboardViewIR::calcShapeStats(){
   }
 
   void
-  ChessboardSampling::interactiveShow(unsigned start, unsigned end){
+  ChessboardSampling::interactiveShow(unsigned start, unsigned end, const Checkerboard& cb, bool try_detect){
     bool res = false;
-    //res = loadPoses();
-    std::cout << "ALARM: not loading chessboard poses. however, this should not be a problem here" << std::endl;
-    res = showRecordingAndPoses(start, end);
+    res = loadPoses();
+    res = showRecordingAndPoses(start, end, cb, try_detect);
   }
 
 
@@ -890,9 +889,15 @@ namespace{
 
 
   bool
-  ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end){
+  ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end, const Checkerboard& cb, bool try_detect){
 
+    // prepare pose related stuff
+    Window win(glm::ivec2(424*2,1280 - 512), true /*3D mode*/);
+    win.setClearColor(0.0, 0.0, 0.0);
+    win.setCameraPosition(0.5, -0.5, 3.0, 20.0, 180.0);
+    win.update();
 
+    // prepare image related stuff
     unsigned char* rgb = new unsigned char[1280*1080 * 3];
     float* depth = new float[512*424];
     unsigned char* ir = new unsigned char[512*424];
@@ -907,14 +912,16 @@ namespace{
 					8 /*bits per channel*/,
 					3 /*num channels*/,
 					true /*open window to show images*/,
-					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0);
+					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0,
+					try_detect);
 
     OpenCVChessboardCornerDetector cd_i(512,
 					424,
 					8 /*bits per channel*/,
 					1,
 					true /*open window to show images*/,
-					m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0);
+					m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0,
+					try_detect);
 
 
 
@@ -952,7 +959,13 @@ namespace{
 	}
 
 	memcpy(cv_depth_image->imageData, convertTo8Bit(depth, 512, 424), 512*424 * sizeof(unsigned char));
-	cvShowImage( "depth", cv_depth_image);
+	//cvShowImage( "depth", cv_depth_image);
+	IplImage* rotated = cvCreateImage(cvSize(424, 512), 8, 1);
+	cvTranspose(cv_depth_image, rotated);
+	cvFlip(rotated, NULL, 1);
+	cvShowImage( "depth", rotated);
+	cvReleaseImage(&rotated);
+	
 
 	//bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, true);
 	bool found_ir;
@@ -983,11 +996,38 @@ namespace{
 	}
 
 
-	int key = -1;
-	while(-1 == key){
-	  // detect corners in color image
-	  key = cvWaitKey(10);
+	// search pose time
+	win.update();
+	bool valid_pose = false;
+	glm::mat4 pose_i = interpolatePose(cb_ir.time, valid_pose);
+	glPushMatrix();
+	glMultMatrixf(glm::value_ptr(pose_i));
+	for(unsigned cp_id = 0; cp_id < CB_WIDTH * CB_HEIGHT; ++cp_id){
+	  win.drawCross3D(cb.points_local[cp_id][0], cb.points_local[cp_id][1], cb.points_local[cp_id][2], 0.04);
 	}
+	glPopMatrix();
+	
+	// wait for keyboard input. If key == 'p' then pause is disabled
+	int key = -1;
+	const int p_key = 1048688;
+	static int wait_for_key = 1;
+	switch(wait_for_key){
+	case 1:
+	  while(-1 == key){
+	    key = cvWaitKey(10);
+	    if(p_key == key){
+	      wait_for_key = 0;
+	    }
+	  }
+	  break;
+	case 0:
+	  key = cvWaitKey(100);
+	  if(p_key == key){
+	    wait_for_key = 1;
+	  }
+	  break;
+	}
+
       }
 
     }

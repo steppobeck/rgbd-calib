@@ -91,9 +91,11 @@ stereo_calibrate(const std::vector< std::vector<cv::Point2f> >& rgb_corners,
 
 int main(int argc, char* argv[]){
 
+  std::string pose_offset_filename = "./poseoffset";
   bool compute_distortions = false;
   float tracking_offset_time = 0.0;
   CMDParser p("intrinsic_stream_filename outputymlfile");
+  p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("d",-1,"distortions", "compute distortion parameters: default false");
   p.addOpt("i",-1,"interactiveshow", "show chessboards that are used for intrinsic calibration and exit without further computations");
   p.init(argc,argv);
@@ -103,7 +105,10 @@ int main(int argc, char* argv[]){
     p.showHelp();
     return -1;
   }
-
+  if(p.isOptSet("p")){
+    pose_offset_filename = p.getOptsString("p")[0];
+    std::cout << "setting poseoffetfilename to " << pose_offset_filename << std::endl;
+  }
   if(p.isOptSet("d")){
     compute_distortions = true;
   }
@@ -113,6 +118,7 @@ int main(int argc, char* argv[]){
   cfg.size_d   = glm::uvec2(512, 424);
 
   Checkerboard cb;
+  cb.load_pose_offset(pose_offset_filename.c_str());
   for(unsigned y = 0; y < CB_HEIGHT; ++y){
     for(unsigned x = 0; x < CB_WIDTH; ++x){
       cb.points_local.push_back(glm::vec3(y * 0.075, x * 0.075,0.0));
@@ -127,7 +133,7 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("i")){
     for(const auto& cb_id : cbs_for_intrinsics){
       std::cerr << "cbs.interactiveShow: " << cb_id << std::endl;
-      cbs.interactiveShow(cb_id, cb_id);
+      cbs.interactiveShow(cb_id, cb_id, cb);
     }
     return 0;
   }

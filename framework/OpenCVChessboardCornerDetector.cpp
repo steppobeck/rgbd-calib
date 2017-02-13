@@ -16,7 +16,7 @@
 #include <string>  //for std::string
 
 
-OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist)
+OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist, bool try_detect)
     : m_channels(channels),
       m_width(width),
       m_height(height),
@@ -27,6 +27,7 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       m_gray_image_f(),
       m_tmp_image(),
       m_undist(undist),
+      m_try_detect(try_detect),
       corners(),
       UL(0),
       UR(0),
@@ -107,10 +108,12 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 
     // now the image is in the gray_image
     int corner_count = 0;
-    int found = cvFindChessboardCorners( m_gray_image, l_board_sz, l_corners,
-					 &corner_count, /*CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE*/
-					 CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
-    
+    int found = 0;
+    if(m_try_detect){
+      found = cvFindChessboardCorners( m_gray_image, l_board_sz, l_corners,
+				       &corner_count, /*CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FAST_CHECK | CV_CALIB_CB_NORMALIZE_IMAGE*/
+				       CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
+    }
     //std::cerr << found << " " << corner_count << std::endl;
     // Get subpixel accuracy on those corners
     if((found != 0) && (corner_count == l_num_corners)){			
@@ -198,11 +201,24 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 	IplImage* tmp_image = cvCreateImage(cvSize(m_width,m_height), m_depth, m_channels);
 	cvCvtColor( m_image, tmp_image, CV_BGR2RGB );
 	cvDrawChessboardCorners( tmp_image, l_board_sz, l_corners, corner_count, found );
-	cvShowImage( name.c_str(), tmp_image);
+	//cvShowImage( name.c_str(), tmp_image);
+
+
+	IplImage* rotated = cvCreateImage(cvSize(m_height, m_width), m_depth, m_channels);
+	cvTranspose(tmp_image, rotated);
+	cvFlip(rotated, NULL, 1);
+	cvShowImage( name.c_str(), rotated);
+	cvReleaseImage(&rotated);
+
 	cvReleaseImage(&tmp_image);
       }
       else{
-	cvShowImage( name.c_str(), m_gray_image);
+	//cvShowImage( name.c_str(), m_gray_image);
+	IplImage* rotated = cvCreateImage(cvSize(m_height, m_width), m_depth, m_channels);
+	cvTranspose(m_gray_image, rotated);
+	cvFlip(rotated, NULL, 1);
+	cvShowImage( name.c_str(), rotated);
+	cvReleaseImage(&rotated);
       }
       cvWaitKey(10);
     }

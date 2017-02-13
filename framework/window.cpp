@@ -17,6 +17,10 @@ Window::Window(glm::ivec2 const& windowsize, bool mode3D)
   , m_yaw(0.0)
   , m_pitch(0.0)
   , m_zoom(5.0)
+  , m_camera_height(0.0)
+  , m_camera_pan(0.0)
+  , m_clear_color(0.0,0.0,0.0)
+  , m_line_width(2.0)
 {
   std::fill(std::begin(m_keypressed), std::end(m_keypressed), 0);
   glfwInit();
@@ -49,7 +53,7 @@ Window::Window(glm::ivec2 const& windowsize, bool mode3D)
 
     //glLineWidth(2.0f);
     //glEnable(GL_LINE_SMOOTH);
-    glClearColor(0.0f,0.0f,0.0f,0.0f);
+    
   }
 }
 
@@ -136,8 +140,10 @@ void Window::update()
 
   // prepare next frame
   glViewport(0, 0, m_size.x, m_size.y);
+  glClearColor(m_clear_color[0],m_clear_color[1],m_clear_color[2],0.0f);
   
   if(m_mode3D){
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     glMatrixMode(GL_PROJECTION);
@@ -166,7 +172,7 @@ void Window::update()
       start_interacting_zoom = true;
     }
 
-    glTranslatef(0.0, 0.0, -m_zoom);
+    glTranslatef(m_camera_pan, m_camera_height, -m_zoom);
 
     static bool start_interacting_rot = true;
     if(m_mouseButtonFlags & Window::MOUSE_BUTTON_LEFT){
@@ -264,6 +270,7 @@ float Window::getTime() const
 void
 Window::drawCoords3D(){
 
+  glLineWidth(m_line_width);
   glBegin(GL_LINES);
   glColor3f(1.0,0.0,0.0);
   glVertex3f(0.0,0.0,0.0);
@@ -289,4 +296,33 @@ Window::drawCoords3D(){
     glVertex3f(0.0,i % 10 == 0 ? 0.05 : 0.02, i * 0.1);
   }
   glEnd();
+}
+
+void
+Window::drawCross3D(float x, float y, float z, float radius){
+  glLineWidth(m_line_width);
+  glColor3f(1.0,0.5,0.0);
+  glBegin(GL_LINES);
+  glVertex3f(x - 0.5 * radius,y               ,z);
+  glVertex3f(x + 0.5 * radius,y               ,z);
+  glVertex3f(x,               y - 0.5 * radius,z);
+  glVertex3f(x,               y + 0.5 * radius,z);
+  glEnd();
+}
+
+void
+Window::setClearColor(float r, float g, float b){
+  m_clear_color[0] = r;
+  m_clear_color[1] = g;
+  m_clear_color[2] = b;
+}
+
+
+void
+Window::setCameraPosition(float camera_pan, float camera_height, float camera_zoom, float pitch, float yaw){
+  m_camera_pan = camera_pan;
+  m_camera_height = camera_height;
+  m_zoom = camera_zoom;
+  m_pitch = pitch;
+  m_yaw = yaw;
 }

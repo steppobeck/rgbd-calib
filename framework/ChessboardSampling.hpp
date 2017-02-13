@@ -115,7 +115,7 @@
     ChessboardSampling(const char* filenamebase, const RGBDConfig& cfg, bool undist);
     virtual ~ChessboardSampling();
 
-    void interactiveShow(unsigned start, unsigned end);
+    void interactiveShow(unsigned start, unsigned end, const Checkerboard& cb, bool try_detect = true);
 
     bool init(bool load_poses = true);
 
@@ -170,7 +170,7 @@
     bool loadPoses();
     
 
-    bool showRecordingAndPoses(unsigned start, unsigned end);
+    bool showRecordingAndPoses(unsigned start, unsigned end, const Checkerboard& cb, bool try_detect);
     
     void fillCBsFromCDs(OpenCVChessboardCornerDetector* cd_rgb, OpenCVChessboardCornerDetector* cd_ir,
 				     ChessboardViewRGB& cb_rgb, ChessboardViewIR& cb_ir,

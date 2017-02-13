@@ -11,7 +11,7 @@
   class OpenCVChessboardCornerDetector{
 
   public:
-    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist = 0);
+    OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist = 0, bool try_detect = true);
     ~OpenCVChessboardCornerDetector();
 
     bool process(void*, unsigned bytes, unsigned board_w, unsigned board_h, bool showimages = true);
@@ -30,7 +30,7 @@
     IplImage* m_gray_image_f;
     IplImage* m_tmp_image;
     OpenCVUndistortion* m_undist;
-
+    bool m_try_detect;
   public:
     std::vector<uv> corners;
     /*

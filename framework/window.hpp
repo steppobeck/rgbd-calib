@@ -59,6 +59,12 @@ public:
   glm::ivec2 windowSize() const;
   float getTime() const;
 
+
+  void setClearColor(float r, float g, float b);
+  void setCameraPosition(float camera_pan, float camera_height, float camera_zoom, float pitch, float yaw);
+
+  void drawCross3D(float x, float y, float z, float radius);
+
 private:
   bool m_mode3D;
   GLFWwindow* m_window;
@@ -79,8 +85,10 @@ private:
   float m_yaw;
   float m_pitch;
   float m_zoom;
-  
-
+  float m_camera_height;
+  float m_camera_pan;
+  glm::vec3 m_clear_color;
+  float m_line_width;
 };
 
 #endif // define BUW_WINDOW_HPP
