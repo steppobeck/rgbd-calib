@@ -21,6 +21,7 @@ namespace{
 }
 
 int main(int argc, char* argv[]){
+  unsigned goto_frame = 0;
   unsigned num_kinect_cameras = 1;
   bool rgb_is_compressed = false;
   float max_fps = 20.0;
@@ -33,6 +34,7 @@ int main(int argc, char* argv[]){
 
   p.addOpt("s",1,"socket_ip", "specify ip address of socket for sending, default: " + socket_ip);
   p.addOpt("p",1,"socket_port", "specify port of socket for sending, default: " + toString(base_socket_port));
+  p.addOpt("g",1,"gotoframe", "specify a frame where to go to and then loop only this frame, default: " + toString(goto_frame));
   p.init(argc,argv);
 
   if(p.isOptSet("k")){
@@ -54,6 +56,9 @@ int main(int argc, char* argv[]){
     base_socket_port = p.getOptsInt("p")[0];
   }
 
+  if(p.isOptSet("g")){
+    goto_frame = p.getOptsInt("g")[0];
+  }
 
   unsigned min_frame_time_ns = 1000000000/max_fps;
 
@@ -75,7 +80,15 @@ int main(int argc, char* argv[]){
       std::cerr << "error opening " << p.getArgs()[s_num] << " exiting..." << std::endl;
       return 1;
     }
-    fb->setLooping(true);
+    else{
+      std::cout << p.getArgs()[s_num] << " contains " << fb->getFileSizeBytes()/frame_size_bytes << " frames..."  << std::endl;
+    }
+    if(0 != goto_frame){
+      fb->gotoByte(frame_size_bytes * goto_frame);
+    }
+    else{
+      fb->setLooping(true);
+    }
     fbs.push_back(fb);
 
     zmq::socket_t* socket = new zmq::socket_t(ctx, ZMQ_PUB); // means a publisher
@@ -94,7 +107,8 @@ int main(int argc, char* argv[]){
 
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       zmq::message_t zmqm(frame_size_bytes);
-      fbs[s_num]->read((unsigned char*) zmqm.data(), frame_size_bytes);
+      fbs[s_num]->read((unsigned char*) zmqm.data(), frame_size_bytes, 0 != goto_frame);
+      
       // send frames
       sockets[s_num]->send(zmqm);
     }

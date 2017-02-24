@@ -52,7 +52,7 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
   }
 	
   bool
-  FileBuffer::open(const char* mode, unsigned long long buffersize){
+  FileBuffer::open(const char* mode, size_t buffersize){
 
     m_file = fopen(m_path.c_str(), mode);
     if(lstat(m_path.c_str(),&m_fstat) < 0)    
@@ -71,7 +71,7 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
 
 
   unsigned
-  FileBuffer::calcNumFrames(unsigned long long framesize){
+  FileBuffer::calcNumFrames(size_t framesize){
     return m_fstat.st_size/framesize;
   }
 
@@ -102,9 +102,19 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
     return m_looping;
   }
 
-  
-  unsigned long long
-  FileBuffer::read (void* buffer, unsigned long long numbytes){
+  void
+  FileBuffer::gotoByte(size_t offset){
+    fseek(m_file, offset, SEEK_SET);
+    m_bytes_r = offset;
+  }
+
+  size_t
+  FileBuffer::getFileSizeBytes(){
+    return m_fstat.st_size;
+  }
+
+  size_t
+  FileBuffer::read (void* buffer, size_t numbytes, bool stay_here){
     if(0 == m_file)
       return 0;
 
@@ -119,27 +129,32 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
       }
     }
 
-    unsigned long long bytes = fread(buffer, sizeof (unsigned char), numbytes, m_file);
-    m_bytes_r += bytes;
+    size_t bytes = fread(buffer, sizeof (unsigned char), numbytes, m_file);
+    if(stay_here){
+      gotoByte(m_bytes_r);
+    }
+    else{
+      m_bytes_r += bytes;
+    }
 
     return bytes;
   }
   
-  unsigned long long 
-  FileBuffer::write(void* buffer, unsigned long long numbytes){
+  size_t 
+  FileBuffer::write(void* buffer, size_t numbytes){
     if(0 == m_file)
       return 0;
-    unsigned long long bytes = fwrite(buffer, sizeof (unsigned char), numbytes, m_file);
+    size_t bytes = fwrite(buffer, sizeof (unsigned char), numbytes, m_file);
     m_bytes_w += bytes;
     return bytes;
   }
   
-  unsigned long long
+  size_t
   FileBuffer::numBytesR() const{
     return m_bytes_r;
   }
 
-  unsigned long long
+  size_t
   FileBuffer::numBytesW() const{
     return m_bytes_w;
   }
