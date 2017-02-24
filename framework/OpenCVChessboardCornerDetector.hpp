@@ -42,6 +42,10 @@
     unsigned UR;
     unsigned LL;
     unsigned LR;
+  private:
+    std::string m_window_name;
+  public:
+    static std::string s_window_name;
   };
 
 

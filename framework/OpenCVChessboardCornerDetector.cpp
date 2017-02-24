@@ -15,6 +15,7 @@
 #include <sstream> //for std::stringstream 
 #include <string>  //for std::string
 
+/*static*/ std::string OpenCVChessboardCornerDetector::s_window_name = "";
 
 OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, unsigned height, int depth /*bits per channel*/, int channels, bool showimages, OpenCVUndistortion* undist, bool try_detect)
     : m_channels(channels),
@@ -32,21 +33,27 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       UL(0),
       UR(0),
       LL(0),
-      LR(0)
+      LR(0),
+      m_window_name("")
   {
 
+    if("" == s_window_name){
+      const void * address = static_cast<const void*>(this);
+      std::stringstream ss;
+      ss << address;  
+      m_window_name = ss.str();
+    }
+    else{
+      m_window_name = s_window_name;
+    }
 
-    const void * address = static_cast<const void*>(this);
-    std::stringstream ss;
-    ss << address;  
-    std::string name = ss.str();
 
 
     if(1 != m_channels){
       m_image = cvCreateImage(cvSize(width,height), depth, channels);
       m_gray_image = cvCreateImage(cvSize(width,height), depth, 1);
       if(showimages){
-	cvNamedWindow(name.c_str(), CV_WINDOW_AUTOSIZE);
+	cvNamedWindow(m_window_name.c_str(), CV_WINDOW_AUTOSIZE);
       }
     }
     else{
@@ -54,7 +61,7 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
       m_gray_image = cvCreateImage(cvSize(1*width,1*height), depth, 1);
       m_gray_image_f = cvCreateImage(cvSize(1*width,1*height), depth, 1);
       if(showimages){
-	cvNamedWindow(name.c_str(), CV_WINDOW_AUTOSIZE);
+	cvNamedWindow(m_window_name.c_str(), CV_WINDOW_AUTOSIZE);
       }
     }
 
@@ -182,11 +189,6 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
     
     if(showimages){
       
-      const void * address = static_cast<const void*>(this);
-      std::stringstream ss;
-      ss << address;  
-      std::string name = ss.str();
-      
       // draw corners if found and correct number was found
       if((found != 0) && (corner_count == l_num_corners)){
 	cvDrawChessboardCorners( m_gray_image, l_board_sz, l_corners, corner_count, found );
@@ -194,30 +196,30 @@ OpenCVChessboardCornerDetector::OpenCVChessboardCornerDetector(unsigned width, u
 
       if(1 != m_channels){
 	// original
-	//cvShowImage( name.c_str(), m_gray_image);
+	//cvShowImage( m_window_name.c_str(), m_gray_image);
 	
 	// needed for talk
 	
 	IplImage* tmp_image = cvCreateImage(cvSize(m_width,m_height), m_depth, m_channels);
 	cvCvtColor( m_image, tmp_image, CV_BGR2RGB );
 	cvDrawChessboardCorners( tmp_image, l_board_sz, l_corners, corner_count, found );
-	//cvShowImage( name.c_str(), tmp_image);
+	//cvShowImage( m_window_name.c_str(), tmp_image);
 
 
 	IplImage* rotated = cvCreateImage(cvSize(m_height, m_width), m_depth, m_channels);
 	cvTranspose(tmp_image, rotated);
 	cvFlip(rotated, NULL, 1);
-	cvShowImage( name.c_str(), rotated);
+	cvShowImage( m_window_name.c_str(), rotated);
 	cvReleaseImage(&rotated);
 
 	cvReleaseImage(&tmp_image);
       }
       else{
-	//cvShowImage( name.c_str(), m_gray_image);
+	//cvShowImage( m_window_name.c_str(), m_gray_image);
 	IplImage* rotated = cvCreateImage(cvSize(m_height, m_width), m_depth, m_channels);
 	cvTranspose(m_gray_image, rotated);
 	cvFlip(rotated, NULL, 1);
-	cvShowImage( name.c_str(), rotated);
+	cvShowImage( m_window_name.c_str(), rotated);
 	cvReleaseImage(&rotated);
       }
       cvWaitKey(10);

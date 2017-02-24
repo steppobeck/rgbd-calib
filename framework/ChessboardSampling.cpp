@@ -894,7 +894,7 @@ namespace{
     // prepare pose related stuff
     Window win(glm::ivec2(424*2,1280 - 512), true /*3D mode*/);
     win.setClearColor(0.0, 0.0, 0.0);
-    win.setCameraPosition(0.5, -0.5, 3.0, 20.0, 180.0);
+    win.setCameraPosition(0.5, -1.0, 3.0, 20.0, 180.0);
     win.update();
 
     // prepare image related stuff
@@ -906,7 +906,7 @@ namespace{
     cvNamedWindow("depth", CV_WINDOW_AUTOSIZE);
     IplImage* cv_depth_image = cvCreateImage(cvSize(512, 424), 8, 1);
 
-
+    OpenCVChessboardCornerDetector::s_window_name = "color";
     OpenCVChessboardCornerDetector cd_c(1280,
 					1080,
 					8 /*bits per channel*/,
@@ -914,7 +914,7 @@ namespace{
 					true /*open window to show images*/,
 					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0,
 					try_detect);
-
+    OpenCVChessboardCornerDetector::s_window_name = "infrared";
     OpenCVChessboardCornerDetector cd_i(512,
 					424,
 					8 /*bits per channel*/,
@@ -922,7 +922,7 @@ namespace{
 					true /*open window to show images*/,
 					m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y, 8 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0,
 					try_detect);
-
+    OpenCVChessboardCornerDetector::s_window_name = "";
 
 
 
