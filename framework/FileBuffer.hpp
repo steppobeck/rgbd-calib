@@ -28,7 +28,7 @@
     size_t getFileSizeBytes();
     void gotoByte(size_t offset);
   
-    size_t read (void* buffer, size_t numbytes, bool stay_here = false);
+    size_t read (void* buffer, size_t numbytes);
     size_t write(void* buffer, size_t numbytes);
 
     size_t numBytesR() const;

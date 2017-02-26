@@ -114,7 +114,7 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
   }
 
   size_t
-  FileBuffer::read (void* buffer, size_t numbytes, bool stay_here){
+  FileBuffer::read (void* buffer, size_t numbytes){
     if(0 == m_file)
       return 0;
 
@@ -130,13 +130,7 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
     }
 
     size_t bytes = fread(buffer, sizeof (unsigned char), numbytes, m_file);
-    if(stay_here){
-      gotoByte(m_bytes_r);
-    }
-    else{
-      m_bytes_r += bytes;
-    }
-
+    m_bytes_r += bytes;
     return bytes;
   }
   

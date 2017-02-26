@@ -21,7 +21,10 @@ namespace{
 }
 
 int main(int argc, char* argv[]){
-  unsigned goto_frame = 0;
+  int start_loop = 0;
+  int end_loop = 0;
+  bool perform_loop = false;
+  bool swing = false;
   unsigned num_kinect_cameras = 1;
   bool rgb_is_compressed = false;
   float max_fps = 20.0;
@@ -34,7 +37,8 @@ int main(int argc, char* argv[]){
 
   p.addOpt("s",1,"socket_ip", "specify ip address of socket for sending, default: " + socket_ip);
   p.addOpt("p",1,"socket_port", "specify port of socket for sending, default: " + toString(base_socket_port));
-  p.addOpt("g",1,"gotoframe", "specify a frame where to go to and then loop only this frame, default: " + toString(goto_frame));
+  p.addOpt("l",2,"loop", "specify a start and end frame for looping, default: " + toString(start_loop) + " " + toString(end_loop));
+  p.addOpt("w",-1,"swing", "enable swing looping mode, default: false");
   p.init(argc,argv);
 
   if(p.isOptSet("k")){
@@ -56,8 +60,18 @@ int main(int argc, char* argv[]){
     base_socket_port = p.getOptsInt("p")[0];
   }
 
-  if(p.isOptSet("g")){
-    goto_frame = p.getOptsInt("g")[0];
+  if(p.isOptSet("l")){
+    start_loop = p.getOptsInt("l")[0];
+    end_loop = p.getOptsInt("l")[1];
+    if(start_loop > end_loop || start_loop < 0 || end_loop < 0){
+      std::cerr << "ERROR: -l option must be both positive and second parameter must be greater than first!" << std::endl;
+      p.showHelp();
+    }
+    perform_loop = true;
+  }
+
+  if(p.isOptSet("w")){
+    swing = true;
   }
 
   unsigned min_frame_time_ns = 1000000000/max_fps;
@@ -74,6 +88,7 @@ int main(int argc, char* argv[]){
 
   std::vector<FileBuffer*> fbs;
   std::vector<zmq::socket_t* > sockets;
+  std::vector<int> frame_numbers;
   for(unsigned s_num = 0; s_num < num_streams; ++s_num){
     FileBuffer* fb = new FileBuffer(p.getArgs()[s_num].c_str());
     if(!fb->open("r")){
@@ -81,16 +96,17 @@ int main(int argc, char* argv[]){
       return 1;
     }
     else{
-      std::cout << p.getArgs()[s_num] << " contains " << fb->getFileSizeBytes()/frame_size_bytes << " frames..."  << std::endl;
+      const unsigned n_fs = fb->getFileSizeBytes()/frame_size_bytes;
+      std::cout << p.getArgs()[s_num] << " contains " << n_fs << " frames..."  << std::endl;
+      if(perform_loop && end_loop > 0 && end_loop > n_fs){
+	end_loop = n_fs;
+	start_loop = std::min(end_loop, start_loop);
+	std::cout << "INFO: setting start loop to " << start_loop << " and end loop to " << end_loop << std::endl;
+      }
     }
-    if(0 != goto_frame){
-      fb->gotoByte(frame_size_bytes * goto_frame);
-    }
-    else{
-      fb->setLooping(true);
-    }
+    fb->setLooping(true);
     fbs.push_back(fb);
-
+    frame_numbers.push_back(0);
     zmq::socket_t* socket = new zmq::socket_t(ctx, ZMQ_PUB); // means a publisher
     uint32_t hwm = 1;
     socket->setsockopt(ZMQ_SNDHWM,&hwm, sizeof(hwm));
@@ -100,15 +116,36 @@ int main(int argc, char* argv[]){
     sockets.push_back(socket);
   }
 
+  
+  bool fwd = true;
   sensor::timevalue ts(sensor::clock::time());
-
   while(true){
-
-
+    
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
+
+      if(perform_loop){
+	frame_numbers[s_num] = fwd ? frame_numbers[s_num] + 1 : frame_numbers[s_num] - 1;
+	if(frame_numbers[s_num] < start_loop){
+	  frame_numbers[s_num] = start_loop + 1;
+	  if(swing){
+	    fwd = true;
+	  }
+	}
+	else if(frame_numbers[s_num] > end_loop){
+	  if(swing){
+	    fwd = false;
+	    frame_numbers[s_num] = end_loop - 1;
+	  }
+	  else{
+	    frame_numbers[s_num] = start_loop;
+	  }
+	}
+	std::cout << "s_num: " << s_num << " -> frame_number: " << frame_numbers[s_num] << std::endl;
+	fbs[s_num]->gotoByte(frame_size_bytes * frame_numbers[s_num]);
+      }
+
       zmq::message_t zmqm(frame_size_bytes);
-      fbs[s_num]->read((unsigned char*) zmqm.data(), frame_size_bytes, 0 != goto_frame);
-      
+      fbs[s_num]->read((unsigned char*) zmqm.data(), frame_size_bytes);
       // send frames
       sockets[s_num]->send(zmqm);
     }
