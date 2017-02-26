@@ -154,6 +154,9 @@ int main(int argc, char* argv[]){
 	  }
 	  else{
 	    frame_numbers[s_num] = start_loop;
+	    if(s_num == 0){
+	      ++loop_num;
+	    }
 	  }
 	}
 	std::cout << "s_num: " << s_num << " -> frame_number: " << frame_numbers[s_num] << std::endl;
