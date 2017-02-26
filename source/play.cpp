@@ -23,6 +23,7 @@ namespace{
 int main(int argc, char* argv[]){
   int start_loop = 0;
   int end_loop = 0;
+  int num_loops = 0;
   bool perform_loop = false;
   bool swing = false;
   unsigned num_kinect_cameras = 1;
@@ -39,6 +40,7 @@ int main(int argc, char* argv[]){
   p.addOpt("p",1,"socket_port", "specify port of socket for sending, default: " + toString(base_socket_port));
   p.addOpt("l",2,"loop", "specify a start and end frame for looping, default: " + toString(start_loop) + " " + toString(end_loop));
   p.addOpt("w",-1,"swing", "enable swing looping mode, default: false");
+  p.addOpt("n",1,"num_loops", "loop n time, default: loop forever");
   p.init(argc,argv);
 
   if(p.isOptSet("k")){
@@ -72,6 +74,10 @@ int main(int argc, char* argv[]){
 
   if(p.isOptSet("w")){
     swing = true;
+  }
+
+  if(p.isOptSet("n")){
+    num_loops = p.getOptsInt("n")[0];
   }
 
   unsigned min_frame_time_ns = 1000000000/max_fps;
@@ -118,8 +124,13 @@ int main(int argc, char* argv[]){
 
   
   bool fwd = true;
+  int loop_num = 1;
   sensor::timevalue ts(sensor::clock::time());
   while(true){
+
+    if(loop_num > num_loops && num_loops > 0){
+      break;
+    }
     
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
 
@@ -130,6 +141,11 @@ int main(int argc, char* argv[]){
 	  if(swing){
 	    fwd = true;
 	  }
+
+	  if(s_num == 0){
+	    ++loop_num;
+	  }
+
 	}
 	else if(frame_numbers[s_num] > end_loop){
 	  if(swing){
@@ -159,6 +175,9 @@ int main(int argc, char* argv[]){
       sensor::timevalue rest_sleep(0,rest_sleep_ns);
       nanosleep(rest_sleep);
     }
+
+
+
   }
 
   // cleanup
