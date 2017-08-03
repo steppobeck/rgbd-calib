@@ -18,13 +18,13 @@ include(FindDependency)
 # zmq
 set(ZMQ_INCLUDE_SEARCH_DIR "/opt/zmq/current/include")
 set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
-find_dependency(ZMQ "zmq.h" "libzmq")
+find_dependency_custom(ZMQ "zmq.h" "libzmq")
 include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 ################################
 # OpenCV
 set(OPENCV_INCLUDE_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/include")
 set(OPENCV_LIBRARY_SEARCH_DIR "/opt/OpenCV/opencv-2.4.10_without_ffmpeg/lib")
-find_dependency(OPENCV "opencv/cv.h" "libopencv_core" "libopencv_imgproc" "libopencv_highgui" "libopencv_calib3d")
+find_dependency_custom(OPENCV "opencv/cv.h" "libopencv_core" "libopencv_imgproc" "libopencv_highgui" "libopencv_calib3d")
 include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 ################################
 # boost
@@ -38,19 +38,19 @@ include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 #CGAL
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
 set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
-find_dependency(CGAL "CGAL/basic.h" "libCGAL")
+find_dependency_custom(CGAL "CGAL/basic.h" "libCGAL")
 include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 ################################
 #gmp
 set(GMP_INCLUDE_SEARCH_DIR "/opt/gmp/include")
 set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
-find_dependency(GMP "gmp.h" "libgmp")
+find_dependency_custom(GMP "gmp.h" "libgmp")
 include_directories(SYSTEM ${GMP_INCLUDE_DIRS})
 ################################
 #mpfr
 set(MPFR_INCLUDE_SEARCH_DIR "/opt/mpfr/include")
 set(MPFR_LIBRARY_SEARCH_DIR "/opt/mpfr/lib")
-find_dependency(MPFR "mpfr.h" "libmpfr")
+find_dependency_custom(MPFR "mpfr.h" "libmpfr")
 include_directories(SYSTEM ${MPFR_INCLUDE_DIRS})
 ################################
 # glfw

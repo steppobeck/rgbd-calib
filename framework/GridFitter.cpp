@@ -67,6 +67,9 @@ gridfit2D(const std::vector<uv>& input){
 
 
   std::vector<uv> output(CB_WIDTH*CB_HEIGHT);
+  std::cerr << "ERROR -> reimplment algorithm below, Steppo" << std::endl;
+  exit(0);
+#if 0
   for(unsigned cp_id = 0; cp_id < CB_WIDTH*CB_HEIGHT; ++cp_id){
 
     const unsigned h_id = cp_id / CB_WIDTH;
@@ -89,7 +92,7 @@ gridfit2D(const std::vector<uv>& input){
     output[cp_id] = cp; 
 
   }
-
+#endif
 
 
 
