@@ -3,7 +3,7 @@
 #include <sensor.hpp>
 #include <devicemanager.hpp>
 #include <device.hpp>
-
+#include <FileValue.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -16,6 +16,7 @@ struct feedback{
   glm::mat4 cyclops_mat;
   glm::mat4 screen_mat;
   glm::mat4 model_mat;
+  unsigned recon_mode;
 };
 
 int main(int argc, char* argv[]){
@@ -25,6 +26,7 @@ int main(int argc, char* argv[]){
   CMDParser p("socket");
   p.addOpt("g",1,"glasses_tracking_id", "default: 0");
   p.addOpt("m",1,"model_tracking_id", "default: 0");
+  p.addOpt("r",1,"reconmodefilename", "default: none");
 
   p.init(argc,argv);
 
@@ -36,6 +38,10 @@ int main(int argc, char* argv[]){
     model_tracking_id = p.getOptsInt("m")[0];
   }
 
+  sensor::FileValue* recon_mode = 0;
+  if(p.isOptSet("r")){
+    recon_mode = new sensor::FileValue(p.getOptsString("r")[0].c_str());
+  }
   std::string socket_name(p.getArgs()[0]);
 
   zmq::context_t ctx(1); // means single threaded
@@ -54,9 +60,9 @@ int main(int argc, char* argv[]){
   
 
   glm::mat4 scale_mat;
-  scale_mat[0][0] = 0.12;
-  scale_mat[1][1] = 0.12;
-  scale_mat[2][2] = 0.12;
+  scale_mat[0][0] = 0.19;
+  scale_mat[1][1] = 0.19;
+  scale_mat[2][2] = 0.19;
 
   glm::mat4 trans_mat;
   trans_mat[3][0] = 0.0;
@@ -64,7 +70,7 @@ int main(int argc, char* argv[]){
   trans_mat[3][2] = 0.0;
   
   feedback fb;
-
+  fb.recon_mode = 1;
   fb.cyclops_mat[3][0] = 0.0;
   fb.cyclops_mat[3][1] = 1.8;
   fb.cyclops_mat[3][2] = 0.0;
@@ -83,6 +89,10 @@ int main(int argc, char* argv[]){
     if((head_tracking_id) != 0 && (model_tracking_id != 0)){
       fb.cyclops_mat = head->getMatrix();
       fb.model_mat = model->getMatrix() * (trans_mat * scale_mat);
+    }
+
+    if(recon_mode != 0){
+      recon_mode->read(fb.recon_mode);
     }
 
     zmq::message_t zmqm(sizeof(feedback));
