@@ -98,6 +98,10 @@ add_executable(uncompress_recording uncompress_recording.cpp)
 target_link_libraries(uncompress_recording framework)
 install(TARGETS uncompress_recording DESTINATION bin)
 
+add_executable(zmq_point_cloud_sender zmq_point_cloud_sender.cpp)
+target_link_libraries(zmq_point_cloud_sender framework)
+install(TARGETS zmq_point_cloud_sender DESTINATION bin)
+
 #install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "poseoffset")
 #install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "click_x.wav")
 
