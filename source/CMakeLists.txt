@@ -6,6 +6,10 @@ add_executable(zmq_sender zmq_sender.cpp)
 target_link_libraries(zmq_sender framework)
 install(TARGETS zmq_sender DESTINATION bin)
 
+add_executable(zmq_point_cloud_sender zmq_point_cloud_sender.cpp)
+target_link_libraries(zmq_point_cloud_sender framework)
+install(TARGETS zmq_point_cloud_sender DESTINATION bin)
+
 add_executable(feedback_sender feedback_sender.cpp)
 target_link_libraries(feedback_sender framework)
 install(TARGETS feedback_sender DESTINATION bin)
