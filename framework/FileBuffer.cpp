@@ -65,7 +65,7 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
       setvbuf (m_file, m_buffer, _IOFBF, buffersize);
     }
   
-    std::cerr << "FileBuffer " << this << " opening " << m_path << std::endl;
+    //std::cerr << "FileBuffer " << this << " opening " << m_path << std::endl;
     return true;
   }
 
@@ -120,7 +120,7 @@ A call to this function is equivalent to calling setvbuf with _IOFBF as mode and
 
     if((m_bytes_r + numbytes) > m_fstat.st_size){
       if(m_looping){
-	std::cerr << "FileBuffer " << this << " rewinding " << m_path << " filesize is " << m_fstat.st_size << std::endl;
+	//std::cerr << "FileBuffer " << this << " rewinding " << m_path << " filesize is " << m_fstat.st_size << std::endl;
 	rewind(m_file);
 	m_bytes_r = 0;
       }

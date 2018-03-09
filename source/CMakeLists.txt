@@ -70,6 +70,14 @@ add_executable(record record.cpp)
 target_link_libraries(record framework)
 install(TARGETS record DESTINATION bin)
 
+add_executable(remote_recorder remote_recorder.cpp)
+target_link_libraries(remote_recorder framework)
+install(TARGETS remote_recorder DESTINATION bin)
+
+add_executable(remote_player remote_player.cpp)
+target_link_libraries(remote_player framework)
+install(TARGETS remote_player DESTINATION bin)
+
 add_executable(play play.cpp)
 target_link_libraries(play framework)
 install(TARGETS play DESTINATION bin)
