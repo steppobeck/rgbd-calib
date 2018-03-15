@@ -21,6 +21,7 @@ struct feedback{
   glm::mat4 screen_mat;
   glm::mat4 model_mat;
   unsigned recon_mode;
+  unsigned stream_slot;
 };
 
 int main(int argc, char* argv[]){
@@ -33,7 +34,8 @@ int main(int argc, char* argv[]){
 
   CMDParser p("glass_ids");
   p.addOpt("m",1,"model_tracking_id", "default: 0");
-  p.addOpt("r",1,"reconmodefilename", "default: none");
+  p.addOpt("r",1,"reconmodefilename", "specifiy a file for selecting the reconstruction mode default: none");
+  p.addOpt("x",1,"streamslotfilename", "specifiy a file for selecting the stream slot default: none");
   p.addOpt("a",1,"artport", "default: 5000");
   p.addOpt("s",1,"senderip", "default: 127.0.0.1");
   p.addOpt("p",1,"port", "default: 9000");
@@ -64,7 +66,10 @@ int main(int argc, char* argv[]){
     recon_mode = new sensor::FileValue(p.getOptsString("r")[0].c_str());
   }
 
-
+  sensor::FileValue* stream_slot = 0;
+  if(p.isOptSet("x")){
+    stream_slot = new sensor::FileValue(p.getOptsString("x")[0].c_str());
+  }
 
   // prepare tracking system
   sensor::device* d = sensor::devicemanager::the()->get_dtrack(art_port, sensor::timevalue::const_050_ms);
@@ -87,24 +92,6 @@ int main(int argc, char* argv[]){
   }
 
 
-#if 0
-  std::string socket_name(p.getArgs()[0]);
-
-  zmq::context_t ctx(1); // means single threaded
-  zmq::socket_t  socket(ctx, ZMQ_PUB); // means a publisher
-  uint32_t hwm = 1;
-  socket.setsockopt(ZMQ_SNDHWM,&hwm, sizeof(hwm));
-
-  std::string endpoint("tcp://" + socket_name);
-  socket.bind(endpoint.c_str());
-
-  // prepare tracking system
-  sensor::device* d = sensor::devicemanager::the()->get_dtrack(art_port, sensor::timevalue::const_050_ms);
-  sensor::sensor* head = new sensor::sensor(d, head_tracking_id);
-  sensor::sensor* model = new sensor::sensor(d, model_tracking_id);
-#endif
-  
-
   glm::mat4 scale_mat;
   scale_mat[0][0] = 0.25;
   scale_mat[1][1] = 0.25;
@@ -117,6 +104,7 @@ int main(int argc, char* argv[]){
   
   feedback fb;
   fb.recon_mode = 1;
+  fb.stream_slot = 0;
   fb.cyclops_mat[3][0] = 0.0;
   fb.cyclops_mat[3][1] = 1.8;
   fb.cyclops_mat[3][2] = 0.0;
@@ -131,16 +119,14 @@ int main(int argc, char* argv[]){
 
   while(true){
 
-#if 0
-    // receive data from tracking system
-    if((head_tracking_id) != 0 && (model_tracking_id != 0)){
-      fb.cyclops_mat = head->getMatrix();
-      fb.model_mat = model->getMatrix() * (trans_mat * scale_mat);
-    }
-#endif
+
 
     if(recon_mode != 0){
       recon_mode->read(fb.recon_mode);
+    }
+
+    if(stream_slot != 0){
+      stream_slot->read(fb.stream_slot);
     }
 
     fb.model_mat = model->getMatrix() * (trans_mat * scale_mat);
@@ -151,15 +137,21 @@ int main(int argc, char* argv[]){
        sockets[i]->send(zmqm);
     }
 
-#if 0
-    zmq::message_t zmqm(sizeof(feedback));
-    memcpy( (unsigned char* ) zmqm.data(), (const unsigned char*) &fb, sizeof(feedback));
-    socket.send(zmqm);
-#endif
+
 
     std::this_thread::sleep_for( std::chrono::milliseconds(16) );
 
   }
+
+
+  if(recon_mode != 0){
+    delete recon_mode;
+  }
+
+  if(stream_slot != 0){
+    delete stream_slot;
+  }
+
 
   return 0;
 }
