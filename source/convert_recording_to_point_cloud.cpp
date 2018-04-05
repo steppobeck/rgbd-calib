@@ -430,51 +430,40 @@ int main(int argc, char* argv[]){
       threadGroup.create_thread(boost::bind(&filterPerThread, &nns, &nnisamples, &results, tid, num_threads));
     }
     threadGroup.join_all();
-#if 0
-    unsigned tid = 0;
-    for(unsigned sid = 0; sid < nnisamples.size(); ++sid){
 
-      nniSample s = nnisamples[sid];
-      
-      
-      std::vector<nniSample> neighbours = nns.search(s,filter_pass_1_k);
-      if(neighbours.empty()){
-	continue;
-      }
 
-      const float avd = calcAvgDist(neighbours, s);
-      if(avd > filter_pass_1_max_avg_dist_in_meter){
-	continue;
-      }
-      
-      std::vector<float> dists;
-      for(const auto& n : neighbours){
-	std::vector<nniSample> local_neighbours = nns.search(n,filter_pass_2_k);
-	if(!local_neighbours.empty()){
-	  dists.push_back(calcAvgDist(local_neighbours, n));
-	}
-      }
-      double mean;
-      double sd;
-      calcMeanSD(dists, mean, sd);
-      if((avd - mean) > filter_pass_2_sd_fac * sd){
-	continue;
-      }
-      results[tid].push_back(s);
-    }
-#endif
-
-    const std::string pcfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + ".xyz");
+    const std::string pcfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + ".ply");
     std::ofstream pcfile(pcfile_name.c_str());
     std::cout << "start writing to file " << pcfile_name << " ..." << std::endl;
+    
+    size_t num_points = 0;
+    for(unsigned tid = 0; tid < num_threads; ++tid){
+      num_points += results[tid].size();
+    }
+
+    pcfile << "ply" << std::endl;
+    pcfile << "format ascii 1.0" << std::endl;
+    pcfile << "element vertex " << num_points << std::endl;
+    pcfile << "property float x" << std::endl;
+    pcfile << "property float y" << std::endl;
+    pcfile << "property float z" << std::endl;
+    //pcfile << "property float nx" << std::endl;
+    //pcfile << "property float ny" << std::endl;
+    //pcfile << "property float nz" << std::endl;
+    pcfile << "property uchar red" << std::endl;
+    pcfile << "property uchar green" << std::endl;
+    pcfile << "property uchar blue" << std::endl;
+    pcfile << "end_header" << std::endl;
+
     for(unsigned tid = 0; tid < num_threads; ++tid){
       for(const auto& s : results[tid]){
 
-	int red   = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
-	int green = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
-	int blue  = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
-	pcfile << s.s_pos.x << " " << s.s_pos.y << " " << s.s_pos.z << " "
-	       << red << " "
+	       int red   = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
+	       int green = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
+	       int blue  = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
+	       pcfile << s.s_pos.x << " " << s.s_pos.y << " " << s.s_pos.z << " "
+	       //<< "0.0" << " " << "1.0" << " " << "0.0" << " "
+         << red << " "
 	       << green << " "
 	       << blue << std::endl;
 	
