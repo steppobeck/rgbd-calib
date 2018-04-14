@@ -411,6 +411,7 @@ int main(int argc, char* argv[]){
       }
     }
     
+    // optionally compute normals for each nniSample here using ComputeNormalsKnobi.hpp/.cpp
 
 
     
