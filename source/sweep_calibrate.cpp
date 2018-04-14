@@ -811,6 +811,7 @@ int main(int argc, char* argv[]){
   std::string filename_xyz(basefilename + "_xyz");
   std::string filename_uv(basefilename + "_uv");
   const std::string filename_yml(basefilename + "_yml");
+  const std::string filename_spos(basefilename + "_spos");
   CalibVolume cv_init(cv_width, cv_height, cv_depth, cv_min_d, cv_max_d);
 
   RGBDConfig cfg;
@@ -875,7 +876,10 @@ int main(int argc, char* argv[]){
   }
 
   cv_init.save(filename_xyz.c_str(), filename_uv.c_str());
-  
+  // write sensor position relative to world, for possibly later usage in normal computation
+  std::ofstream f_spos(filename_spos.c_str(), std::ofstream::out);
+  f_spos << eye_d_to_world[3][0] << " " << eye_d_to_world[3][1] << " " << eye_d_to_world[3][2] << std::endl;
+  f_spos.close();
   // INITIAL CALIBRATION FINISHED HERE
 
 
