@@ -1,23 +1,19 @@
-#include <rgbdsensor.hpp>
-#include <ChessboardSampling.hpp>
-#include <iostream>
+#include <image.hpp>
 
 int main(int argc, char** argv){
 
-
-
-  RGBDConfig cfg;
-  cfg.read("/mnt/pitoti/kinect_recordings/cbsampling_test/23.cv_yml");
-
-  ChessboardSampling cbs("/mnt/pitoti/kinect_recordings/cbsampling_test/23_sweep_out_Bottom", cfg, /*undistort*/ false);
-  cbs.init();
-
-  for(unsigned i = 0; i < 300; ++i){
-    cbs.detectShapeFaults(i);
+  png::image< png::rgb_pixel > output(640,480);
+  for(unsigned int y = 0; y < 480; ++y){
+    for(unsigned int x = 0; x < 640; ++x){
+      png::rgb_pixel p;
+      p.red   = 255;
+      p.green = 0;
+      p.blue  = 0;
+      output.set_pixel(x, y, p);
+    }
   }
-
-  cbs.dump();
-
+  output.write("/tmp/test_png.png");
   return 0;
 }
+
 

@@ -72,10 +72,14 @@ include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
 # catch
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
+################################
+# png
+set(PNG_DIRECTORY png++-0.2.3)
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${PNG_DIRECTORY})
 
 ################################
 # set link libraries
-set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
+set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES} png)
 
 ################################
 add_definitions(-DGLEW_STATIC)
