@@ -122,6 +122,8 @@ RGBDConfig::read(const char* ymlfilename){
   distortion_rgb[1] = rgb_distortion(0,1);
   distortion_rgb[2] = rgb_distortion(0,2);
   distortion_rgb[3] = rgb_distortion(0,3);
+  distortion_rgb[4] = rgb_distortion(0,4);
+
 
   readMatrix(calibration_file, "depth_intrinsics", depth_intrinsics);
   focal_d.x = depth_intrinsics(0,0);
@@ -134,6 +136,7 @@ RGBDConfig::read(const char* ymlfilename){
   distortion_d[1] = depth_distortion(0,1);
   distortion_d[2] = depth_distortion(0,2);
   distortion_d[3] = depth_distortion(0,3);
+  distortion_d[4] = depth_distortion(0,4);
 
 
   //std::cout << "before eye_d_to_eye_rgb: " << eye_d_to_eye_rgb << std::endl;
@@ -201,11 +204,15 @@ void
 RGBDConfig::dump(){
   std::cout << "RGBDConfig:" << std::endl;
   std::cout << "size_rgb: " << size_rgb << std::endl
-	    << "size_d: " << size_d << std::endl
+	    << "size_depth: " << size_d << std::endl
 	    << "focal_rgb: " << focal_rgb << std::endl
 	    << "principal_rgb: " << principal_rgb << std::endl
-	    << "focal_d: " << focal_d << std::endl
-	    << "principal_d: " << principal_d << std::endl
+      << "intrinsic_rgb_camera_for_OpenCVUndistortion: " << intrinsic_rgb[0] << "," << intrinsic_rgb[1] << "," << intrinsic_rgb[2] << "," << intrinsic_rgb[3] << "," << intrinsic_rgb[4] << "," << intrinsic_rgb[5] << "," << intrinsic_rgb[6] << "," << intrinsic_rgb[7] << "," << intrinsic_rgb[8] << std::endl
+      << "distortion_rgb_camera_for_OpenCVUndistortion: " << distortion_rgb[0] << "," << distortion_rgb[1] << "," << distortion_rgb[2] << "," << distortion_rgb[3] << "," << distortion_rgb[4] << std::endl
+	    << "focal_depth: " << focal_d << std::endl
+	    << "principal_depth: " << principal_d << std::endl
+      << "intrinsic_depth_camera_for_OpenCVUndistortion: " << intrinsic_d[0] << "," << intrinsic_d[1] << "," << intrinsic_d[2] << "," << intrinsic_d[3] << "," << intrinsic_d[4] << "," << intrinsic_d[5] << "," << intrinsic_d[6] << "," << intrinsic_d[7] << "," << intrinsic_d[8] << std::endl
+      << "distortion_depth_camera_for_OpenCVUndistortion: " << distortion_d[0] << "," << distortion_d[1] << "," << distortion_d[2] << "," << distortion_d[3] << "," << distortion_d[4] << std::endl
 	    << "eye_d_to_eye_rgb: " << eye_d_to_eye_rgb << std::endl
 	    << std::endl;
 }
