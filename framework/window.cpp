@@ -301,7 +301,7 @@ Window::drawCoords3D(){
 void
 Window::drawCross3D(float x, float y, float z, float radius){
   glLineWidth(m_line_width);
-  glColor3f(1.0,0.5,0.0);
+  glColor3f(0.0,1.0,0.0);
   glBegin(GL_LINES);
   glVertex3f(x - 0.5 * radius,y               ,z);
   glVertex3f(x + 0.5 * radius,y               ,z);

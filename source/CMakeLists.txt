@@ -82,6 +82,10 @@ add_executable(play play.cpp)
 target_link_libraries(play framework)
 install(TARGETS play DESTINATION bin)
 
+add_executable(large_point_cloud_compare large_point_cloud_compare.cpp)
+target_link_libraries(large_point_cloud_compare framework)
+install(TARGETS large_point_cloud_compare DESTINATION bin)
+
 add_executable(play_sweep play_sweep.cpp)
 target_link_libraries(play_sweep framework)
 install(TARGETS play_sweep DESTINATION bin)

@@ -37,6 +37,8 @@ void check_frametime(){
 
 
 int main(int argc, char* argv[]){
+  unsigned colorsize;
+  unsigned depthsize;
   int start_loop = 0;
   int end_loop = 0;
   int num_loops = 0;
@@ -59,6 +61,7 @@ int main(int argc, char* argv[]){
   p.addOpt("l",2,"loop", "specify a start and end frame for looping, default: " + toString(start_loop) + " " + toString(end_loop));
   p.addOpt("w",-1,"swing", "enable swing looping mode, default: false");
   p.addOpt("n",1,"num_loops", "loop n time, default: loop forever");
+  p.addOpt("r",-1,"realsense", "enable playing for realsense cameras, default: Kinect V2");
   p.init(argc,argv);
 
   if(p.isOptSet("k")){
@@ -104,8 +107,15 @@ int main(int argc, char* argv[]){
 
   unsigned min_frame_time_ns = 1000000000/max_fps;
 
-  const unsigned colorsize = rgb_is_compressed ? 691200 : 1280 * 1080 * 3;
-  const unsigned depthsize = 512 * 424 * sizeof(float);
+  if(p.isOptSet("r")){
+    colorsize = rgb_is_compressed ? 460800 : 1280 * 720 * 3;
+    depthsize = 1280 * 720 * sizeof(float);
+    std::cout << "playing for realsense cameras enabled!" << std::endl;
+  }
+  else{
+    colorsize = rgb_is_compressed ? 691200 : 1280 * 1080 * 3;
+    depthsize = 512 * 424 * sizeof(float);
+  }
   const size_t frame_size_bytes((colorsize + depthsize) * num_kinect_cameras);
 
   zmq::context_t ctx(1); // means single threaded

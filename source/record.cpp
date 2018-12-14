@@ -8,6 +8,8 @@
 
 int main(int argc, char* argv[]){
 
+  unsigned colorsize;
+  unsigned depthsize;
   unsigned wait_frames_to_before_start = 0;
   unsigned num_kinect_cameras = 1;
   unsigned num_seconds_to_record = 10;
@@ -17,6 +19,7 @@ int main(int argc, char* argv[]){
   p.addOpt("n",1,"num_seconds_to_record", "specify how many seconds should be recorded, default: 10");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed recording for rgb stream, default: false");
   p.addOpt("w",1,"wait_frames_to_before_start", "specify how many seconds to wait before start, default: 0");
+  p.addOpt("r",-1,"realsense", "enable recording for realsense cameras, default: Kinect V2");
   p.init(argc,argv);
 
   if(p.isOptSet("w")){
@@ -32,8 +35,16 @@ int main(int argc, char* argv[]){
     rgb_is_compressed = true;
   }
 
-  const unsigned colorsize = rgb_is_compressed ? 691200 : 1280 * 1080 * 3;
-  const unsigned depthsize = 512 * 424 * sizeof(float);
+  if(p.isOptSet("r")){
+    colorsize = rgb_is_compressed ? 460800 : 1280 * 720 * 3;
+    depthsize = 1280 * 720 * sizeof(float);
+    std::cout << "recording for realsense cameras enabled!" << std::endl;
+  }
+  else{
+    colorsize = rgb_is_compressed ? 691200 : 1280 * 1080 * 3;
+    depthsize = 512 * 424 * sizeof(float);
+  }
+  
 
   FileBuffer fb(p.getArgs()[0].c_str());
   if(!fb.open("w", 0/*1073741824 1 GB buffer*/)){

@@ -98,6 +98,8 @@ int main(int argc, char* argv[]){
   p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
   p.addOpt("d",-1,"distortions", "compute distortion parameters: default false");
   p.addOpt("i",-1,"interactiveshow", "show chessboards that are used for intrinsic calibration and exit without further computations");
+  p.addOpt("r",4,"reolution", "specify the resolution in pixel of the color and depth sensor, default: 1280 1080 512 424 (Kinect V2)");
+
   p.init(argc,argv);
 
 
@@ -114,8 +116,16 @@ int main(int argc, char* argv[]){
   }
 
   RGBDConfig cfg;
-  cfg.size_rgb = glm::uvec2(1280, 1080);
-  cfg.size_d   = glm::uvec2(512, 424);
+  if(p.isOptSet("r")){
+    cfg.size_rgb = glm::uvec2(p.getOptsInt("r")[0], p.getOptsInt("r")[1]);
+    cfg.size_d   = glm::uvec2(p.getOptsInt("r")[2], p.getOptsInt("r")[3]);
+  }
+  else{
+    cfg.size_rgb = glm::uvec2(1280, 1080);
+    cfg.size_d   = glm::uvec2(512, 424);
+  }
+  std::cout << "using initial config:" << std::endl;
+  cfg.dump();
 
   Checkerboard cb;
   cb.load_pose_offset(pose_offset_filename.c_str());
@@ -165,7 +175,7 @@ int main(int argc, char* argv[]){
 
 
   // WRITE to .yml
-
+  std::cout << "writing sensor intrinsic to: " << p.getArgs()[1].c_str() << std::endl;
   cv::FileStorage output_file(p.getArgs()[1].c_str(),  CV_STORAGE_WRITE);
   writeMatrix(output_file, "rgb_intrinsics", rgb_intrinsics);
   writeMatrix(output_file, "rgb_distortion", rgb_distortion);

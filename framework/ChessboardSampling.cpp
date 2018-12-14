@@ -585,10 +585,13 @@ ChessboardViewIR::calcShapeStats(){
   bool
   ChessboardSampling::loadPoses(){
     m_poses.clear();
-    // load e.g. 23_sweep.pose
     std::string filename_poses(m_filenamebase + ".poses");
-    std::cout << "loading poses from file " << filename_poses << std::endl;
     std::ifstream infile(filename_poses.c_str(), std::ifstream::binary);
+    if(!infile.good()){
+      std::cout << "cannot loading poses from file " << filename_poses << " (not exisiting)." << std::endl;
+      return false;
+    }
+    std::cout << "loading poses from file " << filename_poses << std::endl;
     const size_t num_poses = calcNumFrames(infile, sizeof(double) + sizeof(glm::mat4));
     for(size_t i = 0; i != num_poses; ++i){
       
@@ -892,31 +895,31 @@ namespace{
   ChessboardSampling::showRecordingAndPoses(unsigned start, unsigned end, const Checkerboard& cb, bool try_detect){
 
     // prepare pose related stuff
-    Window win(glm::ivec2(424*2,1280 - 512), true /*3D mode*/);
+    Window win(glm::ivec2(850,775), true /*3D mode*/);
     win.setClearColor(0.0, 0.0, 0.0);
     win.setCameraPosition(0.5, -1.0, 3.0, 20.0, 180.0);
     win.update();
 
     // prepare image related stuff
-    unsigned char* rgb = new unsigned char[1280*1080 * 3];
-    float* depth = new float[512*424];
-    unsigned char* ir = new unsigned char[512*424];
+    unsigned char* rgb = new unsigned char[m_cfg.size_rgb.x*m_cfg.size_rgb.y * 3];
+    float* depth = new float[m_cfg.size_d.x*m_cfg.size_d.y];
+    unsigned char* ir = new unsigned char[m_cfg.size_d.x*m_cfg.size_d.y];
 
     // create named window for depth image
     cvNamedWindow("depth", CV_WINDOW_AUTOSIZE);
-    IplImage* cv_depth_image = cvCreateImage(cvSize(512, 424), 8, 1);
+    IplImage* cv_depth_image = cvCreateImage(cvSize(m_cfg.size_d.x, m_cfg.size_d.y), 8, 1);
 
     OpenCVChessboardCornerDetector::s_window_name = "color";
-    OpenCVChessboardCornerDetector cd_c(1280,
-					1080,
+    OpenCVChessboardCornerDetector cd_c(m_cfg.size_rgb.x,
+					m_cfg.size_rgb.y,
 					8 /*bits per channel*/,
 					3 /*num channels*/,
 					true /*open window to show images*/,
 					m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0,
 					try_detect);
     OpenCVChessboardCornerDetector::s_window_name = "infrared";
-    OpenCVChessboardCornerDetector cd_i(512,
-					424,
+    OpenCVChessboardCornerDetector cd_i(m_cfg.size_d.x,
+					m_cfg.size_d.y,
 					8 /*bits per channel*/,
 					1,
 					true /*open window to show images*/,
@@ -928,15 +931,15 @@ namespace{
 
     std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
     const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
-					    + (1280 * 1080 * 3)
-					    + (512 * 424 * sizeof(float))
-					    + (512 * 424));
+					    + (m_cfg.size_rgb.x * m_cfg.size_rgb.y * 3)
+					    + (m_cfg.size_d.x * m_cfg.size_d.y * sizeof(float))
+					    + (m_cfg.size_d.x * m_cfg.size_d.y));
     for(size_t i = 0; i != num_frames; ++i){
 
       ChessboardViewRGB cb_rgb;
       cb_rgb.valid = 1;
       infile_fr.read((char*) &cb_rgb.time, sizeof(double));
-      infile_fr.read((char*) rgb, 1280*1080 * 3);
+      infile_fr.read((char*) rgb, m_cfg.size_rgb.x*m_cfg.size_rgb.y * 3);
 
       ChessboardViewIR cb_ir;
       cb_ir.valid = 1;
@@ -944,32 +947,32 @@ namespace{
       if(m_undist){
 	std::cout << "INFO: ChessboardSampling::showRecordingAndPoses need to implement depth undistortion" << std::endl;
       }
-      infile_fr.read((char*) depth, 512 * 424 * sizeof(float));
-      infile_fr.read((char*) ir, 512 * 424);
+      infile_fr.read((char*) depth, m_cfg.size_d.x * m_cfg.size_d.y * sizeof(float));
+      infile_fr.read((char*) ir, m_cfg.size_d.x * m_cfg.size_d.y);
 
       if((end == 0) || (start <= i) && (i <= end)){
 
 	// show rgb depth and ir image
 
 	bool found_color;
-	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, 1280*1080 * 3, true /*show_image*/, found_color, true);
+	std::vector<bool> corner_mask_rgb = findSubBoard(&cd_c, (unsigned char*) rgb, m_cfg.size_rgb.x*m_cfg.size_rgb.y * 3, true /*show_image*/, found_color, true);
 	if(found_color){
 	  std::cout << "found_color with following corner mask" << std::endl;
 	  dumpCornerMask(corner_mask_rgb);
 	}
 
-	memcpy(cv_depth_image->imageData, convertTo8Bit(depth, 512, 424), 512*424 * sizeof(unsigned char));
+	memcpy(cv_depth_image->imageData, convertTo8Bit(depth, m_cfg.size_d.x, m_cfg.size_d.y), m_cfg.size_d.x*m_cfg.size_d.y * sizeof(unsigned char));
 	//cvShowImage( "depth", cv_depth_image);
-	IplImage* rotated = cvCreateImage(cvSize(424, 512), 8, 1);
+	IplImage* rotated = cvCreateImage(cvSize(m_cfg.size_d.y, m_cfg.size_d.x), 8, 1);
 	cvTranspose(cv_depth_image, rotated);
 	cvFlip(rotated, NULL, 1);
 	cvShowImage( "depth", rotated);
 	cvReleaseImage(&rotated);
 	
 
-	//bool found_ir = cd_i.process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, true);
+	//bool found_ir = cd_i.process((unsigned char*) ir, m_cfg.size_d.x * m_cfg.size_d.y, CB_WIDTH, CB_HEIGHT, true);
 	bool found_ir;
-	std::vector<bool> corner_mask_ir = findSubBoard(&cd_i, (unsigned char*) ir, 512 * 424, true /*show_image*/, found_ir, false);
+	std::vector<bool> corner_mask_ir = findSubBoard(&cd_i, (unsigned char*) ir, m_cfg.size_d.x * m_cfg.size_d.y, true /*show_image*/, found_ir, false);
 	if(found_ir){
 	  std::cout << "found_ir with following corner mask" << std::endl;
 	  dumpCornerMask(corner_mask_ir);
@@ -1063,7 +1066,7 @@ namespace{
       if(corner_mask_ir[c_id]){
 	c_ir.x = cd_ir->corners[c_id_ir].u;
 	c_ir.y = cd_ir->corners[c_id_ir].v;
-	c_ir.z = depth != 0 ? getBilinear(depth, 512, 424,
+	c_ir.z = depth != 0 ? getBilinear(depth, m_cfg.size_d.x, m_cfg.size_d.y,
 					  c_ir.x,
 					  c_ir.y) : 0.0;
 	++c_id_ir;
@@ -1092,9 +1095,9 @@ namespace{
     // new version
 #if 1
     bool found_color;
-    std::vector<bool> corner_mask_rgb = findSubBoard(cd_c, (unsigned char*) rgb, 1280*1080 * 3, false /*show_image*/, found_color, true);
+    std::vector<bool> corner_mask_rgb = findSubBoard(cd_c, (unsigned char*) rgb, m_cfg.size_rgb.x*m_cfg.size_rgb.y * 3, false /*show_image*/, found_color, true);
     bool found_ir;
-    std::vector<bool> corner_mask_ir = findSubBoard(cd_i, (unsigned char*) ir, 512 * 424, false /*show_image*/, found_ir, false);
+    std::vector<bool> corner_mask_ir = findSubBoard(cd_i, (unsigned char*) ir, m_cfg.size_d.x * m_cfg.size_d.y, false /*show_image*/, found_ir, false);
 
     if(found_color && found_ir){
       (*valids)[tid] = 1;
@@ -1115,8 +1118,8 @@ namespace{
     // old version
 #if 0
     // detect corners in color image
-    bool found_color = cd_c->process((unsigned char*) rgb, 1280*1080 * 3, CB_WIDTH, CB_HEIGHT, false);
-    bool found_ir = cd_i->process((unsigned char*) ir, 512 * 424, CB_WIDTH, CB_HEIGHT, false);
+    bool found_color = cd_c->process((unsigned char*) rgb, m_cfg.size_rgb.x*m_cfg.size_rgb.y * 3, CB_WIDTH, CB_HEIGHT, false);
+    bool found_ir = cd_i->process((unsigned char*) ir, m_cfg.size_d.x * m_cfg.size_d.y, CB_WIDTH, CB_HEIGHT, false);
     if(found_color && found_ir &&
        (cd_i->corners.size() == cd_c->corners.size() &&
 	(cd_i->corners.size() == CB_WIDTH * CB_HEIGHT))){
@@ -1130,7 +1133,7 @@ namespace{
 
 	m_cb_ir[frame_id].corners[c_id].x = cd_i->corners[c_id].u;
 	m_cb_ir[frame_id].corners[c_id].y = cd_i->corners[c_id].v;
-	m_cb_ir[frame_id].corners[c_id].z = getBilinear(depth, 512, 424,
+	m_cb_ir[frame_id].corners[c_id].z = getBilinear(depth, m_cfg.size_d.x, m_cfg.size_d.y,
 							m_cb_ir[frame_id].corners[c_id].x,
 							m_cb_ir[frame_id].corners[c_id].y); 
 	m_cb_ir[frame_id].quality[c_id] = 1.0;
@@ -1158,9 +1161,9 @@ namespace{
     m_cb_ir.clear();
     std::ifstream infile_fr(m_filenamebase.c_str(), std::ifstream::binary);
     const size_t num_frames = calcNumFrames(infile_fr, (2 * sizeof(double))
-					    + (1280 * 1080 * 3)
-					    + (512 * 424 * sizeof(float))
-					    + (512 * 424));
+					    + (m_cfg.size_rgb.x * m_cfg.size_rgb.y * 3)
+					    + (m_cfg.size_d.x * m_cfg.size_d.y * sizeof(float))
+					    + (m_cfg.size_d.x * m_cfg.size_d.y));
     m_cb_rgb.resize(num_frames);
     m_cb_ir.resize(num_frames);
 
@@ -1174,17 +1177,17 @@ namespace{
     std::vector<OpenCVChessboardCornerDetector*> cd_is;
     std::vector<unsigned> valids;
     for(unsigned tid = 0; tid != num_threads; ++tid){
-      rgbs.push_back(new unsigned char[1280*1080 * 3]);
-      depths.push_back(new float[512*424]);
-      irs.push_back(new unsigned char[512*424]);
-      cd_cs.push_back(new OpenCVChessboardCornerDetector(1280,
-							 1080,
+      rgbs.push_back(new unsigned char[m_cfg.size_rgb.x*m_cfg.size_rgb.y * 3]);
+      depths.push_back(new float[m_cfg.size_d.x*m_cfg.size_d.y]);
+      irs.push_back(new unsigned char[m_cfg.size_d.x*m_cfg.size_d.y]);
+      cd_cs.push_back(new OpenCVChessboardCornerDetector(m_cfg.size_rgb.x,
+							 m_cfg.size_rgb.y,
 							 8 /*bits per channel*/,
 							 3 /*num channels*/,
 							 false,
 							 m_undist ? new OpenCVUndistortion(m_cfg.size_rgb.x, m_cfg.size_rgb.y, 8 /*bits per channel*/, 3, m_cfg.intrinsic_rgb, m_cfg.distortion_rgb) : 0));
-      cd_is.push_back(new OpenCVChessboardCornerDetector(512,
-							 424,
+      cd_is.push_back(new OpenCVChessboardCornerDetector(m_cfg.size_d.x,
+							 m_cfg.size_d.y,
 							 8 /*bits per channel*/,
 							 1 /*num channels*/,
 							 false,
@@ -1196,7 +1199,7 @@ namespace{
     size_t valid = 0;
     size_t frame_id = 0;
 
-    float* depth_in = m_undist ? new float [512 * 424] : 0;
+    float* depth_in = m_undist ? new float [m_cfg.size_d.x * m_cfg.size_d.y] : 0;
     OpenCVUndistortion* undistort_depth = m_undist ? new OpenCVUndistortion(m_cfg.size_d.x, m_cfg.size_d.y,
 									    32 /*bits per channel*/, 1, m_cfg.intrinsic_d, m_cfg.distortion_d) : 0;
     while(frame_id < num_frames){
@@ -1209,20 +1212,20 @@ namespace{
 	  
 	  m_cb_rgb[frame_id].valid = 1;
 	  infile_fr.read((char*) &m_cb_rgb[frame_id].time, sizeof(double));
-	  infile_fr.read((char*) rgbs[tid], 1280*1080 * 3);
+	  infile_fr.read((char*) rgbs[tid], m_cfg.size_rgb.x*m_cfg.size_rgb.y * 3);
 
 	  m_cb_ir[frame_id].valid = 1;
 	  infile_fr.read((char*) &m_cb_ir[frame_id].time, sizeof(double));
 
 
 	  if(m_undist){
-	    infile_fr.read((char*) depth_in, 512 * 424 * sizeof(float));
-	    memcpy((char*) depths[tid], undistort_depth->process(depth_in), 512 * 424 * sizeof(float));
+	    infile_fr.read((char*) depth_in, m_cfg.size_d.x * m_cfg.size_d.y * sizeof(float));
+	    memcpy((char*) depths[tid], undistort_depth->process(depth_in), m_cfg.size_d.x * m_cfg.size_d.y * sizeof(float));
 	  }
 	  else{
-	    infile_fr.read((char*) depths[tid], 512 * 424 * sizeof(float));
+	    infile_fr.read((char*) depths[tid], m_cfg.size_d.x * m_cfg.size_d.y * sizeof(float));
 	  }
-	  infile_fr.read((char*) irs[tid], 512 * 424);
+	  infile_fr.read((char*) irs[tid], m_cfg.size_d.x * m_cfg.size_d.y);
 
 	  targets.push_back(frame_id);
 	  ++frame_id;
@@ -1649,11 +1652,11 @@ namespace{
 	const xyz cb_avg_corner = computeAverageCornerIR(cb_id);
 	
 	// check if cb_avg_corner is out of range
-	if(cb_avg_corner.x < 0.0 || cb_avg_corner.x > 512){
+	if(cb_avg_corner.x < 0.0 || cb_avg_corner.x > m_cfg.size_d.x){
 	  std::cerr << "ERROR in ChessboardSampling::extractBoardsForIntrinsicsFromValidRanges, cb_avg_corner.x out of range" << std::endl;
 	  exit(0);
 	}
-	if(cb_avg_corner.y < 0.0 || cb_avg_corner.y > 424){
+	if(cb_avg_corner.y < 0.0 || cb_avg_corner.y > m_cfg.size_d.y){
 	  std::cerr << "ERROR in ChessboardSampling::extractBoardsForIntrinsicsFromValidRanges, cb_avg_corner.y out of range" << std::endl;
 	  exit(0);
 	}
@@ -1663,9 +1666,9 @@ namespace{
 	}
 
 
-	// compute grid location of cb_avg_corner in [512.0][424.0][4.0]
-	const unsigned gid_x = std::round(cb_avg_corner.x/(512/grid_w));
-	const unsigned gid_y = std::round(cb_avg_corner.y/(424/grid_h));
+	// compute grid location of cb_avg_corner in [m_cfg.size_d.x.0][m_cfg.size_d.y.0][4.0]
+	const unsigned gid_x = std::round(cb_avg_corner.x/(m_cfg.size_d.x/grid_w));
+	const unsigned gid_y = std::round(cb_avg_corner.y/(m_cfg.size_d.y/grid_h));
 	const unsigned gid_z = std::round((cb_avg_corner.z - 0.5/*cv_min_d*/)/(4.0/grid_h));
 #if 0
 	std::cout << cb_id
