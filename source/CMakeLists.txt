@@ -34,6 +34,10 @@ add_executable(rgbdir_viewer rgbdir_viewer.cpp)
 target_link_libraries(rgbdir_viewer framework)
 install(TARGETS rgbdir_viewer DESTINATION bin)
 
+add_executable(display_rgbd_stream display_rgbd_stream.cpp)
+target_link_libraries(display_rgbd_stream framework)
+install(TARGETS display_rgbd_stream DESTINATION bin)
+
 add_executable(calibrate_intrinsic calibrate_intrinsic.cpp)
 target_link_libraries(calibrate_intrinsic framework)
 install(TARGETS calibrate_intrinsic DESTINATION bin)
