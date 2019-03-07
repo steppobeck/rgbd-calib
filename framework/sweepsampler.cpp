@@ -118,7 +118,6 @@ SweepSampler::addBoardSamples(const glm::mat4& cb_transform, const ChessboardVie
     sp.tex_depth = c_d_tex;
     sp.depth = c_d.z;
 
-
     // old
     //glm::vec4 pos_realH = (m_cb->pose_offset * cb_transform) * glm::vec4(m_cb->points_local[idx].x, m_cb->points_local[idx].y, m_cb->points_local[idx].z, 1.0f);
     // new
