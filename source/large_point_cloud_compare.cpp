@@ -23,7 +23,7 @@ class lpc{
 public:
   lpc();
   bool read(const std::string& filename);
-  bool write(const std::string& filename);
+  bool write(const std::string& filename, unsigned stride);
   void translate(const glm::dvec3& t);
   bool rotate(const glm::dmat4& r);
   bool crop_to(size_t c);
@@ -94,20 +94,26 @@ lpc::read(const std::string& filename){
 			
   }
   lpc_ascii.close();
+  std::cout << "lpc::read() " << surfels.size() << " read." << std::endl;
   return true;
 }
 
 
 bool
-lpc::write(const std::string& filename){
+lpc::write(const std::string& filename, unsigned stride){
 
   has_all = filename.substr(filename.find_last_of(".") + 1) == "xyz_all" ? true : false;
 
   std::cout << "lpc::write() writing file: " << filename << " -> has_all: " << int(has_all) << std::endl;
   std::ofstream lpc_ascii(filename.c_str());
-  
+  size_t counter = 0;
+  size_t write_counter = 0;
   for(const auto& s : surfels){
-
+    ++counter;
+    if(!(counter % stride == 0)){
+      continue;
+    }
+    ++write_counter;
     std::stringstream lpc_ascii_s;
     lpc_ascii_s << std::setprecision(DEFAULT_PRECISION) << s.p[0] << " ";
     lpc_ascii_s << std::setprecision(DEFAULT_PRECISION) << s.p[1] << " ";
@@ -129,11 +135,13 @@ lpc::write(const std::string& filename){
   }
   
   lpc_ascii.close();
+  std::cout << "lpc::write() written " << write_counter << " surfels." << std::endl;
   return true;
 }
 
 void
 lpc::translate(const glm::dvec3& t){
+  std::cout << "lpc::translate()" << std::endl;
   for(auto& s : surfels){
     s.p[0] += t[0];
     s.p[1] += t[1];
@@ -143,6 +151,7 @@ lpc::translate(const glm::dvec3& t){
 
 bool
 lpc::rotate(const glm::dmat4& r){
+  std::cout << "lpc::rotate()" << std::endl;
   LPCNearestNeighbourSearch nns(&surfels);
   surfel center_dummy_surfel;
   center_dummy_surfel.p = 0.5 * (bbx_min + bbx_max);
@@ -283,7 +292,7 @@ int main(int argc, char* argv[]){
 
   bool normals_as_strokes = false;
   float percentage = 0.0;
-
+  unsigned stride = 1;
   size_t crop_target = 0;
   size_t cut_target = 0;
   size_t distort_target = 0;
@@ -295,6 +304,7 @@ int main(int argc, char* argv[]){
   p.addOpt("p",1,"percentage", "override color from p percentage (default: 0.0) 0.0 -> 1.0");
   p.addOpt("c",1,"crop", "crop cloudA starting around center of boundingbox to x surfels");
   p.addOpt("x",1,"xcut", "cut x surfels from cloudA starting around center of boundingbox");
+  p.addOpt("y",1,"ystride", "only write every i-th surfel to outfilename, default: 1");
   p.addOpt("d",1,"distort", "distort x surfels from cloudA starting around center of boundingbox");
   p.init(argc,argv);
 
@@ -310,6 +320,11 @@ int main(int argc, char* argv[]){
   if(p.isOptSet("x")){
     cut_target = p.getOptsInt("x")[0];
     std::cout << "setting cut target to " << cut_target << " surfels." << std::endl;
+  }
+
+  if(p.isOptSet("y")){
+    stride = p.getOptsInt("y")[0];
+    std::cout << "setting stride to every " << stride << "-th surfel for outfilename " << outfilename << std::endl;
   }
 
   if(p.isOptSet("d")){
@@ -333,7 +348,7 @@ int main(int argc, char* argv[]){
     glm::mat4 rotY = glm::rotate(glm::mat4(1.0f), glm::radians(p.getOptsFloat("r")[1]), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 rotZ = glm::rotate(glm::mat4(1.0f), glm::radians(p.getOptsFloat("r")[2]), glm::vec3(0.0f, 0.0f, 1.0f));
     rotation = rotZ * rotY * rotX;
-    std::cout << "rotation of cloudB " << p.getOptsFloat("r")[0] << " (x-axis), "
+    std::cout << "applying rotation by: " << p.getOptsFloat("r")[0] << " (x-axis), "
 	      << p.getOptsFloat("r")[1] << " (y-axis), "
 	      << p.getOptsFloat("r")[2] << " (z-axis)" << std::endl;
   }
@@ -343,7 +358,7 @@ int main(int argc, char* argv[]){
     translation[0] = p.getOptsFloat("t")[0];
     translation[1] = p.getOptsFloat("t")[1];
     translation[2] = p.getOptsFloat("t")[2];
-    std::cout << "translation of cloudB by: " << translation << std::endl;
+    std::cout << "applying translation by: " << translation << std::endl;
   }
 
   
@@ -425,7 +440,7 @@ int main(int argc, char* argv[]){
   }
 
   if("" != outfilename){
-    clouds[manipulated_cloud_id]->write(outfilename);
+    clouds[manipulated_cloud_id]->write(outfilename, stride);
   }
 
   for(auto c : clouds){
