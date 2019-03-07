@@ -19,7 +19,7 @@ int main(int argc, char* argv[]){
   p.addOpt("n",1,"num_seconds_to_record", "specify how many seconds should be recorded, default: 10");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed recording for rgb stream, default: false");
   p.addOpt("w",1,"wait_frames_to_before_start", "specify how many seconds to wait before start, default: 0");
-  p.addOpt("r",-1,"realsense", "enable recording for realsense cameras, default: Kinect V2");
+  p.addOpt("r",4,"realsense", "enable display for realsense cameras and specify resolution of color and depth sensor e.g. 1280 720 1280 720, default: Kinect V2");
   p.init(argc,argv);
 
   if(p.isOptSet("w")){
@@ -36,8 +36,19 @@ int main(int argc, char* argv[]){
   }
 
   if(p.isOptSet("r")){
-    colorsize = rgb_is_compressed ? 460800 : 1280 * 720 * 3;
-    depthsize = 1280 * 720 * sizeof(float);
+    unsigned width_dir = p.getOptsInt("r")[2];
+    unsigned height_dir = p.getOptsInt("r")[3];
+    unsigned width_c = p.getOptsInt("r")[0];
+    unsigned height_c = p.getOptsInt("r")[1];
+
+    if(rgb_is_compressed){
+        std::cout << "compressed color not supported for the resolution specified. Exiting" << std::endl;
+        exit(0);
+    }
+
+
+    colorsize = rgb_is_compressed ? 460800 : width_c * height_c * 3;
+    depthsize = width_dir * height_dir * sizeof(float);
     std::cout << "recording for realsense cameras enabled!" << std::endl;
   }
   else{
@@ -47,7 +58,7 @@ int main(int argc, char* argv[]){
   
 
   FileBuffer fb(p.getArgs()[0].c_str());
-  if(!fb.open("w", 0/*1073741824 1 GB buffer*/)){
+  if(!fb.open("w",0 /*20073741824 20 GB buffer*/)){
     std::cerr << "error opening " << p.getArgs()[0] << " exiting..." << std::endl;
     return 1;
   }

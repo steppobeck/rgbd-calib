@@ -11,7 +11,7 @@ namespace{
 unsigned char*
 convertTo8Bit(float* in, unsigned w, unsigned h){
   static unsigned char* out = new unsigned char [w*h];
-  static const float norm = 1.0/5.0/*max_distance is 5.0 meter*/;
+  static const float norm = 1.0/10.0/*max_distance is 5.0 meter*/;
   for(unsigned idx = 0; idx != w*h; ++idx){
     const float v = norm * in[idx];
     out[idx] = (unsigned char) (255.0 * v);
@@ -54,8 +54,8 @@ int main(int argc, char* argv[]){
   bool rgb_is_compressed = false;
   CMDParser p("serverport");
   p.addOpt("k",1,"num_kinect_cameras", "specify how many kinect cameras are in stream, default: 1");
-  p.addOpt("c",-1,"rgb_is_compressed", "enable compressed recording for rgb stream, default: false");
-  p.addOpt("r",-1,"realsense", "enable display for realsense cameras, default: Kinect V2");
+  p.addOpt("c",-1,"rgb_is_compressed", "enable compression for rgb stream, default: false");
+  p.addOpt("r",4,"realsense", "enable display for realsense cameras and specify resolution of color and depth sensor e.g. 1280 720 1280 720, default: Kinect V2");
   p.addOpt("i",-1,"infrared", "enable infrared");
   p.init(argc,argv);
 
@@ -70,13 +70,17 @@ int main(int argc, char* argv[]){
 
   if(p.isOptSet("r")){
 
-    std::cout << "recording for realsense cameras enabled!" << std::endl;
+    std::cout << "realsense cameras enabled!" << std::endl;
 
-    width_dir = 1280;
-    height_dir = 720;
-    width_c = 1280;
-    height_c = 720;
+    width_dir = p.getOptsInt("r")[2];
+    height_dir = p.getOptsInt("r")[3];
+    width_c = p.getOptsInt("r")[0];
+    height_c = p.getOptsInt("r")[1];
 
+    if(rgb_is_compressed){
+	std::cout << "compressed color not supported for the resolution specified. Exiting" << std::endl;
+	exit(0);
+    }
     colorsizebyte = rgb_is_compressed ? 460800 : width_c * height_c * 3;
     depthsizebyte = width_dir * height_dir * sizeof(float);
 

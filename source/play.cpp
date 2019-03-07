@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
   p.addOpt("l",2,"loop", "specify a start and end frame for looping, default: " + toString(start_loop) + " " + toString(end_loop));
   p.addOpt("w",-1,"swing", "enable swing looping mode, default: false");
   p.addOpt("n",1,"num_loops", "loop n time, default: loop forever");
-  p.addOpt("r",-1,"realsense", "enable playing for realsense cameras, default: Kinect V2");
+  p.addOpt("r",4,"realsense", "enable display for realsense cameras and specify resolution of color and depth sensor e.g. 1280 720 1280 720, default: Kinect V2");
   p.init(argc,argv);
 
   if(p.isOptSet("k")){
@@ -108,8 +108,18 @@ int main(int argc, char* argv[]){
   unsigned min_frame_time_ns = 1000000000/max_fps;
 
   if(p.isOptSet("r")){
-    colorsize = rgb_is_compressed ? 460800 : 1280 * 720 * 3;
-    depthsize = 1280 * 720 * sizeof(float);
+    unsigned width_dir = p.getOptsInt("r")[2];
+    unsigned height_dir = p.getOptsInt("r")[3];
+    unsigned width_c = p.getOptsInt("r")[0];
+    unsigned height_c = p.getOptsInt("r")[1];
+
+    if(rgb_is_compressed){
+        std::cout << "compressed color not supported for the resolution specified. Exiting" << std::endl;
+        exit(0);
+    }
+
+    colorsize = rgb_is_compressed ? 460800 : width_c * height_c * 3;
+    depthsize = width_dir * height_dir * sizeof(float);
     std::cout << "playing for realsense cameras enabled!" << std::endl;
   }
   else{
