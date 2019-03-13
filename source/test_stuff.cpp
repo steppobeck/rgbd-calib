@@ -1,23 +1,20 @@
 #include <rgbdsensor.hpp>
-#include <ChessboardSampling.hpp>
-#include <iostream>
 
 int main(int argc, char** argv){
 
 
-
-  RGBDConfig cfg;
-  cfg.read("/mnt/pitoti/kinect_recordings/cbsampling_test/23.cv_yml");
-
-  ChessboardSampling cbs("/mnt/pitoti/kinect_recordings/cbsampling_test/23_sweep_out_Bottom", cfg, /*undistort*/ false);
-  cbs.init();
-
-  for(unsigned i = 0; i < 300; ++i){
-    cbs.detectShapeFaults(i);
+  if(argc != 2){
+    std::cout << "usage: " << argv[0] << "filename.yml" << std::endl;
+    return 0;
   }
 
-  cbs.dump();
+
+  RGBDConfig cfg;
+  cfg.read(argv[1]);
+
+  cfg.dump();  
 
   return 0;
 }
+
 

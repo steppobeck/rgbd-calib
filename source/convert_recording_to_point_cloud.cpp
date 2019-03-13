@@ -5,6 +5,7 @@
 #include <DataTypes.hpp>
 #include <NearestNeighbourSearch.hpp>
 
+#include <image.hpp>
 #include <squish.h>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
@@ -208,11 +209,13 @@ int main(int argc, char* argv[]){
 
   unsigned num_threads = 16;
   bool rgb_is_compressed = false;
+  bool do_export_png = false;
   std::string stream_filename;
   CMDParser p("basefilename_cv .... basefilename_for_output");
   p.addOpt("s",1,"stream_filename", "specify the stream filename which should be converted");
   p.addOpt("n",1,"num_threads", "specify how many threads should be used, default 16");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed support for rgb stream, default: false (not compressed)");
+  p.addOpt("e",-1,"export_png", "enable export of color and depth images to png files, default: false (no png export)");
 
   p.addOpt("p1d",1,"filter_pass_1_max_avg_dist_in_meter", "filter pass 1 skips points which have an average distance of more than this to it k neighbors, default 0.025");
   p.addOpt("p1k",1,"filter_pass_1_k", "filter pass 1 number of neighbors, default 50");
@@ -223,7 +226,7 @@ int main(int argc, char* argv[]){
 
   p.addOpt("b",1,"bil_filter_depth_kernel", "specify the kernel size of the bilateral depth filter, e.g. -b 6, default 0 (no bilateral filter ist applied)");
 
-  p.addOpt("f",1,"frames", "specify how many frames should be processed at maximum, e.g. -f 1, default 0 (all frames in the stream will be processed)");
+  p.addOpt("f",2,"frames", "specify start and end frame num. default: all frames in the stream will be processed");
 
   p.init(argc,argv);
 
@@ -268,6 +271,10 @@ int main(int argc, char* argv[]){
 
   if(p.isOptSet("c")){
     rgb_is_compressed = true;
+  }
+
+  if(p.isOptSet("e")){
+    do_export_png = true;
   }
 
   bool using_bf = false;
@@ -315,23 +322,28 @@ int main(int argc, char* argv[]){
     return 1;
   }
 
-  unsigned num_frames = fb.calcNumFrames(num_streams * (colorsize + depthsize));
+
+  const unsigned num_frames = fb.calcNumFrames(num_streams * (colorsize + depthsize));
+  unsigned start_frame_num = 0;
+  unsigned end_frame_num = num_frames;
   if(p.isOptSet("f")){
-    num_frames = std::min(std::max(0u, (unsigned) p.getOptsInt("f")[0]), num_frames);
-    std::cout << "processing " << num_frames << " frames of the stream" << std::endl;
+    end_frame_num = std::min(std::max(1u, (unsigned) p.getOptsInt("f")[1]), num_frames);
+    start_frame_num = std::min(std::max(1u, (unsigned) p.getOptsInt("f")[0]), end_frame_num);
+    
   }
+  std::cout << "processing from " << start_frame_num << " to " << end_frame_num << " of " << num_frames << " frames of the stream" << std::endl;
+
   double curr_frame_time = 0.0;
 
   unsigned frame_num = 0;
-  while(frame_num < num_frames){
+  while(frame_num < end_frame_num){
     ++frame_num;
 
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
       fb.read((unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]), colorsize);
 
       if(s_num == 0){
-	memcpy((char*) &curr_frame_time, (const char*) sensor.frame_rgb, sizeof(double));
-	std::cout << "curr_frame_time: " << curr_frame_time << std::endl;
+	       memcpy((char*) &curr_frame_time, (const char*) sensor.frame_rgb, sizeof(double));
       }
 
       if(rgb_is_compressed){
@@ -356,6 +368,57 @@ int main(int argc, char* argv[]){
       fb.read((unsigned char*) (s_num == 0 ? sensor.frame_d : sensor.slave_frames_d[s_num - 1]), depthsize);
     }
 
+    if(frame_num < start_frame_num){
+      continue;
+    }
+
+
+    // export png images here
+    if(do_export_png){
+      std::vector<std::string> png_color_names;
+      std::vector<std::string> png_depth_names;
+      for(unsigned s_num = 0; s_num < num_streams; ++s_num){
+        png_color_names.push_back(basefilename_for_output + "_color_sensor_" + toStringP(s_num, 2 /*fill*/) + "_" + toStringP(frame_num, 5 /*fill*/) + ".png");
+        png_depth_names.push_back(basefilename_for_output + "_depth_sensor_" + toStringP(s_num, 2 /*fill*/) + "_" + toStringP(frame_num, 5 /*fill*/) + ".png");
+      }
+
+      for(unsigned s_num = 0; s_num < num_streams; ++s_num){
+        // prepace color image
+        png::image< png::rgb_pixel > png_color(cfg.size_rgb.x,cfg.size_rgb.y);
+        unsigned char* buff_color = (unsigned char*) (s_num == 0 ? sensor.frame_rgb : sensor.slave_frames_rgb[s_num - 1]);
+        unsigned buff_color_id = 0;
+        for(unsigned int y = 0; y < cfg.size_rgb.y; ++y){
+          for(unsigned int x = 0; x < cfg.size_rgb.x; ++x){
+            png::rgb_pixel p;
+            p.red   = buff_color[buff_color_id++];
+            p.green = buff_color[buff_color_id++];
+            p.blue  = buff_color[buff_color_id++];
+            png_color.set_pixel(x, y, p);
+          }
+        }
+        png_color.write(png_color_names[s_num].c_str());
+        std::cout << "exporting " << png_color_names[s_num] << std::endl;
+
+
+        // prepace depth image
+        png::image< png::rgb_pixel > png_d(cfg.size_d.x,cfg.size_d.y);
+        float* buff_d = (s_num == 0 ? sensor.frame_d : sensor.slave_frames_d[s_num - 1]);
+        unsigned buff_d_id = 0;
+        for(unsigned int y = 0; y < cfg.size_d.y; ++y){
+          for(unsigned int x = 0; x < cfg.size_d.x; ++x){
+            const float d_val = buff_d[buff_d_id++];
+            const unsigned char d_val8 = (unsigned char) std::min(255u, (unsigned int)  ( (255.0f/4.5f) * std::min(d_val, 4.5f)));
+            png::rgb_pixel p;
+            p.red   = d_val8;
+            p.green = d_val8;
+            p.blue  = d_val8;
+            png_d.set_pixel(x, y, p);
+          }
+        }
+        png_d.write(png_depth_names[s_num].c_str());
+        std::cout << "exporting " << png_depth_names[s_num] << std::endl;
+      }
+    }
 
 
     std::vector<nniSample> nnisamples;
@@ -411,6 +474,7 @@ int main(int argc, char* argv[]){
       }
     }
     
+    // optionally compute normals for each nniSample here using ComputeNormalsKnobi.hpp/.cpp
 
 
     
@@ -430,51 +494,40 @@ int main(int argc, char* argv[]){
       threadGroup.create_thread(boost::bind(&filterPerThread, &nns, &nnisamples, &results, tid, num_threads));
     }
     threadGroup.join_all();
-#if 0
-    unsigned tid = 0;
-    for(unsigned sid = 0; sid < nnisamples.size(); ++sid){
 
-      nniSample s = nnisamples[sid];
-      
-      
-      std::vector<nniSample> neighbours = nns.search(s,filter_pass_1_k);
-      if(neighbours.empty()){
-	continue;
-      }
 
-      const float avd = calcAvgDist(neighbours, s);
-      if(avd > filter_pass_1_max_avg_dist_in_meter){
-	continue;
-      }
-      
-      std::vector<float> dists;
-      for(const auto& n : neighbours){
-	std::vector<nniSample> local_neighbours = nns.search(n,filter_pass_2_k);
-	if(!local_neighbours.empty()){
-	  dists.push_back(calcAvgDist(local_neighbours, n));
-	}
-      }
-      double mean;
-      double sd;
-      calcMeanSD(dists, mean, sd);
-      if((avd - mean) > filter_pass_2_sd_fac * sd){
-	continue;
-      }
-      results[tid].push_back(s);
-    }
-#endif
-
-    const std::string pcfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + ".xyz");
+    const std::string pcfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + ".ply");
     std::ofstream pcfile(pcfile_name.c_str());
     std::cout << "start writing to file " << pcfile_name << " ..." << std::endl;
+    
+    size_t num_points = 0;
+    for(unsigned tid = 0; tid < num_threads; ++tid){
+      num_points += results[tid].size();
+    }
+
+    pcfile << "ply" << std::endl;
+    pcfile << "format ascii 1.0" << std::endl;
+    pcfile << "element vertex " << num_points << std::endl;
+    pcfile << "property float x" << std::endl;
+    pcfile << "property float y" << std::endl;
+    pcfile << "property float z" << std::endl;
+    //pcfile << "property float nx" << std::endl;
+    //pcfile << "property float ny" << std::endl;
+    //pcfile << "property float nz" << std::endl;
+    pcfile << "property uchar red" << std::endl;
+    pcfile << "property uchar green" << std::endl;
+    pcfile << "property uchar blue" << std::endl;
+    pcfile << "end_header" << std::endl;
+
     for(unsigned tid = 0; tid < num_threads; ++tid){
       for(const auto& s : results[tid]){
 
-	int red   = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
-	int green = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
-	int blue  = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
-	pcfile << s.s_pos.x << " " << s.s_pos.y << " " << s.s_pos.z << " "
-	       << red << " "
+	       int red   = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
+	       int green = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
+	       int blue  = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
+	       pcfile << s.s_pos.x << " " << s.s_pos.y << " " << s.s_pos.z << " "
+	       //<< "0.0" << " " << "1.0" << " " << "0.0" << " "
+         << red << " "
 	       << green << " "
 	       << blue << std::endl;
 	
@@ -491,7 +544,7 @@ int main(int argc, char* argv[]){
 
     std::cout << frame_num
 	      << " from "
-	      << num_frames
+	      << end_frame_num - start_frame_num
 	      << " processed and saved to: "
 	      << pcfile_name << std::endl << std::endl;
 

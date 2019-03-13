@@ -38,6 +38,10 @@ add_executable(rgbdir_viewer rgbdir_viewer.cpp)
 target_link_libraries(rgbdir_viewer framework)
 install(TARGETS rgbdir_viewer DESTINATION bin)
 
+add_executable(display_rgbd_stream display_rgbd_stream.cpp)
+target_link_libraries(display_rgbd_stream framework)
+install(TARGETS display_rgbd_stream DESTINATION bin)
+
 add_executable(calibrate_intrinsic calibrate_intrinsic.cpp)
 target_link_libraries(calibrate_intrinsic framework)
 install(TARGETS calibrate_intrinsic DESTINATION bin)
@@ -74,9 +78,21 @@ add_executable(record record.cpp)
 target_link_libraries(record framework)
 install(TARGETS record DESTINATION bin)
 
+add_executable(remote_recorder remote_recorder.cpp)
+target_link_libraries(remote_recorder framework)
+install(TARGETS remote_recorder DESTINATION bin)
+
+add_executable(remote_player remote_player.cpp)
+target_link_libraries(remote_player framework)
+install(TARGETS remote_player DESTINATION bin)
+
 add_executable(play play.cpp)
 target_link_libraries(play framework)
 install(TARGETS play DESTINATION bin)
+
+add_executable(large_point_cloud_compare large_point_cloud_compare.cpp)
+target_link_libraries(large_point_cloud_compare framework)
+install(TARGETS large_point_cloud_compare DESTINATION bin)
 
 add_executable(play_sweep play_sweep.cpp)
 target_link_libraries(play_sweep framework)
@@ -101,6 +117,10 @@ install(TARGETS voxelizer DESTINATION bin)
 add_executable(uncompress_recording uncompress_recording.cpp)
 target_link_libraries(uncompress_recording framework)
 install(TARGETS uncompress_recording DESTINATION bin)
+
+add_executable(zmq_point_cloud_sender zmq_point_cloud_sender.cpp)
+target_link_libraries(zmq_point_cloud_sender framework)
+install(TARGETS zmq_point_cloud_sender DESTINATION bin)
 
 #install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "poseoffset")
 #install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "click_x.wav")

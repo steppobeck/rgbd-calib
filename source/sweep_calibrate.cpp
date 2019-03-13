@@ -707,8 +707,8 @@ int main(int argc, char* argv[]){
 
   CMDParser p("calibvolumebasefilename checkerboardview_init checkerboardview_sweep samplesfilename");
   p.addOpt("p",1,"poseoffetfilename", "specify the filename of the poseoffset on disk, default: " + pose_offset_filename);
-  p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 256");
-  p.addOpt("d",2,"depthrange", "use this depth range: 0.5 4.5");
+  p.addOpt("s",3,"size", "use this calibration volume size (width x height x depth), default: 128 128 128");
+  p.addOpt("d",2,"depthrange", "use this depth range: 0.5 3.0");
 
   p.addOpt("t",2,"trackingoffsetrange", "min and max offset in seconds of the tracking system relative to depth frame of the sensor, e.g. -0.05 0.03, default: -0.5 0.0");
   p.addOpt("c",2,"coloroffsetrange", "min and max offset in seconds of the color frame relative to depth frame of the sensor, e.g. -0.05 0.0, default: -0.2 0.0");
@@ -811,6 +811,7 @@ int main(int argc, char* argv[]){
   std::string filename_xyz(basefilename + "_xyz");
   std::string filename_uv(basefilename + "_uv");
   const std::string filename_yml(basefilename + "_yml");
+  const std::string filename_spos(basefilename + "_spos");
   CalibVolume cv_init(cv_width, cv_height, cv_depth, cv_min_d, cv_max_d);
 
   RGBDConfig cfg;
@@ -875,7 +876,10 @@ int main(int argc, char* argv[]){
   }
 
   cv_init.save(filename_xyz.c_str(), filename_uv.c_str());
-  
+  // write sensor position relative to world, for possibly later usage in normal computation
+  std::ofstream f_spos(filename_spos.c_str(), std::ofstream::out);
+  f_spos << eye_d_to_world[3][0] << " " << eye_d_to_world[3][1] << " " << eye_d_to_world[3][2] << std::endl;
+  f_spos.close();
   // INITIAL CALIBRATION FINISHED HERE
 
 

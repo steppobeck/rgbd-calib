@@ -1,0 +1,7 @@
+#ifndef REMOTECOMMANDS_HPP
+#define REMOTECOMMANDS_HPP
+
+
+enum RemoteCommands : int {STOP = 500, RECORD = 501, PLAY = 502, PAUSE = 503, LOOP = 504, UNPAUSE = 505};
+
+#endif // #ifndef REMOTECOMMANDS_HPP

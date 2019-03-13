@@ -23,9 +23,9 @@ int main(int argc, char* argv[]){
 
 
   RGBDConfig cfg;
+  cfg.read((p.getArgs()[0] + "_yml").c_str());
   cfg.serverport = p.getArgs()[num_streams];
-  cfg.size_rgb = glm::uvec2(1280, 1080);
-  cfg.size_d   = glm::uvec2(512, 424);
+  cfg.dump();
 
   RGBDSensor sensor(cfg, num_streams - 1);
 
