@@ -267,6 +267,9 @@ int main(int argc, char* argv[]){
             //current world pos
             glm::vec3 current_world_pos3D = image_to_3d(x, y, depth_center);
 
+
+            // filter at depth silhouttes aka flying pixels based on gradient
+            #if 1
             glm::vec3 left_world_pos3D = image_to_3d(x-1, y, depth_left);
             glm::vec3 right_world_pos3D = image_to_3d(x+1, y, depth_right);
             glm::vec3 top_world_pos3D = image_to_3d(x, y+1, depth_top);
@@ -279,19 +282,95 @@ int main(int argc, char* argv[]){
                 || glm::length(horizontal_gradient) > gradient_cut_off_threshold) {
               continue;
             }
+            #endif
 
+            // calculate normal
+            #if 0
             glm::vec3 normal = glm::normalize(glm::cross(vertical_gradient, 
                                                          horizontal_gradient));
-
             float gray_value = depth_center / 12.0;
-
             glm::vec3 gray_color(gray_value, gray_value, gray_value);
-            //glColor3f(gray_value, gray_value, gray_value);
-
             glm::vec3 normal_color = glm::mix(gray_color, glm::vec3(0.5, 0.5, 0.5)*(glm::vec3(1.0, 1.0, 1.0) + normal), mix_in_factor);
-            glColor3f(normal_color.x, normal_color.y, normal_color.z);
+            #endif
 
-            glVertex3f(current_world_pos3D.x, current_world_pos3D.y, current_world_pos3D.z);
+            // calculate color coordinate
+            glm::vec4 pos_d_H(current_world_pos3D.x, current_world_pos3D.y, current_world_pos3D.z, 1.0f);
+            glm::vec4 pos_rgb_H = sensor_configs[s_num].eye_d_to_eye_rgb * pos_d_H;    
+            float xcf = (pos_rgb_H[0]/pos_rgb_H[2]) * sensor_configs[s_num].focal_rgb.x + sensor_configs[s_num].principal_rgb.x;
+            float ycf = (pos_rgb_H[1]/pos_rgb_H[2]) * sensor_configs[s_num].focal_rgb.y + sensor_configs[s_num].principal_rgb.y;
+            // filter based on color field of view
+            if(xcf < 0.0 || xcf > (sensor_configs[s_num].size_rgb.x - 1.0f) ||
+               ycf < 0.0 || ycf > (sensor_configs[s_num].size_rgb.y - 1.0f)){
+              continue;
+            }
+            else{
+              xcf = std::max(0.0f, std::min(xcf, sensor_configs[s_num].size_rgb.x - 1.0f));
+              ycf = std::max(0.0f, std::min(ycf, sensor_configs[s_num].size_rgb.y - 1.0f));  
+            }
+
+            glm::vec2 pos_rgb(xcf,ycf);
+            glm::vec3 rgb;
+            {
+
+              // calculate weights and boundaries along x direction
+              const unsigned xa = std::floor(pos_rgb.x);
+              const unsigned xb = std::ceil(pos_rgb.x);
+              const float w_xb = (pos_rgb.x - xa);
+              const float w_xa = (1.0 - w_xb);
+
+              // calculate weights and boundaries along y direction
+              const unsigned ya = std::floor(pos_rgb.y);
+              const unsigned yb = std::ceil(pos_rgb.y);
+              const float w_yb = (pos_rgb.y - ya);
+              const float w_ya = (1.0 - w_yb);
+
+
+              unsigned char* frame_rgb_real = color_frames[s_num].data();
+
+              // calculate indices to access data
+              const unsigned idmax = 3u * sensor_configs[s_num].size_rgb.x * sensor_configs[s_num].size_rgb.y - 2u;
+              const unsigned id00 = std::min( ya * 3u * sensor_configs[s_num].size_rgb.x + 3u * xa  , idmax);
+              const unsigned id10 = std::min( ya * 3u * sensor_configs[s_num].size_rgb.x + 3u * xb  , idmax);
+              const unsigned id01 = std::min( yb * 3u * sensor_configs[s_num].size_rgb.x + 3u * xa  , idmax);
+              const unsigned id11 = std::min( yb * 3u * sensor_configs[s_num].size_rgb.x + 3u * xb  , idmax);
+              
+
+              // RED CHANNEL
+              {
+                // 1. interpolate between x direction;
+                const float tmp_ya = w_xa * frame_rgb_real[id00] + w_xb * frame_rgb_real[id10];
+                const float tmp_yb = w_xa * frame_rgb_real[id01] + w_xb * frame_rgb_real[id11];
+                // 2. interpolate between y direction;
+                rgb.x = w_ya * tmp_ya + w_yb * tmp_yb;
+              }
+
+              // GREEN CHANNEL
+              {
+                // 1. interpolate between x direction;
+                const float tmp_ya = w_xa * frame_rgb_real[id00 + 1] + w_xb * frame_rgb_real[id10 + 1];
+                const float tmp_yb = w_xa * frame_rgb_real[id01 + 1] + w_xb * frame_rgb_real[id11 + 1];
+                // 2. interpolate between y direction;
+                rgb.y = w_ya * tmp_ya + w_yb * tmp_yb;
+              }
+
+              // BLUE CHANNEL
+              {
+                // 1. interpolate between x direction;
+                const float tmp_ya = w_xa * frame_rgb_real[id00 + 2] + w_xb * frame_rgb_real[id10 + 2];
+                const float tmp_yb = w_xa * frame_rgb_real[id01 + 2] + w_xb * frame_rgb_real[id11 + 2];
+                // 2. interpolate between y direction;
+                rgb.z = w_ya * tmp_ya + w_yb * tmp_yb;
+              }
+
+              rgb.x /= 255.0;
+              rgb.y /= 255.0;
+              rgb.z /= 255.0;
+
+            }
+
+            glColor3f(rgb.x, rgb.y, rgb.z);
+
+            glVertex3f(current_world_pos3D.x, current_world_pos3D.y, current_world_pos3D.z - 2.0);
 
           }
         }
