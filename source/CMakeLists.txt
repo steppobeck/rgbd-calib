@@ -6,6 +6,10 @@ add_executable(zmq_sender zmq_sender.cpp)
 target_link_libraries(zmq_sender framework)
 install(TARGETS zmq_sender DESTINATION bin)
 
+add_executable(zmq_point_cloud_sender zmq_point_cloud_sender.cpp)
+target_link_libraries(zmq_point_cloud_sender framework)
+install(TARGETS zmq_point_cloud_sender DESTINATION bin)
+
 add_executable(feedback_sender feedback_sender.cpp)
 target_link_libraries(feedback_sender framework)
 install(TARGETS feedback_sender DESTINATION bin)
@@ -33,6 +37,10 @@ install(TARGETS stable_sampler DESTINATION bin)
 add_executable(rgbdir_viewer rgbdir_viewer.cpp)
 target_link_libraries(rgbdir_viewer framework)
 install(TARGETS rgbdir_viewer DESTINATION bin)
+
+add_executable(rgbd_stream_to_point_cloud rgbd_stream_to_point_cloud.cpp)
+target_link_libraries(rgbd_stream_to_point_cloud framework)
+install(TARGETS rgbd_stream_to_point_cloud DESTINATION bin)
 
 add_executable(display_rgbd_stream display_rgbd_stream.cpp)
 target_link_libraries(display_rgbd_stream framework)
@@ -113,10 +121,6 @@ install(TARGETS voxelizer DESTINATION bin)
 add_executable(uncompress_recording uncompress_recording.cpp)
 target_link_libraries(uncompress_recording framework)
 install(TARGETS uncompress_recording DESTINATION bin)
-
-add_executable(zmq_point_cloud_sender zmq_point_cloud_sender.cpp)
-target_link_libraries(zmq_point_cloud_sender framework)
-install(TARGETS zmq_point_cloud_sender DESTINATION bin)
 
 #install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "poseoffset")
 #install(DIRECTORY . DESTINATION bin FILES_MATCHING PATTERN "click_x.wav")
