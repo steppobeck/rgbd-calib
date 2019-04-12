@@ -6,9 +6,18 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
+#include <pcl/registration/icp.h>
+
+
+#include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
+
 #include <iostream>
 #include <string.h>
 
+std::vector<std::pair<float, glm::mat4> > sensor_world_extrinsics;
 
 namespace{
 unsigned char*
@@ -41,10 +50,115 @@ convertRGB2BGR(unsigned char* in, unsigned w, unsigned h){
   }
   return out;
 }
+
+glm::mat4
+to_glm(const Eigen::Matrix4f& t){
+  glm::mat4 result;
+  // assuming column major matrices in both types
+  for(unsigned c = 0; c < 4; ++c){
+    for(unsigned r = 0; r < 4; ++r){
+      result[c][r] = t(r,c);
+    }
+  }
+  return result;
 }
 
 
+std::pair<float, glm::mat4>
+icp_step(const std::vector<glm::vec3>& pcA, const std::vector<glm::vec3>& pcB, unsigned max_itertions){
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloudA (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloudB (new pcl::PointCloud<pcl::PointXYZ>);
+
+
+  // fill cloudA
+  cloudA->width    = pcA.size();
+  cloudA->height   = 1;
+  cloudA->is_dense = false; // Specifies if all the data in points is finite (true), or whether the XYZ values of certain points might contain Inf/NaN values (false).
+  cloudA->points.resize (cloudA->width * cloudA->height);
+  for (size_t i = 0; i < pcA.size(); ++i)
+  {
+    const glm::vec3& p = pcA[i];
+    cloudA->points[i].x = p[0];
+    cloudA->points[i].y = p[1];
+    cloudA->points[i].z = p[2];
+  }
+
+
+  // fill cloudB
+  cloudB->width    = pcB.size();
+  cloudB->height   = 1;
+  cloudB->is_dense = false;
+  cloudB->points.resize (cloudB->width * cloudB->height);
+  for (size_t i = 0; i < pcB.size(); ++i)
+  {
+    const glm::vec3& p = pcB[i];
+    cloudB->points[i].x = p[0];
+    cloudB->points[i].y = p[1];
+    cloudB->points[i].z = p[2];
+  }
+
+  std::cout << "performing icp for cloudA(" << pcA.size() << ") to cloudB(" << pcB.size() << ")" << std::endl;
+
+  pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+  icp.setInputSource(cloudA);
+  icp.setInputTarget(cloudB);
+  icp.setMaximumIterations(max_itertions);
+  icp.setRANSACOutlierRejectionThreshold(0.1);
+  icp.setMaxCorrespondenceDistance(100 * 0.1);
+  // icp.setRANSACOutlierRejectionThreshold(double inlier_threshold); The method considers a point to be an inlier, if the distance between the target data index and the transformed source index is smaller than the given inlier distance threshold. The value is set by default to 0.05m.   
+  pcl::PointCloud<pcl::PointXYZ> Final;
+  icp.align(Final);
+
+  std::pair<float, glm::mat4> result;
+  result.first = std::numeric_limits<float>::max();
+  if(!icp.hasConverged()){
+    return result;
+  }
+
+  result.first = icp.getFitnessScore();
+  result.second = to_glm(icp.getFinalTransformation());
+  std::cout << "icp score: " << result.first << std::endl;
+  std::cout << "a -> b: " << result.second << std::endl;
+  return result;
+}
+
+
+bool world_extrinsics_computing = false;
+void
+register_a_to_b(unsigned extrinsic_num, std::vector<glm::vec3> a, std::vector<glm::vec3> b){
+  std::pair<float, glm::mat4> r = icp_step(a, b, 50);
+  if(r.first < sensor_world_extrinsics[extrinsic_num].first){
+    sensor_world_extrinsics[extrinsic_num] = r;
+    std::cout << "updated extrinsic "  << sensor_world_extrinsics[extrinsic_num].first << std::endl;  
+  }
+  world_extrinsics_computing = false;
+}
+
+
+void
+start_calibration(const std::vector<std::vector<glm::vec3> >& point_clouds){
+  static boost::thread* t = nullptr;
+  if(t != nullptr){
+    t->join();
+    delete t;
+    t = nullptr;
+  }
+  for(unsigned i = 1; i < point_clouds.size(); ++i){
+    t = new boost::thread(boost::bind(&register_a_to_b, i, point_clouds[i], point_clouds[0]));
+  }
+}
+
+
+}
+
+
+
+
+
 int main(int argc, char* argv[]){
+
+
 
   CMDParser p("calibfile.cv_yml ...");
   p.addOpt("s",1,"serverport", "Serverport to receive stream from");
@@ -56,8 +170,13 @@ int main(int argc, char* argv[]){
 
   unsigned num_streams = p.getArgs().size();
   std::vector<RGBDConfig> sensor_configs(num_streams);
+  sensor_world_extrinsics.resize(num_streams);
+  std::vector<std::vector<glm::vec3> > point_clouds(num_streams);
   for(int sensor_idx = 0; sensor_idx < num_streams; ++sensor_idx) {
     sensor_configs[sensor_idx].read(p.getArgs()[sensor_idx].c_str());
+
+    sensor_world_extrinsics[sensor_idx].first = std::numeric_limits<float>::max();
+    sensor_world_extrinsics[sensor_idx].second = glm::mat4();
   }
   
 
@@ -131,12 +250,27 @@ int main(int argc, char* argv[]){
 
 
 
+    
+
+
+
     glPointSize(1.0);
     glBegin(GL_POINTS);
+
+    
 
     for(unsigned s_num = 0; s_num < num_streams; ++s_num){
 
       // do 3D recosntruction for each depth pixel
+      point_clouds[s_num].clear();
+      if(1 == s_num){
+        static float last_score = sensor_world_extrinsics[s_num].first;
+        if(last_score > sensor_world_extrinsics[s_num].first){
+          std::cout << "extrinsic changed from score " << last_score << " to " << sensor_world_extrinsics[s_num].first << std::endl;
+          std::cout << sensor_world_extrinsics[s_num].second << std::endl;
+          last_score = sensor_world_extrinsics[s_num].first;
+        }
+      }
       for(unsigned y = 0; y < sensor_configs[s_num].size_d.y; ++y){
           for(unsigned x = 0; x < (sensor_configs[s_num].size_d.x - 3); ++x){
 
@@ -295,12 +429,25 @@ int main(int argc, char* argv[]){
 
             glColor3f(rgb.x, rgb.y, rgb.z);
 
-            glVertex3f(current_world_pos3D.x, current_world_pos3D.y, current_world_pos3D.z);
+            point_clouds[s_num].push_back(current_world_pos3D);
+            glm::vec4 calibrated_world_pos = sensor_world_extrinsics[s_num].second * glm::vec4(current_world_pos3D.x, current_world_pos3D.y, current_world_pos3D.z, 1.0);
+
+            glVertex3f(calibrated_world_pos.x, calibrated_world_pos.y, calibrated_world_pos.z);
 
           }
         }
       }
     glEnd();
+
+
+    static bool calibrate = false;
+    if(win.isKeyPressed(67 /*"c"*/)){
+      calibrate = true;
+    }
+    if(!world_extrinsics_computing && calibrate){
+      start_calibration(point_clouds);
+      world_extrinsics_computing = true;
+    }
 
     win.update();
     cv::waitKey(1);

@@ -39,7 +39,8 @@ target_link_libraries(rgbdir_viewer framework)
 install(TARGETS rgbdir_viewer DESTINATION bin)
 
 add_executable(rgbd_stream_to_point_cloud rgbd_stream_to_point_cloud.cpp)
-target_link_libraries(rgbd_stream_to_point_cloud framework)
+target_include_directories(rgbd_stream_to_point_cloud PUBLIC ${EIGENLIB_INCLUDE_DIR} ${PCL_INCLUDE_DIRS})
+target_link_libraries(rgbd_stream_to_point_cloud framework ${PCL_LIBRARIES})
 install(TARGETS rgbd_stream_to_point_cloud DESTINATION bin)
 
 add_executable(display_rgbd_stream display_rgbd_stream.cpp)

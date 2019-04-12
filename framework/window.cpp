@@ -114,6 +114,7 @@ void Window::keyCallback(GLFWwindow* win, int key, int scancode, int act, int mo
 {
   Window* w = reinterpret_cast<Window*>(glfwGetWindowUserPointer(win));
   assert(w);
+  //std::cout << "key:" << key << std::endl;
   w->m_keypressed[key] = act == KEY_PRESS;
 }
 

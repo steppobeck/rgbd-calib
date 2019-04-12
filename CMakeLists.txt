@@ -35,6 +35,10 @@ set(BOOST_INCLUDE_DIRS ${Boost_INCLUDE_DIRS} CACHE PATH "boost include dir")
 set(BOOST_LIBRARIES ${Boost_LIBRARIES} CACHE PATH "boost libraries")
 include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 ################################
+# PCL
+find_package(PCL 1.3 REQUIRED)
+set(EIGENLIB_INCLUDE_DIR "/usr/include/eigen3")
+################################
 #CGAL
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
 set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
