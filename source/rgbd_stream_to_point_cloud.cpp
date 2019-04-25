@@ -9,7 +9,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
-
+#include <pcl/registration/icp_nl.h>
 
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
@@ -99,16 +99,40 @@ icp_step(const std::vector<glm::vec3>& pcA, const std::vector<glm::vec3>& pcB, u
   }
 
   std::cout << "performing icp for cloudA(" << pcA.size() << ") to cloudB(" << pcB.size() << ")" << std::endl;
-
-  pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+  std::cout << "use color distance to improve icp.addCorrespondenceRejector() setPointRepresentation (const PointRepresentationConstPtr &point_representation) Provide a boost shared pointer to the PointRepresentation to be used when comparing points." << std::endl;
+  std::cout << "or only do icp based on correspondences"<< std::endl;
+  //pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+  pcl::IterativeClosestPointNonLinear<pcl::PointXYZ, pcl::PointXYZ> icp;
   icp.setInputSource(cloudA);
   icp.setInputTarget(cloudB);
   icp.setMaximumIterations(max_itertions);
-  icp.setRANSACOutlierRejectionThreshold(0.1);
-  icp.setMaxCorrespondenceDistance(100 * 0.1);
-  // icp.setRANSACOutlierRejectionThreshold(double inlier_threshold); The method considers a point to be an inlier, if the distance between the target data index and the transformed source index is smaller than the given inlier distance threshold. The value is set by default to 0.05m.   
+
+  //icp.setRANSACIterations(20);
+  // https://stackoverflow.com/questions/37853423/point-cloud-registration-using-pcl-iterative-closest-point
+  //icp.setRANSACOutlierRejectionThreshold(0.15);
+  //icp.setMaxCorrespondenceDistance(0.05);
+
   pcl::PointCloud<pcl::PointXYZ> Final;
-  icp.align(Final);
+
+  
+  static Eigen::Matrix4f last_fit;
+  static bool have_last_fit = false;
+  static unsigned ransac_iterations = 20;
+  static float ransac_outlier_thresh = 0.1;
+  if(have_last_fit){
+    std::cout << "using last_fit as guess " << to_glm(last_fit) << std::endl;
+    icp.setRANSACIterations(ransac_iterations);
+    icp.setRANSACOutlierRejectionThreshold(ransac_outlier_thresh);
+    icp.align(Final, last_fit);
+    
+
+  }
+  else{
+    icp.setRANSACIterations(ransac_iterations);
+    icp.setRANSACOutlierRejectionThreshold(ransac_outlier_thresh);
+    icp.align(Final);  
+  }
+  
 
   std::pair<float, glm::mat4> result;
   result.first = std::numeric_limits<float>::max();
@@ -116,8 +140,18 @@ icp_step(const std::vector<glm::vec3>& pcA, const std::vector<glm::vec3>& pcB, u
     return result;
   }
 
+  // use last result as guess
+  have_last_fit = true;
+  ++ransac_iterations;
+  ransac_outlier_thresh = ransac_outlier_thresh > 0.05 ? ransac_outlier_thresh*0.95 : ransac_outlier_thresh;
+  // end use last result as guess
+
+
+  last_fit = icp.getFinalTransformation();
   result.first = icp.getFitnessScore();
-  result.second = to_glm(icp.getFinalTransformation());
+  result.second = to_glm(last_fit);
+
+
   std::cout << "icp score: " << result.first << std::endl;
   std::cout << "a -> b: " << result.second << std::endl;
   return result;
@@ -138,6 +172,8 @@ register_a_to_b(unsigned extrinsic_num, std::vector<glm::vec3> a, std::vector<gl
 
 void
 start_calibration(const std::vector<std::vector<glm::vec3> >& point_clouds){
+  std::cout << "start_calibration" << std::endl;
+  world_extrinsics_computing = true;
   static boost::thread* t = nullptr;
   if(t != nullptr){
     t->join();
@@ -149,6 +185,14 @@ start_calibration(const std::vector<std::vector<glm::vec3> >& point_clouds){
   }
 }
 
+void
+reset_calibration(const unsigned num_sensors){
+  std::cout << "reset_calibration" << std::endl;
+  for(unsigned i = 0; i < num_sensors; ++i){
+    sensor_world_extrinsics[i].first = std::numeric_limits<float>::max();
+    sensor_world_extrinsics[i].second = glm::mat4();    
+  }
+}
 
 }
 
@@ -215,7 +259,7 @@ int main(int argc, char* argv[]){
 
 
   Window win(window_size, true /*3D mode*/);
-
+  win.setClearColor(0.8,0.8,0.8);
   while (!win.shouldClose()) {
 
     auto t = win.getTime();
@@ -276,8 +320,7 @@ int main(int argc, char* argv[]){
 
             const unsigned d_idx = y * sensor_configs[s_num].size_d.x + x;
 
-            float depth_center = depth_frames[s_num][d_idx];
-
+            const float depth_center = depth_frames[s_num][d_idx];
             if(depth_center > distance_cut_off_threshold) {
               continue;
             }
@@ -355,8 +398,10 @@ int main(int argc, char* argv[]){
             glm::vec4 pos_rgb_H = sensor_configs[s_num].eye_d_to_eye_rgb * pos_d_H;    
             float xcf = (pos_rgb_H[0]/pos_rgb_H[2]) * sensor_configs[s_num].focal_rgb.x + sensor_configs[s_num].principal_rgb.x;
             float ycf = (pos_rgb_H[1]/pos_rgb_H[2]) * sensor_configs[s_num].focal_rgb.y + sensor_configs[s_num].principal_rgb.y;
-            
-            // filter based on color field of view
+
+
+#if 1            
+            // filter based on field of view of color camera
             if(xcf < 0.0 || xcf > (sensor_configs[s_num].size_rgb.x - 1.0f) ||
                ycf < 0.0 || ycf > (sensor_configs[s_num].size_rgb.y - 1.0f)){
               continue;
@@ -365,6 +410,11 @@ int main(int argc, char* argv[]){
               xcf = std::max(0.0f, std::min(xcf, sensor_configs[s_num].size_rgb.x - 1.0f));
               ycf = std::max(0.0f, std::min(ycf, sensor_configs[s_num].size_rgb.y - 1.0f));  
             }
+#else
+            xcf = std::max(0.0f, std::min(xcf, sensor_configs[s_num].size_rgb.x - 1.0f));
+            ycf = std::max(0.0f, std::min(ycf, sensor_configs[s_num].size_rgb.y - 1.0f));
+#endif
+
             glm::vec2 pos_rgb(xcf,ycf);
 
             // lookup color
@@ -427,12 +477,29 @@ int main(int argc, char* argv[]){
 
             }
 
-            glColor3f(rgb.x, rgb.y, rgb.z);
-
-            point_clouds[s_num].push_back(current_world_pos3D);
+            
             glm::vec4 calibrated_world_pos = sensor_world_extrinsics[s_num].second * glm::vec4(current_world_pos3D.x, current_world_pos3D.y, current_world_pos3D.z, 1.0);
 
+
+            if(!world_extrinsics_computing){
+              glColor3f(rgb.x, rgb.y, rgb.z);
+            }
+            else{
+              if(0 == s_num){
+                glColor3f(1.0, 0.0, 0.0);
+              }
+              else{
+                glColor3f(0.0, 1.0, 0.0); 
+              }
+            }
+            
+
             glVertex3f(calibrated_world_pos.x, calibrated_world_pos.y, calibrated_world_pos.z);
+
+
+            
+            point_clouds[s_num].push_back(current_world_pos3D);  
+            
 
           }
         }
@@ -440,13 +507,11 @@ int main(int argc, char* argv[]){
     glEnd();
 
 
-    static bool calibrate = false;
-    if(win.isKeyPressed(67 /*"c"*/)){
-      calibrate = true;
-    }
-    if(!world_extrinsics_computing && calibrate){
+    if(!world_extrinsics_computing && win.isKeyPressed(67 /*"c"*/)){
       start_calibration(point_clouds);
-      world_extrinsics_computing = true;
+    }
+    if(!world_extrinsics_computing && win.isKeyPressed(32 /*" "*/)){
+      reset_calibration(num_streams);
     }
 
     win.update();
