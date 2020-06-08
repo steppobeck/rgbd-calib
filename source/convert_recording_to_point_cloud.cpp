@@ -210,13 +210,16 @@ int main(int argc, char* argv[]){
   unsigned num_threads = 16;
   bool rgb_is_compressed = false;
   bool do_export_png = false;
+  bool write_ply = true;
+  bool write_binary = false;
   std::string stream_filename;
   CMDParser p("basefilename_cv .... basefilename_for_output");
   p.addOpt("s",1,"stream_filename", "specify the stream filename which should be converted");
   p.addOpt("n",1,"num_threads", "specify how many threads should be used, default 16");
   p.addOpt("c",-1,"rgb_is_compressed", "enable compressed support for rgb stream, default: false (not compressed)");
   p.addOpt("e",-1,"export_png", "enable export of color and depth images to png files, default: false (no png export)");
-
+  p.addOpt("x",-1,"xyz", "export xyz file instead of ply, default: false (ply export)");
+  p.addOpt("y",-1,"binary", "export binary file instead of ascii, default: false (ascii export)");
   p.addOpt("p1d",1,"filter_pass_1_max_avg_dist_in_meter", "filter pass 1 skips points which have an average distance of more than this to it k neighbors, default 0.025");
   p.addOpt("p1k",1,"filter_pass_1_k", "filter pass 1 number of neighbors, default 50");
   p.addOpt("p2s",1,"filter_pass_2_sd_fac", "filter pass 2, specify how many times a point's distance should be above (values higher than 1.0) / below (values smaller than 1.0) is allowed to be compared to standard deviation of its k neighbors, default 1.0");
@@ -275,6 +278,14 @@ int main(int argc, char* argv[]){
 
   if(p.isOptSet("e")){
     do_export_png = true;
+  }
+
+  if(p.isOptSet("x")){
+    write_ply = false;
+  }
+
+  if(p.isOptSet("y")){
+    write_binary = true;
   }
 
   bool using_bf = false;
@@ -495,9 +506,9 @@ int main(int argc, char* argv[]){
     }
     threadGroup.join_all();
 
-
-    const std::string pcfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + ".ply");
-    std::ofstream pcfile(pcfile_name.c_str());
+    const std::string file_extension = write_ply ? ".ply" : write_binary ? ".xyz_bin" : ".xyz";
+    const std::string pcfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + file_extension);
+    std::ofstream* pcfile = new std::ofstream(pcfile_name.c_str());
     std::cout << "start writing to file " << pcfile_name << " ..." << std::endl;
     
     size_t num_points = 0;
@@ -505,37 +516,53 @@ int main(int argc, char* argv[]){
       num_points += results[tid].size();
     }
 
-    pcfile << "ply" << std::endl;
-    pcfile << "format ascii 1.0" << std::endl;
-    pcfile << "element vertex " << num_points << std::endl;
-    pcfile << "property float x" << std::endl;
-    pcfile << "property float y" << std::endl;
-    pcfile << "property float z" << std::endl;
-    //pcfile << "property float nx" << std::endl;
-    //pcfile << "property float ny" << std::endl;
-    //pcfile << "property float nz" << std::endl;
-    pcfile << "property uchar red" << std::endl;
-    pcfile << "property uchar green" << std::endl;
-    pcfile << "property uchar blue" << std::endl;
-    pcfile << "end_header" << std::endl;
+    if(write_ply){
+      *pcfile << "ply" << std::endl;
+      *pcfile << "format ascii 1.0" << std::endl;
+      *pcfile << "element vertex " << num_points << std::endl;
+      *pcfile << "property float x" << std::endl;
+      *pcfile << "property float y" << std::endl;
+      *pcfile << "property float z" << std::endl;
+      //pcfile << "property float nx" << std::endl;
+      //pcfile << "property float ny" << std::endl;
+      //pcfile << "property float nz" << std::endl;
+      *pcfile << "property uchar red" << std::endl;
+      *pcfile << "property uchar green" << std::endl;
+      *pcfile << "property uchar blue" << std::endl;
+      *pcfile << "end_header" << std::endl;
+    }
+    
 
     for(unsigned tid = 0; tid < num_threads; ++tid){
       for(const auto& s : results[tid]){
 
-	       int red   = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
-	       int green = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
-	       int blue  = (int) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
-	       pcfile << s.s_pos.x << " " << s.s_pos.y << " " << s.s_pos.z << " "
-	       //<< "0.0" << " " << "1.0" << " " << "0.0" << " "
-         << red << " "
-	       << green << " "
-	       << blue << std::endl;
+	       unsigned char red   = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.x * 255.0f));
+	       unsigned char green = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.y * 255.0f));
+	       unsigned char blue  = (unsigned char) std::max(0.0f , std::min(255.0f, s.s_pos_off.z * 255.0f));
+         if(write_binary && !write_ply){
+          //*pcfile << s.s_pos.x << s.s_pos.y << s.s_pos.z << red << green << blue;
+          pcfile->write((const char*) &s.s_pos.x, sizeof(float));
+          pcfile->write((const char*) &s.s_pos.y, sizeof(float));
+          pcfile->write((const char*) &s.s_pos.z, sizeof(float));
+          pcfile->write((const char*) &red, sizeof(unsigned char));
+          pcfile->write((const char*) &green, sizeof(unsigned char));
+          pcfile->write((const char*) &blue, sizeof(unsigned char));
+          const unsigned char alpha = 255;
+          pcfile->write((const char*) &alpha, sizeof(unsigned char));
+
+         }
+         else{
+          *pcfile << s.s_pos.x << " " << s.s_pos.y << " " << s.s_pos.z << " " << (int) red << " " << (int) green << " " << (int) blue << std::endl;
+         }
+	       
+
 	
       }
       
     }
 
-    pcfile.close();
+    pcfile->close();
+    delete pcfile;
 
     const std::string tsfile_name(basefilename_for_output + "_" + toStringP(frame_num, 5 /*fill*/) + ".timestamp");
     std::ofstream tsfile(tsfile_name.c_str());
